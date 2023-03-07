@@ -1,0 +1,41 @@
+[package]
+name = "runcher"
+#build = "build.rs"
+version = "0.1.0"
+authors = ["Frodo45127 <frodo_gv@hotmail.com>"]
+description = "A generic launcher for Total War games since Empire: Total War."
+license = "MIT"
+edition = "2021"
+repository = "https://github.com/Frodo45127/rpfm"
+categories = ["games"]
+keywords = ["totalwar", "modding", "launcher"]
+readme = "README.md"
+rust-version = "1.64"
+
+[dependencies]
+
+# Internal dependencies.
+rpfm_lib = { path = "../rpfm/rpfm_lib", version = "3.99.119", features = ["integration_log", "integration_git"] }
+rpfm_extensions = { path = "../rpfm/rpfm_extensions", version = "3.99.119" }
+rpfm_ui_common = { path = "../rpfm/rpfm_ui_common", version = "3.99.119" }
+
+# Config dependencies.
+directories = "^4.0"
+lazy_static = "^1.2"
+
+# Error managing.
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Basic get/set support.
+getset = "^0.1"
+
+# Qt dependencies.
+cpp_core = "^0.6"
+qt_core = "^0.5"
+qt_gui = "^0.5"
+qt_widgets = "^0.5"
+qt_ui_tools = "^0.5"
+
+# Steam Workshop support.
+steam-workshop-api = "^0.2"

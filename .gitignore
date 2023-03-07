@@ -1,0 +1,23 @@
+# Crashlog folder.
+/error/
+
+# Compilation folder for Rust & Company.
+/target/
+
+# KDE directory config file.
+.directory
+
+# Sublime Config files.
+*.sublime-project
+*.sublime-workspace
+
+# Subclasses lib compilation files.
+*.pro.user
+**/Makefile
+**/Makefile.*
+**/.qmake.stash
+**/.qtc_clangd/
+**/*.rs.bk
+
+# These are usually files locked by applications.
+*.*~
