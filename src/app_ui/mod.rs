@@ -24,7 +24,7 @@ use anyhow::{anyhow, Result};
 use getset::Getters;
 
 use std::rc::Rc;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 use rpfm_lib::games::{GameInfo, supported_games::*};
 use rpfm_lib::integrations::log::*;
@@ -34,13 +34,15 @@ use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
-use crate::SUPPORTED_GAMES;
+use crate::actions_ui::ActionsUI;
 use crate::mod_list_ui::ModListUI;
 use crate::pack_list_ui::PackListUI;
 use crate::settings_ui::SettingsUI;
 use crate::settings_ui::init_settings;
+use crate::SUPPORTED_GAMES;
 
-pub mod connections;
+use self::slots::AppUISlots;
+
 pub mod slots;
 
 //-------------------------------------------------------------------------------//
@@ -83,14 +85,19 @@ pub struct AppUI {
     about_about_runcher: QPtr<QAction>,
 
     //-------------------------------------------------------------------------------//
+    // `Actions` section.
+    //-------------------------------------------------------------------------------//
+    actions_ui: ActionsUI,
+
+    //-------------------------------------------------------------------------------//
     // `Mod List` section.
     //-------------------------------------------------------------------------------//
-    mod_list_ui: ModListUI,
+    mod_list_ui: Arc<ModListUI>,
 
     //-------------------------------------------------------------------------------//
     // `Pack List` section.
     //-------------------------------------------------------------------------------//
-    pack_list_ui: PackListUI,
+    pack_list_ui: Arc<PackListUI>,
 
     //-------------------------------------------------------------------------------//
     // Extra stuff
@@ -107,7 +114,7 @@ pub struct AppUI {
 impl AppUI {
 
     /// This function creates an entire `AppUI` struct. Used to create the entire UI at start.
-    pub unsafe fn new() -> Result<Self> {
+    pub unsafe fn new() -> Result<Arc<Self>> {
 
         // Initialize and configure the main window.
         let main_window = QMainWindow::new_0a();
@@ -121,11 +128,8 @@ impl AppUI {
         let menu_bar = main_window.menu_bar();
         let status_bar = main_window.status_bar();
         status_bar.set_size_grip_enabled(false);
-        dbg!(1);
         let menu_bar_game_selected = menu_bar.add_menu_q_string(&qtr("menu_bar_game_selected"));
-        dbg!(1);
         let menu_bar_about = menu_bar.add_menu_q_string(&qtr("menu_bar_about"));
-        dbg!(1);
 
         //-----------------------------------------------//
         // `Game Selected` Menu.
@@ -186,21 +190,22 @@ impl AppUI {
         let about_about_qt = menu_bar_about.add_action_q_string(&qtr("About QT"));
         let about_about_runcher = menu_bar_about.add_action_q_string(&qtr("About Runcher"));
 
-        dbg!(1);
+        //-------------------------------------------------------------------------------//
+        // `Actions` section.
+        //-------------------------------------------------------------------------------//
+        let actions_ui = ActionsUI::new(&main_window)?;
+
         //-------------------------------------------------------------------------------//
         // `Mod List` section.
         //-------------------------------------------------------------------------------//
         let mod_list_ui = ModListUI::new(&main_window)?;
 
-        dbg!(1);
         //-------------------------------------------------------------------------------//
         // `Pack List` section.
         //-------------------------------------------------------------------------------//
         let pack_list_ui = PackListUI::new(&main_window)?;
 
-        dbg!(1);
-        // Create ***Da monsta***.
-        let app_ui = Self {
+        let app_ui = Arc::new(Self {
 
             //-------------------------------------------------------------------------------//
             // Main Window.
@@ -231,6 +236,11 @@ impl AppUI {
             about_about_runcher,
 
             //-------------------------------------------------------------------------------//
+            // `Actions` section.
+            //-------------------------------------------------------------------------------//
+            actions_ui,
+
+            //-------------------------------------------------------------------------------//
             // `Mod List` section.
             //-------------------------------------------------------------------------------//
             mod_list_ui,
@@ -246,13 +256,14 @@ impl AppUI {
             game_selected: Rc::new(RwLock::new(SUPPORTED_GAMES.game("warhammer_2").unwrap().clone())),
             focused_widget: Rc::new(RwLock::new(None)),
             disabled_counter: Rc::new(RwLock::new(0)),
-        };
+        });
 
-        dbg!(1);
+        let slots = AppUISlots::new(&app_ui);
+        app_ui.set_connections(&slots);
+
         // Initialize settings.
         init_settings(&app_ui.main_window().static_upcast());
 
-        dbg!(1);
         // Apply last ui state.
         app_ui.main_window().restore_geometry(&setting_byte_array("geometry"));
         app_ui.main_window().restore_state_1a(&setting_byte_array("windowState"));
@@ -272,22 +283,22 @@ impl AppUI {
             }
         }
 
-        dbg!(1);
         if !game_path_set {
             SettingsUI::new(app_ui.main_window());
         }
 
         log_to_status_bar(app_ui.main_window().status_bar(), "Initializing, please wait...");
 
-        dbg!(1);
-
         let game = SUPPORTED_GAMES.game("warhammer_2").unwrap();
         let game_path = std::path::PathBuf::from("/home/frodo45127/test/warhammer_2/");
-        dbg!(1);
+
         app_ui.pack_list_ui().load(game, &game_path);
-        dbg!(1);
 
         Ok(app_ui)
+    }
+
+    pub unsafe fn set_connections(&self, slots: &AppUISlots) {
+        self.actions_ui().play_button().released().connect(slots.launch_game());
     }
 
     /// Function to toggle the main window on and off, while keeping the stupid focus from breaking.

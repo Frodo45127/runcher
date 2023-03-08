@@ -40,6 +40,7 @@ use rpfm_ui_common::settings::*;
 use crate::app_ui::AppUI;
 use crate::settings_ui::*;
 
+mod actions_ui;
 mod app_ui;
 mod mod_list_ui;
 mod pack_list_ui;
