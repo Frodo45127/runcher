@@ -28,6 +28,7 @@ use super::*;
 #[getset(get = "pub")]
 pub struct AppUISlots {
     launch_game: QBox<SlotNoArgs>,
+    open_settings: QBox<SlotNoArgs>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -64,8 +65,14 @@ impl AppUISlots {
             let exec_game = game.executable_path(&game_path).unwrap();*/
         }));
 
+        let open_settings = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+            view.open_settings();
+        }));
+
         Self {
             launch_game,
+            open_settings
         }
     }
 }

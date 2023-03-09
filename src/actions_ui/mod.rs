@@ -32,6 +32,7 @@ const VIEW_RELEASE: &str = "ui/actions_groupbox.ui";
 #[getset(get = "pub")]
 pub struct ActionsUI {
     play_button: QPtr<QToolButton>,
+    settings_button: QPtr<QToolButton>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -48,11 +49,13 @@ impl ActionsUI {
         let main_widget = load_template(main_window, template_path)?;
 
         let play_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "play_button")?;
+        let settings_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "settings_button")?;
 
         layout.add_widget_5a(&main_widget, 0, 1, 1, 1);
 
         Ok(Self {
             play_button,
+            settings_button,
         })
     }
 }

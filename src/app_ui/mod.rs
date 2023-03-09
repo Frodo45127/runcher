@@ -271,6 +271,7 @@ impl AppUI {
         // Show the Main Window.
         app_ui.main_window().show();
 
+        /*
         // If we don't have any path in the settings, launch the settings window while disabling the main window.
         // We NEED at least one correct path for this to work. If no path is set, we close the application.
         let mut game_path_set = false;
@@ -285,7 +286,7 @@ impl AppUI {
 
         if !game_path_set {
             SettingsUI::new(app_ui.main_window());
-        }
+        }*/
 
         log_to_status_bar(app_ui.main_window().status_bar(), "Initializing, please wait...");
 
@@ -299,6 +300,7 @@ impl AppUI {
 
     pub unsafe fn set_connections(&self, slots: &AppUISlots) {
         self.actions_ui().play_button().released().connect(slots.launch_game());
+        self.actions_ui().settings_button().released().connect(slots.open_settings());
     }
 
     /// Function to toggle the main window on and off, while keeping the stupid focus from breaking.
@@ -348,5 +350,36 @@ impl AppUI {
             },
             None => Err(anyhow!("Game {} is not a valid game.", game)),
         }
+    }
+
+    pub unsafe fn open_settings(&self) {
+        let game_selected = self.game_selected().read().unwrap();
+        let game_key = game_selected.game_key_name();
+        let game_path_old = setting_path(game_key);
+
+        match SettingsUI::new(self.main_window()) {
+            Ok(saved) => {
+                if saved {
+                    let game_path_new = setting_path(game_key);
+
+                    // If we have changed the path of any of the games, and that game is the current `GameSelected`,
+                    // re-select the current `GameSelected` to force it to reload the game's files.
+                    if game_path_old != game_path_new {
+                        QAction::trigger(&self.game_selected_group.checked_action());
+                    }
+
+                    // If we detect a factory reset, reset the window's geometry and state, and the font.
+                    let factory_reset = setting_bool("factoryReset");
+                    if factory_reset {
+                        self.main_window().restore_geometry(&setting_byte_array("originalGeometry"));
+                        self.main_window().restore_state_1a(&setting_byte_array("originalWindowState"));
+                    }
+                }
+            }
+            Err(error) => show_dialog(&self.main_window, error, false),
+        }
+
+        // Make sure we don't drag the factory reset setting, no matter if the user saved or not.
+        set_setting_bool("factoryReset", false);
     }
 }
