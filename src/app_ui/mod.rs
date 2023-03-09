@@ -23,6 +23,7 @@ use qt_core::QString;
 use anyhow::{anyhow, Result};
 use getset::Getters;
 
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
@@ -270,30 +271,28 @@ impl AppUI {
 
         // Show the Main Window.
         app_ui.main_window().show();
-
-        /*
-        // If we don't have any path in the settings, launch the settings window while disabling the main window.
-        // We NEED at least one correct path for this to work. If no path is set, we close the application.
-        let mut game_path_set = false;
-        for game in SUPPORTED_GAMES.games() {
-            let setting_key = format!("game_path_{}", game.game_key_name());
-            let setting = setting_path(&setting_key);
-            if setting.is_dir() {
-                game_path_set = true;
-                break;
-            }
-        }
-
-        if !game_path_set {
-            SettingsUI::new(app_ui.main_window());
-        }*/
-
         log_to_status_bar(app_ui.main_window().status_bar(), "Initializing, please wait...");
 
-        let game = SUPPORTED_GAMES.game("warhammer_2").unwrap();
-        let game_path = std::path::PathBuf::from("/home/frodo45127/test/warhammer_2/");
-
-        app_ui.pack_list_ui().load(game, &game_path);
+        // Set the game selected based on the default game.
+        //
+        // Note: set_checked does *NOT* trigger the slot for changing game selected. We need to trigger that one manually.
+        // TODO: Allow to provide said game through an argument.
+        let default_game = setting_string("default_game");
+        match &*default_game {
+            KEY_WARHAMMER_3 => app_ui.game_selected_warhammer_3().set_checked(true),
+            KEY_TROY => app_ui.game_selected_troy().set_checked(true),
+            KEY_THREE_KINGDOMS => app_ui.game_selected_three_kingdoms().set_checked(true),
+            KEY_WARHAMMER_2 => app_ui.game_selected_warhammer_2().set_checked(true),
+            KEY_WARHAMMER => app_ui.game_selected_warhammer().set_checked(true),
+            KEY_THRONES_OF_BRITANNIA => app_ui.game_selected_thrones_of_britannia().set_checked(true),
+            KEY_ATTILA => app_ui.game_selected_attila().set_checked(true),
+            KEY_ROME_2 => app_ui.game_selected_rome_2().set_checked(true),
+            KEY_SHOGUN_2 => app_ui.game_selected_shogun_2().set_checked(true),
+            KEY_NAPOLEON => app_ui.game_selected_napoleon().set_checked(true),
+            KEY_EMPIRE => app_ui.game_selected_empire().set_checked(true),
+            _ => app_ui.game_selected_warhammer_3().set_checked(true),
+        }
+        app_ui.set_game_selected(&default_game)?;
 
         Ok(app_ui)
     }
@@ -301,6 +300,18 @@ impl AppUI {
     pub unsafe fn set_connections(&self, slots: &AppUISlots) {
         self.actions_ui().play_button().released().connect(slots.launch_game());
         self.actions_ui().settings_button().released().connect(slots.open_settings());
+
+        self.game_selected_warhammer_3().triggered().connect(slots.change_game_selected());
+        self.game_selected_troy().triggered().connect(slots.change_game_selected());
+        self.game_selected_three_kingdoms().triggered().connect(slots.change_game_selected());
+        self.game_selected_warhammer_2().triggered().connect(slots.change_game_selected());
+        self.game_selected_warhammer().triggered().connect(slots.change_game_selected());
+        self.game_selected_thrones_of_britannia().triggered().connect(slots.change_game_selected());
+        self.game_selected_attila().triggered().connect(slots.change_game_selected());
+        self.game_selected_rome_2().triggered().connect(slots.change_game_selected());
+        self.game_selected_shogun_2().triggered().connect(slots.change_game_selected());
+        self.game_selected_napoleon().triggered().connect(slots.change_game_selected());
+        self.game_selected_empire().triggered().connect(slots.change_game_selected());
     }
 
     /// Function to toggle the main window on and off, while keeping the stupid focus from breaking.
@@ -340,12 +351,40 @@ impl AppUI {
         }
     }
 
+    pub unsafe fn change_game_selected(&self) -> Result<()> {
+
+        // Get the new `Game Selected` and clean his name up, so it ends up like "x_y".
+        let mut new_game_selected = self.game_selected_group.checked_action().text().to_std_string();
+        if let Some(index) = new_game_selected.find('&') { new_game_selected.remove(index); }
+        let new_game_selected = new_game_selected.replace(' ', "_").to_lowercase();
+        dbg!(&new_game_selected);
+        dbg!(&self.game_selected().read().unwrap().game_key_name());
+
+        // If the game changed or we're initializing the program, change the game selected.
+        if new_game_selected != self.game_selected().read().unwrap().game_key_name() {
+            self.set_game_selected(&new_game_selected)?;
+        }
+
+        Ok(())
+    }
+
     pub unsafe fn set_game_selected(&self, game: &str) -> Result<()> {
 
         // We may receive invalid games here, so rule out the invalid ones.
         match SUPPORTED_GAMES.game(game) {
             Some(game) => {
                 *self.game_selected().write().unwrap() = game.clone();
+
+                // If we don't have a path in the settings for the game, disable the play button.
+                let game_path = setting_string(game.game_key_name());
+                self.actions_ui().play_button().set_enabled(!game_path.is_empty());
+
+                // If we have a path, load all the mods to the UI.
+                if !game_path.is_empty() {
+                    let game_path = PathBuf::from(game_path);
+                    self.pack_list_ui().load(game, &game_path)?;
+                }
+
                 Ok(())
             },
             None => Err(anyhow!("Game {} is not a valid game.", game)),

@@ -294,6 +294,8 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_q_byte_array(&q_settings, "originalGeometry", main_window.save_geometry().as_ref());
     set_setting_if_new_q_byte_array(&q_settings, "originalWindowState", main_window.save_state_0a().as_ref());
 
+    set_setting_string_to_q_setting(&q_settings, "default_game", "warhammer_3");
+
     q_settings.sync();
 }
 

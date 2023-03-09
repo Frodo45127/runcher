@@ -29,6 +29,7 @@ use super::*;
 pub struct AppUISlots {
     launch_game: QBox<SlotNoArgs>,
     open_settings: QBox<SlotNoArgs>,
+    change_game_selected: QBox<SlotNoArgs>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -70,9 +71,18 @@ impl AppUISlots {
             view.open_settings();
         }));
 
+        let change_game_selected = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                if let Err(error) = view.change_game_selected() {
+                    show_dialog(view.main_window(), error, false);
+                }
+            }
+        ));
+
         Self {
             launch_game,
-            open_settings
+            open_settings,
+            change_game_selected,
         }
     }
 }

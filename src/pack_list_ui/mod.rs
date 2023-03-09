@@ -8,8 +8,6 @@
 // https://github.com/Frodo45127/rpfm/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
-use qt_core::QVariant;
-use qt_core::SortOrder;
 use qt_widgets::QGridLayout;
 use qt_widgets::QLineEdit;
 use qt_widgets::QMainWindow;
@@ -28,6 +26,8 @@ use qt_core::QRegExp;
 use qt_core::QSortFilterProxyModel;
 use qt_core::QString;
 use qt_core::QTimer;
+use qt_core::QVariant;
+use qt_core::SortOrder;
 
 use anyhow::Result;
 use getset::*;
