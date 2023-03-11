@@ -23,11 +23,13 @@ use qt_core::QString;
 use anyhow::{anyhow, Result};
 use getset::Getters;
 
+use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
-use rpfm_lib::games::{GameInfo, supported_games::*};
+use rpfm_lib::files::pack::Pack;
+use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::log::*;
 
 use rpfm_ui_common::ASSETS_PATH;
@@ -36,6 +38,7 @@ use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::actions_ui::ActionsUI;
+use crate::integrations::Mod;
 use crate::mod_list_ui::ModListUI;
 use crate::pack_list_ui::PackListUI;
 use crate::settings_ui::SettingsUI;
@@ -103,9 +106,26 @@ pub struct AppUI {
     //-------------------------------------------------------------------------------//
     // Extra stuff
     //-------------------------------------------------------------------------------//
-    game_selected: Rc<RwLock<GameInfo>>,
     focused_widget: Rc<RwLock<Option<QPtr<QWidget>>>>,
     disabled_counter: Rc<RwLock<u32>>,
+
+    // Game selected. Unlike RPFM, here it's not a global.
+    game_selected: Rc<RwLock<GameInfo>>,
+
+    // List of Packs, split by type, available for the game selected.
+    //
+    // This includes vanilla and disabled packs, from data and from content, split by path.
+    //
+    // If there is a collision between content and data, only data is used.
+    packs: Arc<RwLock<BTreeMap<PFHFileType, HashMap<String, Pack>>>>,
+
+    // List of Mods found for the game selected.
+    //
+    // These may be individual Packs, or group of Packs, of type `Mod`, separated by category.
+    mods: Arc<RwLock<HashMap<String, Mod>>>,
+
+    // Mod load order, by path. Only includes mods, as the rest of the Packs are always in the same order.
+    load_order: Arc<RwLock<Vec<String>>>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -254,9 +274,14 @@ impl AppUI {
             //-------------------------------------------------------------------------------//
             // "Extra stuff" menu.
             //-------------------------------------------------------------------------------//
-            game_selected: Rc::new(RwLock::new(SUPPORTED_GAMES.game("warhammer_2").unwrap().clone())),
             focused_widget: Rc::new(RwLock::new(None)),
             disabled_counter: Rc::new(RwLock::new(0)),
+
+            // NOTE: This loads arena on purpose, so ANY game selected triggers a game change properly.
+            game_selected: Rc::new(RwLock::new(SUPPORTED_GAMES.game("arena").unwrap().clone())),
+            packs: Arc::new(RwLock::new(BTreeMap::new())),
+            mods: Arc::new(RwLock::new(HashMap::new())),
+            load_order: Arc::new(RwLock::new(Vec::new())),
         });
 
         let slots = AppUISlots::new(&app_ui);
@@ -357,8 +382,6 @@ impl AppUI {
         let mut new_game_selected = self.game_selected_group.checked_action().text().to_std_string();
         if let Some(index) = new_game_selected.find('&') { new_game_selected.remove(index); }
         let new_game_selected = new_game_selected.replace(' ', "_").to_lowercase();
-        dbg!(&new_game_selected);
-        dbg!(&self.game_selected().read().unwrap().game_key_name());
 
         // If the game changed or we're initializing the program, change the game selected.
         if new_game_selected != self.game_selected().read().unwrap().game_key_name() {

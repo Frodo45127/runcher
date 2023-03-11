@@ -42,6 +42,7 @@ use crate::settings_ui::*;
 
 mod actions_ui;
 mod app_ui;
+mod integrations;
 mod mod_list_ui;
 mod pack_list_ui;
 mod settings_ui;
