@@ -16,6 +16,7 @@ use qt_widgets::QWidget;
 
 use qt_gui::QIcon;
 
+use qt_core::CheckState;
 use qt_core::QBox;
 use qt_core::QPtr;
 use qt_core::QString;
@@ -24,7 +25,11 @@ use anyhow::{anyhow, Result};
 use getset::Getters;
 
 use std::collections::{BTreeMap, HashMap};
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
+use std::process::Command;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
@@ -48,6 +53,9 @@ use crate::SUPPORTED_GAMES;
 use self::slots::AppUISlots;
 
 pub mod slots;
+
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+//const DETACHED_PROCESS: u32 = 0x00000008;
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -443,5 +451,50 @@ impl AppUI {
 
         // Make sure we don't drag the factory reset setting, no matter if the user saved or not.
         set_setting_bool("factoryReset", false);
+    }
+
+    pub unsafe fn launch_game(&self) -> Result<()> {
+        let pack_list = (0..self.pack_list_ui().model().row_count_0a())
+            .filter_map(|index| {
+                let item = self.pack_list_ui().model().item_1a(index);
+                if item.is_checkable() && item.check_state() == CheckState::Checked {
+                    Some(format!("mod \"{}\"", item.text().to_std_string()))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let game = self.game_selected().read().unwrap();
+        let game_path = setting_path(&game.game_key_name());
+        let file_path = game_path.join("mod_list.txt");
+
+        let mut file = BufWriter::new(File::create(&file_path)?);
+        file.write_all(pack_list.as_bytes())?;
+        file.flush()?;
+
+        let exec_game = game.executable_path(&game_path).unwrap();
+
+        if cfg!(target_os = "windows") {
+            let mut command = Command::new("cmd");
+            command.arg("/C");
+            command.arg("start");
+            command.arg("/d");
+            command.arg(game_path.to_string_lossy().replace("\\", "/"));
+            command.arg(exec_game.file_name().unwrap().to_string_lossy().to_string());
+            command.arg("mod_list.txt;");
+
+            // This disables the terminal when executing the command.
+            command.creation_flags(CREATE_NO_WINDOW);
+            command.spawn()?;
+
+            Ok(())
+        } else if cfg!(target_os = "linux") {
+
+            Ok(())
+        } else {
+            Err(anyhow!("Unsupported OS."))
+        }
     }
 }

@@ -15,9 +15,9 @@ rust-version = "1.64"
 [dependencies]
 
 # Internal dependencies.
-rpfm_lib = { path = "../rpfm/rpfm_lib", version = "3.99.119", features = ["integration_log", "integration_git"] }
-rpfm_extensions = { path = "../rpfm/rpfm_extensions", version = "3.99.119" }
-rpfm_ui_common = { path = "../rpfm/rpfm_ui_common", version = "3.99.119" }
+rpfm_lib = { path = "../rpfm/rpfm_lib", version = "4.0.0", features = ["integration_log", "integration_git"] }
+rpfm_extensions = { path = "../rpfm/rpfm_extensions", version = "4.0.0" }
+rpfm_ui_common = { path = "../rpfm/rpfm_ui_common" }
 
 # Config dependencies.
 directories = "^4.0"
@@ -39,3 +39,6 @@ qt_ui_tools = "^0.5"
 
 # Steam Workshop support.
 steam-workshop-api = "^0.2"
+
+[profile.dev]
+incremental = true

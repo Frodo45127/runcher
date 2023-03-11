@@ -116,6 +116,7 @@ impl PackListUI {
         let content_paths = game.content_packs_paths(game_path);
 
         let vanilla_paths = game.ca_packs_paths(game_path)?;
+        let mut data_names = vec![];
 
         if let Some(ref paths) = data_paths {
             for path in paths {
@@ -124,17 +125,16 @@ impl PackListUI {
                 let item_name = QStandardItem::from_q_string(&QString::from_std_str(&pack_name));
                 let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
                 let combined_name = format!("{}{}", pack.pfh_file_type() as u32, pack_name);
-                dbg!(&combined_name);
                 item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(combined_name)), 20);
+
                 // Vanilla packs are not checkable.
                 // TODO: Remove the non-loaded language files from the list.
-                if !vanilla_paths.contains(path) {
+                if !vanilla_paths.contains(&path.canonicalize()?) {
                     item_name.set_checkable(true);
-                    item_name.set_check_state(CheckState::Checked);
                 }
 
+                data_names.push(pack_name);
                 row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
-
                 self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
             }
         }
@@ -143,17 +143,18 @@ impl PackListUI {
             for path in paths {
                 let row = QListOfQStandardItem::new();
                 let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                let item_name = QStandardItem::from_q_string(&QString::from_std_str(&pack_name));
-                let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
-                let combined_name = format!("{}{}", pack.pfh_file_type() as u32, pack_name);
-                dbg!(&combined_name);
-                item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(combined_name)), 20);
 
-                item_name.set_checkable(true);
+                // Ignore content files that already exist in /data
+                if !data_names.contains(&pack_name) {
+                    let item_name = QStandardItem::from_q_string(&QString::from_std_str(&pack_name));
+                    let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
+                    let combined_name = format!("{}{}", pack.pfh_file_type() as u32, pack_name);
+                    item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(combined_name)), 20);
+                    item_name.set_checkable(true);
 
-                row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
-
-                self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
+                    row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
+                    self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
+                }
             }
         }
 
@@ -162,6 +163,7 @@ impl PackListUI {
         self.filter().sort_2a(0, SortOrder::AscendingOrder);
 
         self.setup_columns();
+        self.table_view().resize_columns_to_contents();
 
         Ok(())
     }
