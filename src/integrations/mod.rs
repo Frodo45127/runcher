@@ -16,13 +16,24 @@ use std::path::PathBuf;
 //                              Enums & Structs
 //-------------------------------------------------------------------------------//
 
-#[derive(Debug, Getters)]
-#[getset(get = "pub")]
+#[derive(Debug, Getters, Setters)]
+#[getset(get = "pub", set = "pub")]
 pub struct Mod {
-    packs: Vec<PathBuf>,
+    name: String,
+    category: String,
+    pack: PathBuf,
 }
 
 //-------------------------------------------------------------------------------//
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
+impl Default for Mod {
+    fn default() -> Self {
+        Self {
+            name: String::default(),
+            category: "Unknown".to_owned(),
+            pack: PathBuf::new(),
+        }
+    }
+}

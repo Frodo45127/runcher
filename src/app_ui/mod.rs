@@ -130,7 +130,7 @@ pub struct AppUI {
     // List of Mods found for the game selected.
     //
     // These may be individual Packs, or group of Packs, of type `Mod`, separated by category.
-    mods: Arc<RwLock<HashMap<String, Mod>>>,
+    mods: Arc<RwLock<HashMap<String, Vec<Mod>>>>,
 
     // Mod load order, by path. Only includes mods, as the rest of the Packs are always in the same order.
     load_order: Arc<RwLock<Vec<String>>>,
@@ -413,6 +413,52 @@ impl AppUI {
                 // If we have a path, load all the mods to the UI.
                 if !game_path.is_empty() {
                     let game_path = PathBuf::from(game_path);
+                    let data_paths = game.data_packs_paths(&game_path);
+                    let content_paths = game.content_packs_paths(&game_path);
+
+                    // Initialize the mods in loadable folders.
+                    {
+                        let mut mods = self.mods.write().unwrap();
+                        if let Some(ref paths) = data_paths {
+                            for path in paths {
+                                let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
+                                let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
+                                if pack.pfh_file_type() == PFHFileType::Mod {
+                                    let mut modd = Mod::default();
+                                    modd.set_name(pack_name);
+                                    modd.set_pack(path.to_path_buf());
+
+                                    match mods.get_mut(modd.category()) {
+                                        Some(mods) => mods.push(modd),
+                                        None => {
+                                            mods.insert(modd.category().to_string(), vec![modd]);
+                                        },
+                                    }
+                                }
+                            }
+                        }
+
+                        if let Some(ref paths) = content_paths {
+                            for path in paths {
+                                let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
+                                let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
+                                if pack.pfh_file_type() == PFHFileType::Mod {
+                                    let mut modd = Mod::default();
+                                    modd.set_name(pack_name);
+                                    modd.set_pack(path.to_path_buf());
+
+                                    match mods.get_mut(modd.category()) {
+                                        Some(mods) => mods.push(modd),
+                                        None => {
+                                            mods.insert(modd.category().to_string(), vec![modd]);
+                                        },
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    self.mod_list_ui().load(game, &game_path, &self.mods.read().unwrap())?;
                     self.pack_list_ui().load(game, &game_path)?;
                 }
 
