@@ -14,17 +14,38 @@
    <string>GroupBox</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
+   <property name="leftMargin">
+    <number>2</number>
+   </property>
+   <property name="topMargin">
+    <number>2</number>
+   </property>
+   <property name="rightMargin">
+    <number>2</number>
+   </property>
+   <property name="bottomMargin">
+    <number>2</number>
+   </property>
+   <property name="spacing">
+    <number>2</number>
+   </property>
    <item row="0" column="1">
     <widget class="QToolButton" name="play_button">
      <property name="text">
-      <string>...</string>
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="media-playback-start"/>
      </property>
     </widget>
    </item>
    <item row="0" column="0">
     <widget class="QToolButton" name="settings_button">
      <property name="text">
-      <string>...</string>
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="settings-configure"/>
      </property>
     </widget>
    </item>

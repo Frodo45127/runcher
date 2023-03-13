@@ -63,7 +63,11 @@
     </widget>
    </item>
    <item row="0" column="0" colspan="2">
-    <widget class="QTableView" name="table_view"/>
+    <widget class="QTableView" name="table_view">
+     <attribute name="verticalHeaderStretchLastSection">
+      <bool>true</bool>
+     </attribute>
+    </widget>
    </item>
   </layout>
  </widget>
