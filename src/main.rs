@@ -72,15 +72,9 @@ lazy_static! {
     */
 }
 
-/*
-/// This constant gets RPFM's version from the `Cargo.toml` file, so we don't have to change it
-/// in two different places in every update.
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const VERSION_SUBTITLE: &str = " -- 2.0 2: Electric Boogaloo";
+const VERSION_SUBTITLE: &str = " -- A New Beginning";
 
-*/
-
-/// Main function.
 fn main() {
 
     // Access the guard to make sure it gets initialized.

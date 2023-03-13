@@ -346,6 +346,9 @@ impl AppUI {
         self.game_selected_napoleon().triggered().connect(slots.change_game_selected());
         self.game_selected_empire().triggered().connect(slots.change_game_selected());
 
+        self.about_about_qt().triggered().connect(slots.about_qt());
+        self.about_about_runcher().triggered().connect(slots.about_runcher());
+
         self.mod_list_ui().model().item_changed().connect(slots.update_pack_list());
     }
 
