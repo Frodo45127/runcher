@@ -1632,7 +1632,7 @@ dependencies = [
 
 [[package]]
 name = "rpfm_extensions"
-version = "4.0.3"
+version = "4.0.4"
 dependencies = [
  "bincode",
  "caseless",
@@ -1651,7 +1651,7 @@ dependencies = [
 
 [[package]]
 name = "rpfm_lib"
-version = "4.0.3"
+version = "4.0.4"
 dependencies = [
  "backtrace",
  "bincode",
@@ -1692,7 +1692,7 @@ dependencies = [
 
 [[package]]
 name = "rpfm_ui_common"
-version = "4.0.3"
+version = "4.0.4"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -1726,6 +1726,9 @@ dependencies = [
  "rpfm_extensions",
  "rpfm_lib",
  "rpfm_ui_common",
+ "serde",
+ "serde_derive",
+ "serde_json",
  "steam-workshop-api",
  "thiserror",
 ]

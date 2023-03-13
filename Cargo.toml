@@ -15,9 +15,14 @@ rust-version = "1.64"
 [dependencies]
 
 # Internal dependencies.
-rpfm_lib = { path = "../rpfm/rpfm_lib", version = "4.0.3", features = ["integration_log", "integration_git"] }
-rpfm_extensions = { path = "../rpfm/rpfm_extensions", version = "4.0.3" }
+rpfm_lib = { path = "../rpfm/rpfm_lib", version = "4.0.4", features = ["integration_log", "integration_git"] }
+rpfm_extensions = { path = "../rpfm/rpfm_extensions", version = "4.0.4" }
 rpfm_ui_common = { path = "../rpfm/rpfm_ui_common" }
+
+# Serialization support.
+serde = "^1.0"
+serde_derive = "^1.0"
+serde_json = "^1.0"
 
 # Config dependencies.
 directories = "^4.0"

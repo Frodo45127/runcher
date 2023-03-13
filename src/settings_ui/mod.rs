@@ -33,7 +33,7 @@ use getset::*;
 
 use std::collections::BTreeMap;
 use std::fs::DirBuilder;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use rpfm_lib::games::supported_games::KEY_ARENA;
@@ -311,6 +311,11 @@ pub fn init_config_path() -> Result<()> {
     *PROGRAM_NAME.write().unwrap() = "runcher".to_owned();
 
     DirBuilder::new().recursive(true).create(error_path()?)?;
+    DirBuilder::new().recursive(true).create(game_config_path()?)?;
 
     Ok(())
+}
+
+pub fn game_config_path() -> Result<PathBuf> {
+    Ok(config_path()?.join("game_config"))
 }

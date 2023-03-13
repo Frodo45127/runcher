@@ -19,7 +19,6 @@ use qt_gui::QStandardItem;
 use qt_gui::QStandardItemModel;
 
 use qt_core::CaseSensitivity;
-use qt_core::CheckState;
 use qt_core::QBox;
 use qt_core::QPtr;
 use qt_core::QRegExp;
@@ -31,13 +30,14 @@ use qt_core::SortOrder;
 
 use anyhow::Result;
 use getset::*;
-use rpfm_lib::files::pack::Pack;
 
-use std::path::Path;
 use std::sync::Arc;
 
-use rpfm_lib::games::GameInfo;
+use rpfm_lib::files::pack::Pack;
+
 use rpfm_ui_common::utils::*;
+
+use crate::integrations::GameConfig;
 
 use self::slots::PackListUISlots;
 
@@ -110,49 +110,24 @@ impl PackListUI {
         self.filter_timer().timeout().connect(slots.filter_trigger());
     }
 
-    pub unsafe fn load(&self, game: &GameInfo, game_path: &Path) -> Result<()> {
+    pub unsafe fn load(&self, game_config: &GameConfig) -> Result<()> {
+        self.model().clear();
 
-        let data_paths = game.data_packs_paths(game_path);
-        let content_paths = game.content_packs_paths(game_path);
-
-        let vanilla_paths = game.ca_packs_paths(game_path)?;
-        let mut data_names = vec![];
-
-        if let Some(ref paths) = data_paths {
-            for path in paths {
-                let row = QListOfQStandardItem::new();
-                let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                let item_name = QStandardItem::from_q_string(&QString::from_std_str(&pack_name));
-                let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
-                let combined_name = format!("{}{}", pack.pfh_file_type() as u32, pack_name);
-                item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(combined_name)), 20);
-
-                // Vanilla packs are not checkable.
-                // TODO: Remove the non-loaded language files from the list.
-                if !vanilla_paths.contains(&path.canonicalize()?) {
-                    item_name.set_checkable(true);
-                }
-
-                data_names.push(pack_name);
-                row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
-                self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
-            }
-        }
-
-        if let Some(ref paths) = content_paths {
-            for path in paths {
-                let row = QListOfQStandardItem::new();
-                let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-
-                // Ignore content files that already exist in /data
-                if !data_names.contains(&pack_name) {
+        for modd in game_config.mods().values() {
+            if !modd.paths().is_empty() {
+                if *modd.enabled() {
+                    let row = QListOfQStandardItem::new();
+                    let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
                     let item_name = QStandardItem::from_q_string(&QString::from_std_str(&pack_name));
-                    let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
+                    let pack = Pack::read_and_merge(&[modd.paths()[0].to_path_buf()], true, false)?;
                     let combined_name = format!("{}{}", pack.pfh_file_type() as u32, pack_name);
                     item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(combined_name)), 20);
-                    item_name.set_checkable(true);
+
+                    let item_path = QStandardItem::from_q_string(&QString::from_std_str(&modd.paths()[0].to_string_lossy()));
 
                     row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
+                    row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());
+
                     self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
                 }
             }

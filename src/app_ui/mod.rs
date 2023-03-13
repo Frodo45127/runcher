@@ -14,8 +14,6 @@ use qt_widgets::QApplication;
 use qt_widgets::QMainWindow;
 use qt_widgets::QWidget;
 
-use qt_gui::QIcon;
-
 use qt_core::CheckState;
 use qt_core::QBox;
 use qt_core::QPtr;
@@ -37,13 +35,12 @@ use rpfm_lib::files::pack::Pack;
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::log::*;
 
-use rpfm_ui_common::ASSETS_PATH;
 use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::actions_ui::ActionsUI;
-use crate::integrations::Mod;
+use crate::integrations::{GameConfig, Mod};
 use crate::mod_list_ui::ModListUI;
 use crate::pack_list_ui::PackListUI;
 use crate::settings_ui::SettingsUI;
@@ -116,6 +113,8 @@ pub struct AppUI {
     //-------------------------------------------------------------------------------//
     focused_widget: Rc<RwLock<Option<QPtr<QWidget>>>>,
     disabled_counter: Rc<RwLock<u32>>,
+
+    game_config: Arc<RwLock<Option<GameConfig>>>,
 
     // Game selected. Unlike RPFM, here it's not a global.
     game_selected: Rc<RwLock<GameInfo>>,
@@ -284,6 +283,7 @@ impl AppUI {
             //-------------------------------------------------------------------------------//
             focused_widget: Rc::new(RwLock::new(None)),
             disabled_counter: Rc::new(RwLock::new(0)),
+            game_config: Arc::new(RwLock::new(None)),
 
             // NOTE: This loads arena on purpose, so ANY game selected triggers a game change properly.
             game_selected: Rc::new(RwLock::new(SUPPORTED_GAMES.game("arena").unwrap().clone())),
@@ -345,6 +345,8 @@ impl AppUI {
         self.game_selected_shogun_2().triggered().connect(slots.change_game_selected());
         self.game_selected_napoleon().triggered().connect(slots.change_game_selected());
         self.game_selected_empire().triggered().connect(slots.change_game_selected());
+
+        self.mod_list_ui().model().item_changed().connect(slots.update_pack_list());
     }
 
     /// Function to toggle the main window on and off, while keeping the stupid focus from breaking.
@@ -406,6 +408,9 @@ impl AppUI {
             Some(game) => {
                 *self.game_selected().write().unwrap() = game.clone();
 
+                // Load the game's config.
+                *self.game_config().write().unwrap() = Some(GameConfig::load(&game, true)?);
+
                 // If we don't have a path in the settings for the game, disable the play button.
                 let game_path = setting_string(game.game_key_name());
                 self.actions_ui().play_button().set_enabled(!game_path.is_empty());
@@ -418,48 +423,63 @@ impl AppUI {
 
                     // Initialize the mods in loadable folders.
                     {
-                        let mut mods = self.mods.write().unwrap();
-                        if let Some(ref paths) = data_paths {
-                            for path in paths {
-                                let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                                let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
-                                if pack.pfh_file_type() == PFHFileType::Mod {
-                                    let mut modd = Mod::default();
-                                    modd.set_name(pack_name);
-                                    modd.set_pack(path.to_path_buf());
+                        let mut mods = self.game_config().write().unwrap();
+                        if let Some(ref mut mods) = *mods {
 
-                                    match mods.get_mut(modd.category()) {
-                                        Some(mods) => mods.push(modd),
-                                        None => {
-                                            mods.insert(modd.category().to_string(), vec![modd]);
-                                        },
+                            // Clear the previous paths.
+                            mods.mods_mut().values_mut().for_each(|modd| modd.paths_mut().clear());
+
+                            if let Some(ref paths) = data_paths {
+                                for path in paths {
+                                    let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
+                                    let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
+                                    if pack.pfh_file_type() == PFHFileType::Mod {
+                                        match mods.mods_mut().get_mut(&pack_name) {
+                                            Some(modd) => {
+                                                if !modd.paths().contains(path) {
+                                                    modd.paths_mut().push(path.to_path_buf());
+                                                }
+                                            }
+                                            None => {
+                                                let mut modd = Mod::default();
+                                                modd.set_name(pack_name.to_owned());
+                                                modd.set_paths(vec![path.to_path_buf()]);
+                                                mods.mods_mut().insert(pack_name, modd);
+                                            }
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        if let Some(ref paths) = content_paths {
-                            for path in paths {
-                                let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                                let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
-                                if pack.pfh_file_type() == PFHFileType::Mod {
-                                    let mut modd = Mod::default();
-                                    modd.set_name(pack_name);
-                                    modd.set_pack(path.to_path_buf());
-
-                                    match mods.get_mut(modd.category()) {
-                                        Some(mods) => mods.push(modd),
-                                        None => {
-                                            mods.insert(modd.category().to_string(), vec![modd]);
-                                        },
+                            if let Some(ref paths) = content_paths {
+                                for path in paths {
+                                    let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
+                                    let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
+                                    if pack.pfh_file_type() == PFHFileType::Mod {
+                                        match mods.mods_mut().get_mut(&pack_name) {
+                                            Some(modd) => {
+                                                if !modd.paths().contains(path) {
+                                                    modd.paths_mut().push(path.to_path_buf());
+                                                }
+                                            }
+                                            None => {
+                                                let mut modd = Mod::default();
+                                                modd.set_name(pack_name.to_owned());
+                                                modd.set_paths(vec![path.to_path_buf()]);
+                                                mods.mods_mut().insert(pack_name, modd);
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
 
-                    self.mod_list_ui().load(game, &game_path, &self.mods.read().unwrap())?;
-                    self.pack_list_ui().load(game, &game_path)?;
+                    let mods = self.game_config().read().unwrap();
+                    if let Some(ref mods) = *mods {
+                        self.mod_list_ui().load(&mods)?;
+                        self.pack_list_ui().load(&mods)?;
+                    }
                 }
 
                 Ok(())
@@ -503,11 +523,13 @@ impl AppUI {
         let pack_list = (0..self.pack_list_ui().model().row_count_0a())
             .filter_map(|index| {
                 let item = self.pack_list_ui().model().item_1a(index);
+                Some(format!("mod \"{}\";", item.text().to_std_string()))
+                /*
                 if item.is_checkable() && item.check_state() == CheckState::Checked {
                     Some(format!("mod \"{}\"", item.text().to_std_string()))
                 } else {
                     None
-                }
+                }*/
             })
             .collect::<Vec<_>>()
             .join("\n");
