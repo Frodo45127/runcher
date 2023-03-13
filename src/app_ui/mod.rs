@@ -25,7 +25,7 @@ use getset::Getters;
 use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
 use std::process::Command;
 use std::rc::Rc;
@@ -554,7 +554,7 @@ impl AppUI {
             command.arg("mod_list.txt;");
 
             // This disables the terminal when executing the command.
-            command.creation_flags(CREATE_NO_WINDOW);
+            #[cfg(target_os = "windows")]command.creation_flags(CREATE_NO_WINDOW);
             command.spawn()?;
 
             Ok(())
