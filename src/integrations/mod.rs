@@ -13,14 +13,15 @@ use getset::*;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::fs::{DirBuilder, File};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 
 use rpfm_lib::games::GameInfo;
+use rpfm_lib::utils::*;
 
-use crate::settings_ui::game_config_path;
+use crate::settings_ui::*;
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -53,11 +54,11 @@ pub struct Mod {
     paths: Vec<PathBuf>,
 }
 
-#[derive(Debug, Default, Getters, Setters, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Getters, Setters, Serialize, Deserialize)]
 #[getset(get = "pub", get_mut = "pub", set = "pub")]
 pub struct Profile {
     id: String,
-    mods: BTreeMap<String, bool>,
+    mods: Vec<String>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -100,11 +101,29 @@ impl GameConfig {
 
 impl Profile {
 
-    pub fn load(game: &GameInfo, profile: String, new_if_missing: bool) -> Result<Self> {
-        let path = game_config_path()?.join(format!("profile_{}_{}.json", game.game_key_name(), profile));
+    pub fn profiles_for_game(game: &GameInfo) -> Result<HashMap<String, Self>> {
+        let mut profiles = HashMap::new();
+        let path = profiles_path()?;
+        let file_name_start = format!("profile_{}_", game.game_key_name());
+
+        let files = files_from_subdir(&path, false)?;
+        for file in files {
+            let file_name = file.file_name().unwrap().to_string_lossy();
+            if file_name.starts_with(&file_name_start) && file_name.ends_with(".json") {
+                let file_name_no_end = file.file_stem().unwrap().to_string_lossy().strip_prefix(&file_name_start).unwrap().to_string();
+                let profile = Self::load(game, &file_name_no_end, false)?;
+                profiles.insert(file_name_no_end, profile);
+            }
+        }
+
+        Ok(profiles)
+    }
+
+    pub fn load(game: &GameInfo, profile: &str, new_if_missing: bool) -> Result<Self> {
+        let path = profiles_path()?.join(format!("profile_{}_{}.json", game.game_key_name(), profile));
         if !path.is_file() && new_if_missing {
             return Ok(Self {
-                id: profile,
+                id: profile.to_string(),
                 ..Default::default()
             });
         }
@@ -117,8 +136,8 @@ impl Profile {
         Ok(profile)
     }
 
-    pub fn save(&mut self, game: &GameInfo, profile: String) -> Result<()> {
-        let path = game_config_path()?.join(format!("profile_{}_{}.json", game.game_key_name(), profile));
+    pub fn save(&mut self, game: &GameInfo, profile: &str) -> Result<()> {
+        let path = profiles_path()?.join(format!("profile_{}_{}.json", game.game_key_name(), profile));
 
         // Make sure the path exists to avoid problems with updating schemas.
         if let Some(parent_folder) = path.parent() {

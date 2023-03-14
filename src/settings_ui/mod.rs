@@ -316,10 +316,15 @@ pub fn init_config_path() -> Result<()> {
 
     DirBuilder::new().recursive(true).create(error_path()?)?;
     DirBuilder::new().recursive(true).create(game_config_path()?)?;
+    DirBuilder::new().recursive(true).create(profiles_path()?)?;
 
     Ok(())
 }
 
 pub fn game_config_path() -> Result<PathBuf> {
     Ok(config_path()?.join("game_config"))
+}
+
+pub fn profiles_path() -> Result<PathBuf> {
+    Ok(config_path()?.join("profiles"))
 }

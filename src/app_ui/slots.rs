@@ -39,6 +39,9 @@ pub struct AppUISlots {
 
     about_qt: QBox<SlotNoArgs>,
     about_runcher: QBox<SlotNoArgs>,
+
+    load_profile: QBox<SlotNoArgs>,
+    save_profile: QBox<SlotNoArgs>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -132,6 +135,22 @@ impl AppUISlots {
             }
         ));
 
+        let load_profile = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                if let Err(error) = view.load_profile() {
+                    show_dialog(view.main_window(), error, false);
+                }
+            }
+        ));
+
+        let save_profile = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                if let Err(error) = view.save_profile() {
+                    show_dialog(view.main_window(), error, false);
+                }
+            }
+        ));
+
         Self {
             launch_game,
             open_settings,
@@ -141,6 +160,9 @@ impl AppUISlots {
 
             about_qt,
             about_runcher,
+
+            load_profile,
+            save_profile,
         }
     }
 }

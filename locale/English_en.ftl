@@ -15,3 +15,6 @@ pack_name = Pack Name
 pack_path = Pack Path
 location = Location
 load_order = Load Order
+
+load_profile = Load Profile
+save_profile = Save Profile

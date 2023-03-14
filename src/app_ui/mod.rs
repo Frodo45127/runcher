@@ -22,6 +22,7 @@ use qt_core::QString;
 use anyhow::{anyhow, Result};
 use getset::Getters;
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 #[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
@@ -39,7 +40,7 @@ use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::actions_ui::ActionsUI;
-use crate::integrations::{GameConfig, Mod};
+use crate::integrations::{GameConfig, Mod, Profile};
 use crate::mod_list_ui::ModListUI;
 use crate::pack_list_ui::PackListUI;
 use crate::settings_ui::SettingsUI;
@@ -114,6 +115,7 @@ pub struct AppUI {
     disabled_counter: Rc<RwLock<u32>>,
 
     game_config: Arc<RwLock<Option<GameConfig>>>,
+    game_profiles: Arc<RwLock<HashMap<String, Profile>>>,
 
     // Game selected. Unlike RPFM, here it's not a global.
     game_selected: Rc<RwLock<GameInfo>>,
@@ -268,6 +270,7 @@ impl AppUI {
             focused_widget: Rc::new(RwLock::new(None)),
             disabled_counter: Rc::new(RwLock::new(0)),
             game_config: Arc::new(RwLock::new(None)),
+            game_profiles: Arc::new(RwLock::new(HashMap::new())),
 
             // NOTE: This loads arena on purpose, so ANY game selected triggers a game change properly.
             game_selected: Rc::new(RwLock::new(SUPPORTED_GAMES.game("arena").unwrap().clone())),
@@ -314,6 +317,8 @@ impl AppUI {
     pub unsafe fn set_connections(&self, slots: &AppUISlots) {
         self.actions_ui().play_button().released().connect(slots.launch_game());
         self.actions_ui().settings_button().released().connect(slots.open_settings());
+        self.actions_ui().profile_load_button().released().connect(slots.load_profile());
+        self.actions_ui().profile_save_button().released().connect(slots.save_profile());
 
         self.game_selected_warhammer_3().triggered().connect(slots.change_game_selected());
         self.game_selected_troy().triggered().connect(slots.change_game_selected());
@@ -394,6 +399,14 @@ impl AppUI {
 
                 // Load the game's config.
                 *self.game_config().write().unwrap() = Some(GameConfig::load(game, true)?);
+
+                // Load the profile's list.
+                *self.game_profiles().write().unwrap() = Profile::profiles_for_game(game)?;
+                self.actions_ui().profile_model().clear();
+
+                for profile in self.game_profiles().read().unwrap().keys() {
+                    self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
+                }
 
                 // If we don't have a path in the settings for the game, disable the play button.
                 let game_path = setting_string(game.game_key_name());
@@ -550,5 +563,72 @@ impl AppUI {
         } else {
             Err(anyhow!("Unsupported OS."))
         }
+    }
+
+    pub unsafe fn load_profile(&self) -> Result<()> {
+        let profile_name = self.actions_ui().profile_combobox().current_text().to_std_string();
+        if profile_name.is_empty() {
+            return Err(anyhow!("Profile name is empty."));
+        }
+
+        match self.game_profiles().read().unwrap().get(&profile_name) {
+            Some(profile) => {
+
+                // First, disable all mods.
+                for cat in 0..self.mod_list_ui().model().row_count_0a() {
+                    let category = self.mod_list_ui().model().item_1a(cat);
+                    for row in 0..category.row_count() {
+                        let item = category.child_1a(row);
+                        item.set_check_state(CheckState::Unchecked);
+                    }
+                }
+
+                for mod_id in profile.mods() {
+                    let mod_id = QString::from_std_str(mod_id);
+                    for cat in 0..self.mod_list_ui().model().row_count_0a() {
+                        let category = self.mod_list_ui().model().item_1a(cat);
+                        for row in 0..category.row_count() {
+                            let item = category.child_1a(row);
+                            if !item.is_null() && item.text().compare_q_string(&mod_id) == 0 {
+                                item.set_check_state(CheckState::Checked);
+                            }
+                        }
+                    }
+                }
+
+                Ok(())
+            }
+            None => return Err(anyhow!("No profile with said name found."))
+        }
+    }
+
+    pub unsafe fn save_profile(&self) -> Result<()> {
+        let profile_name = self.actions_ui().profile_combobox().current_text().to_std_string();
+        if profile_name.is_empty() {
+            return Err(anyhow!("Profile name is empty."));
+        }
+
+        if let Some(ref game_config) = *self.game_config().read().unwrap() {
+
+            let mods = game_config.mods()
+                .values()
+                .filter_map(|modd| if *modd.enabled() { Some(modd.id().to_string()) } else { None })
+                .collect::<Vec<_>>();
+
+            let mut profile = Profile::default();
+            profile.set_id(profile_name.to_owned());
+            profile.set_mods(mods);
+
+            self.game_profiles().write().unwrap().insert(profile_name.to_owned(), profile.clone());
+
+            self.actions_ui().profile_model().clear();
+            for profile in self.game_profiles().read().unwrap().keys() {
+                self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(&profile));
+            }
+
+            return profile.save(&self.game_selected().read().unwrap(), &profile_name);
+        }
+
+        Ok(())
     }
 }
