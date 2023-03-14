@@ -1,6 +1,6 @@
 [package]
 name = "runcher"
-#build = "build.rs"
+build = "src/build.rs"
 version = "0.1.0"
 authors = ["Frodo45127 <frodo_gv@hotmail.com>"]
 description = "A generic launcher for Total War games since Empire: Total War."
@@ -42,8 +42,16 @@ qt_gui = "^0.5"
 qt_widgets = "^0.5"
 qt_ui_tools = "^0.5"
 
+# Support for Regex operations.
+regex = "^1"
+
 # Steam Workshop support.
-steam-workshop-api = "^0.2"
+#steam-workshop-api = "^0.2"
+steam-workshop-api = { path = "../rs-steam-workshop-api", version = "0.2" }
+
+# Windows resources support.
+[target.'cfg(windows)'.build-dependencies]
+winres = "^0.1"
 
 [profile.dev]
 incremental = true

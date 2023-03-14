@@ -12,6 +12,7 @@ use anyhow::Result;
 use getset::*;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
+use steam_workshop_api::WorkshopItem;
 
 use std::collections::HashMap;
 use std::fs::{DirBuilder, File};
@@ -22,6 +23,8 @@ use rpfm_lib::games::GameInfo;
 use rpfm_lib::utils::*;
 
 use crate::settings_ui::*;
+
+pub mod steam;
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -38,11 +41,14 @@ pub struct GameConfig {
 #[getset(get = "pub", get_mut = "pub", set = "pub")]
 pub struct Mod {
 
-    // Visual name of the mod.
+    // Visual name of the mod. Title if the mod is from the workshop.
     name: String,
 
     // Pack name of the mod.
     id: String,
+
+    // Steam Workshop's id of this mod.
+    steam_id: Option<String>,
 
     // If the mod is enabled or not.
     enabled: bool,
@@ -52,6 +58,18 @@ pub struct Mod {
 
     // Multiple paths in case it's both in data and in a secondary folder. /data always takes priority.
     paths: Vec<PathBuf>,
+
+    // Creator of the mod.
+    creator: String,
+    file_size: u64,
+    file_url: String,
+    preview_url: String,
+    description: String,
+    time_created: usize,
+    time_updated: usize,
+
+    // Time stamp of the last time we checked. So we don't spam steam.
+    last_check: u64,
 }
 
 #[derive(Clone, Debug, Default, Getters, Setters, Serialize, Deserialize)]

@@ -40,7 +40,8 @@ use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::actions_ui::ActionsUI;
-use crate::integrations::{GameConfig, Mod, Profile};
+use crate::ffi::launcher_window_safe;
+use crate::integrations::{GameConfig, Mod, Profile, steam::*};
 use crate::mod_list_ui::ModListUI;
 use crate::pack_list_ui::PackListUI;
 use crate::settings_ui::SettingsUI;
@@ -131,7 +132,7 @@ impl AppUI {
     pub unsafe fn new() -> Result<Arc<Self>> {
 
         // Initialize and configure the main window.
-        let main_window = QMainWindow::new_0a();
+        let main_window = launcher_window_safe();
         let widget = QWidget::new_1a(&main_window);
         let _ = create_grid_layout(widget.static_upcast());
         main_window.set_central_widget(&widget);
@@ -418,6 +419,8 @@ impl AppUI {
                     let data_paths = game.data_packs_paths(&game_path);
                     let content_paths = game.content_packs_paths(&game_path);
 
+                    let mut steam_ids = vec![];
+
                     // Initialize the mods in loadable folders.
                     {
                         let mut mods = self.game_config().write().unwrap();
@@ -459,18 +462,34 @@ impl AppUI {
                                                 if !modd.paths().contains(path) {
                                                     modd.paths_mut().push(path.to_path_buf());
                                                 }
+
+                                                // Get the steam id from the path, if possible.
+                                                let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
+                                                steam_ids.push(steam_id.to_owned());
+                                                modd.set_steam_id(Some(steam_id));
+
                                             }
                                             None => {
                                                 let mut modd = Mod::default();
                                                 modd.set_name(pack_name.to_owned());
                                                 modd.set_id(pack_name.to_owned());
                                                 modd.set_paths(vec![path.to_path_buf()]);
+
+                                                // Get the steam id from the path, if possible.
+                                                let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
+                                                steam_ids.push(steam_id.to_owned());
+                                                modd.set_steam_id(Some(steam_id));
+
                                                 mods.mods_mut().insert(pack_name, modd);
                                             }
                                         }
                                     }
                                 }
                             }
+
+                            //if let Err(error) = populate_mods(mods.mods_mut(), &steam_ids) {
+                            //    show_dialog(self.main_window(), error, false);
+                            //}
                         }
                     }
 

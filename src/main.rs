@@ -35,7 +35,7 @@ use std::sync::{Arc, RwLock};
 use rpfm_lib::games::supported_games::SupportedGames;
 use rpfm_lib::integrations::log::*;
 
-use rpfm_ui_common::locale::*;
+use rpfm_ui_common::locale::FALLBACK_LOCALE;
 use rpfm_ui_common::settings::*;
 
 use crate::app_ui::AppUI;
@@ -43,6 +43,7 @@ use crate::settings_ui::*;
 
 mod actions_ui;
 mod app_ui;
+mod ffi;
 mod integrations;
 mod mod_list_ui;
 mod pack_list_ui;

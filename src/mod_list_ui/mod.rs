@@ -26,6 +26,7 @@ use qt_core::QRegExp;
 use qt_core::QSortFilterProxyModel;
 use qt_core::QString;
 use qt_core::QTimer;
+use qt_core::QVariant;
 use qt_core::SortOrder;
 
 use anyhow::Result;
@@ -36,6 +37,7 @@ use std::sync::Arc;
 use rpfm_ui_common::utils::*;
 
 use crate::integrations::GameConfig;
+use crate::integrations::steam::*;
 
 use self::slots::ModListUISlots;
 
@@ -134,13 +136,20 @@ impl ModListUI {
 
                 if let Some(ref parent) = parent {
                     let row = QListOfQStandardItem::new();
-                    let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                    let item = QStandardItem::from_q_string(&QString::from_std_str(&pack_name));
+                    let item = QStandardItem::from_q_string(&QString::from_std_str(&modd.name()));
                     //let pack = Pack::read_and_merge(&[modd.pack().to_path_buf()], true, false)?;
                     item.set_checkable(true);
                     if *modd.enabled() {
                         item.set_check_state(CheckState::Checked);
                     }
+                    item.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.id())), 21);
+
+                    //if !modd.description().is_empty() {
+                    //    if modd.description().contains("for all regions") {
+                    //        println!("{}", parse_to_html(modd.description()));
+                    //    }
+                    //    item.set_tool_tip(&QString::from_std_str(parse_to_html(modd.description())));
+                    //}
 
                     row.append_q_standard_item(&item.into_ptr().as_mut_raw_ptr());
                     parent.append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());

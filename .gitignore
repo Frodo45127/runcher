@@ -1,6 +1,12 @@
 # Crashlog folder.
 /error/
 
+# Profiles folder.
+/profiles/
+
+# Game Configs folder.
+/game_config/
+
 # Compilation folder for Rust & Company.
 /target/
 

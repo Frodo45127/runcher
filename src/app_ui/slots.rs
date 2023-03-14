@@ -77,7 +77,7 @@ impl AppUISlots {
             if item.column() == 0 {
                 let game_info = view.game_selected().read().unwrap();
                 if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
-                    let mod_id = item.text().to_std_string();
+                    let mod_id = item.data_1a(21).to_string().to_std_string();
 
                     // Update the mod's status.
                     if let Some(modd) = game_config.mods_mut().get_mut(&mod_id) {
