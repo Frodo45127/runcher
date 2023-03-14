@@ -119,6 +119,9 @@ impl SettingsUI {
         default_game_combobox.set_model(&default_game_model);
         update_chanel_combobox.set_model(&update_chanel_model);
 
+        default_game_label.set_text(&qtr("default_game"));
+        update_chanel_label.set_text(&qtr("update_channel"));
+
         // We automatically add a Label/LineEdit/Button for each game we support.
         let mut paths_games_line_edits = BTreeMap::new();
         let mut paths_games_buttons = BTreeMap::new();
@@ -178,8 +181,9 @@ impl SettingsUI {
         }
 
         // Get the default game.
-        for (index, game) in SUPPORTED_GAMES.games().iter().enumerate() {
-            if game.game_key_name() == setting_string_from_q_setting(&q_settings, "default_game") {
+        let default_game = setting_string_from_q_setting(&q_settings, "default_game");
+        for (index, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
+            if game.game_key_name() == default_game {
                 self.default_game_combobox.set_current_index(index as i32);
                 break;
             }

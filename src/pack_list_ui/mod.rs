@@ -26,7 +26,6 @@ use qt_core::QSortFilterProxyModel;
 use qt_core::QString;
 use qt_core::QTimer;
 use qt_core::QVariant;
-use qt_core::SortOrder;
 
 use anyhow::Result;
 use getset::*;
@@ -35,6 +34,7 @@ use std::sync::Arc;
 
 use rpfm_lib::files::pack::Pack;
 
+use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::utils::*;
 
 use crate::integrations::GameConfig;
@@ -113,29 +113,36 @@ impl PackListUI {
     pub unsafe fn load(&self, game_config: &GameConfig) -> Result<()> {
         self.model().clear();
 
-        for modd in game_config.mods().values() {
-            if !modd.paths().is_empty() {
-                if *modd.enabled() {
-                    let row = QListOfQStandardItem::new();
-                    let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                    let item_name = QStandardItem::from_q_string(&QString::from_std_str(&pack_name));
-                    let pack = Pack::read_and_merge(&[modd.paths()[0].to_path_buf()], true, false)?;
-                    let combined_name = format!("{}{}", pack.pfh_file_type() as u32, pack_name);
-                    item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(combined_name)), 20);
+        // Pre-sort the mods.
+        let mut mods = game_config.mods()
+            .values()
+            .filter(|modd| *modd.enabled() && !modd.paths().is_empty())
+            .collect::<Vec<_>>();
 
-                    let item_path = QStandardItem::from_q_string(&QString::from_std_str(&modd.paths()[0].to_string_lossy()));
+        mods.sort_unstable_by(|a, b| a.id().cmp(b.id()));
 
-                    row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());
+        for (index, modd) in mods.iter().enumerate() {
+            let row = QListOfQStandardItem::new();
+            let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
+            let item_name = QStandardItem::from_q_string(&QString::from_std_str(&pack_name));
+            let pack = Pack::read_and_merge(&[modd.paths()[0].to_path_buf()], true, false)?;
+            let combined_name = format!("{}{}", pack.pfh_file_type() as u32, pack_name);
+            item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(combined_name)), 20);
 
-                    self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
-                }
-            }
+            let item_path = QStandardItem::from_q_string(&QString::from_std_str(&modd.paths()[0].to_string_lossy()));
+            let load_order = QStandardItem::from_q_string(&QString::from_std_str(index.to_string()));
+            let location = QStandardItem::from_q_string(&QString::from_std_str("tbd"));
+
+            row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
+            row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());
+            row.append_q_standard_item(&load_order.into_ptr().as_mut_raw_ptr());
+            row.append_q_standard_item(&location.into_ptr().as_mut_raw_ptr());
+
+            self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
         }
 
         // Sort first by pack type, then by ascii order.
-        self.filter().set_sort_role(20);
-        self.filter().sort_2a(0, SortOrder::AscendingOrder);
+        self.table_view().hide_column(1);
 
         self.setup_columns();
         self.table_view().resize_columns_to_contents();
@@ -144,9 +151,15 @@ impl PackListUI {
     }
 
     pub unsafe fn setup_columns(&self) {
-        let pack_name = QStandardItem::from_q_string(&QString::from_std_str("Pack Name"));
+        let pack_name = QStandardItem::from_q_string(&qtr("pack_name"));
+        let pack_path = QStandardItem::from_q_string(&qtr("pack_path"));
+        let load_order = QStandardItem::from_q_string(&qtr("load_order"));
+        let location = QStandardItem::from_q_string(&qtr("location"));
 
         self.model.set_horizontal_header_item(0, pack_name.into_ptr());
+        self.model.set_horizontal_header_item(1, pack_path.into_ptr());
+        self.model.set_horizontal_header_item(2, load_order.into_ptr());
+        self.model.set_horizontal_header_item(3, location.into_ptr());
     }
 
     pub unsafe fn filter_list(&self) {

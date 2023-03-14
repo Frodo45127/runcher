@@ -22,7 +22,6 @@ use qt_core::QString;
 use anyhow::{anyhow, Result};
 use getset::Getters;
 
-use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 #[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
@@ -200,8 +199,8 @@ impl AppUI {
         //-----------------------------------------------//
         // `About` Menu.
         //-----------------------------------------------//
-        let about_about_qt = menu_bar_about.add_action_q_string(&qtr("About QT"));
-        let about_about_runcher = menu_bar_about.add_action_q_string(&qtr("About Runcher"));
+        let about_about_qt = menu_bar_about.add_action_q_string(&qtr("about_qt"));
+        let about_about_runcher = menu_bar_about.add_action_q_string(&qtr("about_runcher"));
 
         //-------------------------------------------------------------------------------//
         // `Actions` section.
@@ -428,6 +427,7 @@ impl AppUI {
                                             None => {
                                                 let mut modd = Mod::default();
                                                 modd.set_name(pack_name.to_owned());
+                                                modd.set_id(pack_name.to_owned());
                                                 modd.set_paths(vec![path.to_path_buf()]);
                                                 mods.mods_mut().insert(pack_name, modd);
                                             }
@@ -450,6 +450,7 @@ impl AppUI {
                                             None => {
                                                 let mut modd = Mod::default();
                                                 modd.set_name(pack_name.to_owned());
+                                                modd.set_id(pack_name.to_owned());
                                                 modd.set_paths(vec![path.to_path_buf()]);
                                                 mods.mods_mut().insert(pack_name, modd);
                                             }
