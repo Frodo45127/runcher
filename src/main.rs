@@ -35,6 +35,7 @@ use std::sync::{Arc, RwLock};
 use rpfm_lib::games::supported_games::SupportedGames;
 use rpfm_lib::integrations::log::*;
 
+use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
 
 use crate::app_ui::AppUI;
@@ -75,7 +76,12 @@ lazy_static! {
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const VERSION_SUBTITLE: &str = " -- A New Beginning";
 
+const FALLBACK_LOCALE_EN: &str = include_str!("../locale/English_en.ftl");
+
 fn main() {
+
+    // Setup the fallback locale before anything else.
+    *FALLBACK_LOCALE.write().unwrap() = FALLBACK_LOCALE_EN.to_string();
 
     // Access the guard to make sure it gets initialized.
     if SENTRY_GUARD.read().unwrap().is_enabled() {

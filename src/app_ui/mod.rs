@@ -118,21 +118,6 @@ pub struct AppUI {
 
     // Game selected. Unlike RPFM, here it's not a global.
     game_selected: Rc<RwLock<GameInfo>>,
-
-    // List of Packs, split by type, available for the game selected.
-    //
-    // This includes vanilla and disabled packs, from data and from content, split by path.
-    //
-    // If there is a collision between content and data, only data is used.
-    packs: Arc<RwLock<BTreeMap<PFHFileType, HashMap<String, Pack>>>>,
-
-    // List of Mods found for the game selected.
-    //
-    // These may be individual Packs, or group of Packs, of type `Mod`, separated by category.
-    mods: Arc<RwLock<HashMap<String, Vec<Mod>>>>,
-
-    // Mod load order, by path. Only includes mods, as the rest of the Packs are always in the same order.
-    load_order: Arc<RwLock<Vec<String>>>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -287,9 +272,6 @@ impl AppUI {
 
             // NOTE: This loads arena on purpose, so ANY game selected triggers a game change properly.
             game_selected: Rc::new(RwLock::new(SUPPORTED_GAMES.game("arena").unwrap().clone())),
-            packs: Arc::new(RwLock::new(BTreeMap::new())),
-            mods: Arc::new(RwLock::new(HashMap::new())),
-            load_order: Arc::new(RwLock::new(Vec::new())),
         });
 
         let slots = AppUISlots::new(&app_ui);
@@ -412,7 +394,7 @@ impl AppUI {
                 *self.game_selected().write().unwrap() = game.clone();
 
                 // Load the game's config.
-                *self.game_config().write().unwrap() = Some(GameConfig::load(&game, true)?);
+                *self.game_config().write().unwrap() = Some(GameConfig::load(game, true)?);
 
                 // If we don't have a path in the settings for the game, disable the play button.
                 let game_path = setting_string(game.game_key_name());
@@ -480,8 +462,8 @@ impl AppUI {
 
                     let mods = self.game_config().read().unwrap();
                     if let Some(ref mods) = *mods {
-                        self.mod_list_ui().load(&mods)?;
-                        self.pack_list_ui().load(&mods)?;
+                        self.mod_list_ui().load(mods)?;
+                        self.pack_list_ui().load(mods)?;
                     }
                 }
 
@@ -538,10 +520,10 @@ impl AppUI {
             .join("\n");
 
         let game = self.game_selected().read().unwrap();
-        let game_path = setting_path(&game.game_key_name());
+        let game_path = setting_path(game.game_key_name());
         let file_path = game_path.join("mod_list.txt");
 
-        let mut file = BufWriter::new(File::create(&file_path)?);
+        let mut file = BufWriter::new(File::create(file_path)?);
         file.write_all(pack_list.as_bytes())?;
         file.flush()?;
 
@@ -552,7 +534,7 @@ impl AppUI {
             command.arg("/C");
             command.arg("start");
             command.arg("/d");
-            command.arg(game_path.to_string_lossy().replace("\\", "/"));
+            command.arg(game_path.to_string_lossy().replace('\\', "/"));
             command.arg(exec_game.file_name().unwrap().to_string_lossy().to_string());
             command.arg("mod_list.txt;");
 

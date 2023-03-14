@@ -18,6 +18,7 @@ use qt_core::QPtr;
 use anyhow::Result;
 use getset::*;
 
+use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::utils::*;
 
 const VIEW_DEBUG: &str = "ui_templates/actions_groupbox.ui";
@@ -50,6 +51,8 @@ impl ActionsUI {
 
         let play_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "play_button")?;
         let settings_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "settings_button")?;
+        play_button.set_tool_tip(&qtr("launch_game"));
+        settings_button.set_tool_tip(&qtr("settings"));
 
         layout.add_widget_5a(&main_widget, 0, 1, 1, 1);
 
