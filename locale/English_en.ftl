@@ -22,6 +22,8 @@ save_profile = Save Profile
 category_name = Category Name
 category_new = New Category
 category_new_placeholder = Category
+category_delete = Delete Category
+categories_send_to_menu = Send to Category...
 
 title_success = Success!
 title_error = Error!

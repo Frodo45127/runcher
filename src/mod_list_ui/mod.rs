@@ -35,6 +35,8 @@ use qt_core::QTimer;
 use qt_core::QVariant;
 use qt_core::SortOrder;
 
+use cpp_core::Ptr;
+
 use anyhow::Result;
 use getset::*;
 
@@ -72,6 +74,9 @@ pub struct ModListUI {
 
     context_menu: QBox<QMenu>,
     category_new: QPtr<QAction>,
+    category_delete: QPtr<QAction>,
+
+    categories_send_to_menu: QBox<QMenu>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -105,6 +110,11 @@ impl ModListUI {
         // Context menu.
         let context_menu = QMenu::from_q_widget(&main_widget);
         let category_new = context_menu.add_action_q_string(&qtr("category_new"));
+        let category_delete = context_menu.add_action_q_string(&qtr("category_delete"));
+
+
+        let categories_send_to_menu = QMenu::from_q_string(&qtr("categories_send_to_menu"));
+        context_menu.add_menu_q_menu(&categories_send_to_menu);
 
         let list = Arc::new(Self {
             tree_view,
@@ -116,6 +126,8 @@ impl ModListUI {
 
             context_menu,
             category_new,
+            category_delete,
+            categories_send_to_menu,
         });
 
         let slots = ModListUISlots::new(&list);
@@ -215,6 +227,32 @@ impl ModListUI {
         else {
             Ok(None)
         }
+    }
+
+    pub unsafe fn categories(&self) -> Vec<String> {
+        let mut categories = Vec::with_capacity(self.model().row_count_0a() as usize);
+        for index in 0..self.model().row_count_0a() {
+            let item = self.model().item_1a(index);
+            if !item.is_null() {
+                categories.push(item.text().to_std_string());
+            }
+        }
+
+        categories
+    }
+
+    pub unsafe fn category_item(&self, category: &str) -> Option<Ptr<QStandardItem>> {
+        let mut cat_item = None;
+        let category = QString::from_std_str(category);
+        for index in 0..self.model().row_count_0a() {
+            let item = self.model().item_1a(index);
+            if !item.is_null() && item.text().compare_q_string(&category) == 0 {
+                cat_item = Some(item);
+                break;
+            }
+        }
+
+        cat_item
     }
 
     pub unsafe fn filter_list(&self) {

@@ -16,8 +16,11 @@ use qt_widgets::QWidget;
 
 use qt_core::CheckState;
 use qt_core::QBox;
+use qt_core::QModelIndex;
 use qt_core::QPtr;
 use qt_core::QString;
+
+use cpp_core::CppBox;
 
 use anyhow::{anyhow, Result};
 use getset::Getters;
@@ -337,6 +340,9 @@ impl AppUI {
         self.about_about_runcher().triggered().connect(slots.about_runcher());
 
         self.mod_list_ui().model().item_changed().connect(slots.update_pack_list());
+        self.mod_list_ui().model().data_changed().connect(slots.update_game_config());
+        self.mod_list_ui().context_menu().about_to_show().connect(slots.mod_list_context_menu_open());
+        self.mod_list_ui().category_delete().triggered().connect(slots.category_delete());
     }
 
     /// Function to toggle the main window on and off, while keeping the stupid focus from breaking.
@@ -649,5 +655,11 @@ impl AppUI {
         }
 
         Ok(())
+    }
+
+    pub unsafe fn mod_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
+        let indexes_visual = self.mod_list_ui().tree_view().selection_model().selection().indexes();
+        let indexes_visual = (0..indexes_visual.count_0a()).rev().map(|x| indexes_visual.at(x)).collect::<Vec<_>>();
+        indexes_visual.iter().map(|x| self.mod_list_ui().filter().map_to_source(*x)).collect::<Vec<_>>()
     }
 }
