@@ -68,6 +68,7 @@ impl ActionsUI {
         let profile_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "profile_combobox")?;
         let profile_model: QBox<QStandardItemModel> = QStandardItemModel::new_1a(&profile_combobox);
         profile_combobox.set_model(&profile_model);
+        profile_combobox.line_edit().set_placeholder_text(&qtr("profile_name"));
         profile_load_button.set_tool_tip(&qtr("load_profile"));
         profile_save_button.set_tool_tip(&qtr("save_profile"));
 

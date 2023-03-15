@@ -19,6 +19,7 @@ load_order = Load Order
 
 load_profile = Load Profile
 save_profile = Save Profile
+profile_name = Profile Name
 
 category_name = Category Name
 category_new = New Category

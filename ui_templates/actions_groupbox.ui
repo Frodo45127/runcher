@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>556</width>
-    <height>189</height>
+    <width>558</width>
+    <height>40</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -61,14 +61,20 @@
    <item row="0" column="1">
     <widget class="QToolButton" name="profile_load_button">
      <property name="text">
-      <string>...</string>
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="dialog-ok-apply"/>
      </property>
     </widget>
    </item>
    <item row="0" column="2">
     <widget class="QToolButton" name="profile_save_button">
      <property name="text">
-      <string>...</string>
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="document-save"/>
      </property>
     </widget>
    </item>
