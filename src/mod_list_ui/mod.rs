@@ -8,9 +8,15 @@
 // https://github.com/Frodo45127/rpfm/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use qt_widgets::QAction;
+use qt_widgets::QDialog;
+use qt_widgets::QDialogButtonBox;
+use qt_widgets::q_dialog_button_box::StandardButton;
 use qt_widgets::QGridLayout;
+use qt_widgets::QLabel;
 use qt_widgets::QLineEdit;
 use qt_widgets::QMainWindow;
+use qt_widgets::QMenu;
 use qt_widgets::QToolButton;
 use qt_widgets::QTreeView;
 
@@ -34,6 +40,7 @@ use getset::*;
 
 use std::sync::Arc;
 
+use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::utils::*;
 
 use crate::ffi::*;
@@ -45,6 +52,9 @@ mod slots;
 
 const VIEW_DEBUG: &str = "ui_templates/filterable_tree_widget.ui";
 const VIEW_RELEASE: &str = "ui/filterable_tree_widget.ui";
+
+const CATEGORY_NEW_VIEW_DEBUG: &str = "ui_templates/category_new_dialog.ui";
+const CATEGORY_NEW_VIEW_RELEASE: &str = "ui/category_new_dialog.ui";
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -58,7 +68,10 @@ pub struct ModListUI {
     filter: QBox<QSortFilterProxyModel>,
     filter_line_edit: QPtr<QLineEdit>,
     filter_case_sensitive_button: QPtr<QToolButton>,
-    filter_timer: QBox<QTimer>
+    filter_timer: QBox<QTimer>,
+
+    context_menu: QBox<QMenu>,
+    category_new: QPtr<QAction>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -89,6 +102,10 @@ impl ModListUI {
 
         layout.add_widget_5a(&main_widget, 0, 0, 2, 1);
 
+        // Context menu.
+        let context_menu = QMenu::from_q_widget(&main_widget);
+        let category_new = context_menu.add_action_q_string(&qtr("category_new"));
+
         let list = Arc::new(Self {
             tree_view,
             model,
@@ -96,6 +113,9 @@ impl ModListUI {
             filter_line_edit,
             filter_case_sensitive_button,
             filter_timer,
+
+            context_menu,
+            category_new,
         });
 
         let slots = ModListUISlots::new(&list);
@@ -108,6 +128,13 @@ impl ModListUI {
         self.filter_line_edit().text_changed().connect(slots.filter_line_edit());
         self.filter_case_sensitive_button().toggled().connect(slots.filter_case_sensitive_button());
         self.filter_timer().timeout().connect(slots.filter_trigger());
+
+        self.tree_view().custom_context_menu_requested().connect(slots.context_menu());
+
+        self.tree_view().selection_model().selection_changed().connect(slots.context_menu_enabler());
+        self.context_menu().about_to_show().connect(slots.context_menu_enabler());
+
+        self.category_new().triggered().connect(slots.category_new());
     }
 
     pub unsafe fn load(&self, game_config: &GameConfig) -> Result<()> {
@@ -163,6 +190,31 @@ impl ModListUI {
         self.tree_view().expand_all();
         self.tree_view().sort_by_column_2a(0, SortOrder::AscendingOrder);
         Ok(())
+    }
+
+    pub unsafe fn category_new_dialog(&self) -> Result<Option<String>> {
+
+        // Load the UI Template.
+        let template_path = if cfg!(debug_assertions) { CATEGORY_NEW_VIEW_DEBUG } else { CATEGORY_NEW_VIEW_RELEASE };
+        let main_widget = load_template(self.tree_view(), template_path)?;
+
+        let dialog = main_widget.static_downcast::<QDialog>();
+        dialog.set_window_title(&qtr("category_new"));
+
+        let name_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "name_line_edit")?;
+        let name_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "name_label")?;
+        let button_box: QPtr<QDialogButtonBox> = find_widget(&main_widget.static_upcast(), "button_box")?;
+        name_line_edit.set_text(&qtr("category_new_placeholder"));
+        name_label.set_text(&qtr("category_name"));
+
+        // TODO: make sure we don't allow to hit ok with invalid names.
+        button_box.button(StandardButton::Ok).released().connect(dialog.slot_accept());
+
+        if dialog.exec() == 1 {
+            Ok(Some(name_line_edit.text().to_std_string())) }
+        else {
+            Ok(None)
+        }
     }
 
     pub unsafe fn filter_list(&self) {

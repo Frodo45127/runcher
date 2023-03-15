@@ -18,3 +18,10 @@ load_order = Load Order
 
 load_profile = Load Profile
 save_profile = Save Profile
+
+category_name = Category Name
+category_new = New Category
+category_new_placeholder = Category
+
+title_success = Success!
+title_error = Error!

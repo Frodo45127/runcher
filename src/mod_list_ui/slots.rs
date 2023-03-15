@@ -8,6 +8,10 @@
 // https://github.com/Frodo45127/rpfm/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use qt_widgets::SlotOfQPoint;
+
+use qt_gui::QCursor;
+
 use qt_core::QBox;
 use qt_core::{SlotNoArgs, SlotOfQString};
 
@@ -27,6 +31,11 @@ pub struct ModListUISlots {
     filter_line_edit: QBox<SlotOfQString>,
     filter_case_sensitive_button: QBox<SlotNoArgs>,
     filter_trigger: QBox<SlotNoArgs>,
+
+    context_menu: QBox<SlotOfQPoint>,
+    context_menu_enabler: QBox<SlotNoArgs>,
+
+    category_new: QBox<SlotNoArgs>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -51,10 +60,36 @@ impl ModListUISlots {
             view.filter_list();
         }));
 
+        let context_menu = SlotOfQPoint::new(&view.tree_view, clone!(
+            view => move |_| {
+            view.context_menu().exec_1a_mut(&QCursor::pos_0a());
+        }));
+
+        let context_menu_enabler = SlotNoArgs::new(&view.tree_view, clone!(
+            view => move || {
+            view.filter_list();
+        }));
+
+        let category_new = SlotNoArgs::new(&view.tree_view, clone!(
+            view => move || {
+            match view.category_new_dialog() {
+                Ok(name) => if let Some(name) = name {
+                    let item = QStandardItem::from_q_string(&QString::from_std_str(name));
+                    item.set_data_2a(&QVariant::from_bool(true), 40);
+                    view.model().append_row_q_standard_item(item.into_ptr().as_mut_raw_ptr());
+                },
+                Err(error) => show_dialog(view.tree_view(), error, false),
+            }
+        }));
+
         Self {
             filter_line_edit,
             filter_case_sensitive_button,
             filter_trigger,
+
+            context_menu,
+            context_menu_enabler,
+            category_new,
         }
     }
 }
