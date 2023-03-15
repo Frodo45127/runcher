@@ -31,13 +31,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    src/launcher_window.cpp
-    #src/packed_file_model.cpp \
-    #src/treeview_draggable.cpp \
-    #src/treeview_filter.cpp
+    src/launcher_window.cpp \
+    src/mod_list_filter.cpp
 
 HEADERS += \
-    src/launcher_window.h
+    src/launcher_window.h \
+    src/mod_list_filter.h
 
 INCLUDEPATH += include
 

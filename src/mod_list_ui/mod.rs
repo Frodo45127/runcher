@@ -36,8 +36,8 @@ use std::sync::Arc;
 
 use rpfm_ui_common::utils::*;
 
-use crate::integrations::GameConfig;
-use crate::integrations::steam::*;
+use crate::ffi::*;
+use crate::integrations::{GameConfig, steam::*};
 
 use self::slots::ModListUISlots;
 
@@ -79,7 +79,7 @@ impl ModListUI {
         let filter_case_sensitive_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "filter_case_sensitive_button")?;
 
         let model = QStandardItemModel::new_1a(&main_widget);
-        let filter = QSortFilterProxyModel::new_1a(&main_widget);
+        let filter = mod_list_filter_safe(main_widget.static_upcast());
         filter.set_source_model(&model);
         model.set_parent(&tree_view);
         tree_view.set_model(&filter);
@@ -129,6 +129,7 @@ impl ModListUI {
                 // If no parent is found, create the category parent.
                 if parent.is_none() {
                     let item = QStandardItem::from_q_string(&category);
+                    item.set_data_2a(&QVariant::from_bool(true), 40);
                     self.model().append_row_q_standard_item(item.into_ptr().as_mut_raw_ptr());
 
                     parent = Some(self.model().item_1a(self.model().row_count_0a() - 1))
@@ -143,6 +144,7 @@ impl ModListUI {
                         item.set_check_state(CheckState::Checked);
                     }
                     item.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.id())), 21);
+                    item.set_data_2a(&QVariant::from_bool(false), 40);
 
                     //if !modd.description().is_empty() {
                     //    if modd.description().contains("for all regions") {
@@ -174,7 +176,7 @@ impl ModListUI {
         else { pattern.set_case_sensitivity(CaseSensitivity::CaseInsensitive); }
 
         // Filter whatever it's in that column by the text we got.
-        self.filter().set_filter_reg_exp_q_reg_exp(&pattern);
+        mod_list_trigger_filter_safe(self.filter(), &pattern.as_ptr());
     }
 
     pub unsafe fn delayed_updates(&self) {

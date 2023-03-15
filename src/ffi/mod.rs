@@ -12,25 +12,30 @@ use qt_widgets::QMainWindow;
 use qt_widgets::QWidget;
 
 use qt_core::QBox;
+use qt_core::QObject;
 use qt_core::QPtr;
+use qt_core::QRegExp;
+use qt_core::QSortFilterProxyModel;
 use qt_core::Signal;
+
+use cpp_core::Ptr;
 
 //---------------------------------------------------------------------------//
 // Custom delegates stuff.
 //---------------------------------------------------------------------------//
-/*
+
 // This function setup the special filter used for the PackFile Contents `TreeView`.
-extern "C" { fn new_treeview_filter(parent: *mut QObject) -> *mut QSortFilterProxyModel; }
-pub fn new_treeview_filter_safe(parent: QPtr<QObject>) ->  QBox<QSortFilterProxyModel> {
-    unsafe { QBox::from_raw(new_treeview_filter(parent.as_mut_raw_ptr())) }
+extern "C" { fn mod_list_filter(parent: *mut QObject) -> *mut QSortFilterProxyModel; }
+pub fn mod_list_filter_safe(parent: QPtr<QObject>) ->  QBox<QSortFilterProxyModel> {
+    unsafe { QBox::from_raw(mod_list_filter(parent.as_mut_raw_ptr())) }
 }
 
 // This function triggers the special filter used for the PackFile Contents `TreeView`. It has to be triggered here to work properly.
-extern "C" { fn trigger_treeview_filter(filter: *const QSortFilterProxyModel, pattern: *mut QRegExp); }
-pub fn trigger_treeview_filter_safe(filter: &QSortFilterProxyModel, pattern: &Ptr<QRegExp>) {
-    unsafe { trigger_treeview_filter(filter, pattern.as_mut_raw_ptr()); }
+extern "C" { fn mod_list_trigger_filter(filter: *const QSortFilterProxyModel, pattern: *mut QRegExp); }
+pub fn mod_list_trigger_filter_safe(filter: &QSortFilterProxyModel, pattern: &Ptr<QRegExp>) {
+    unsafe { mod_list_trigger_filter(filter, pattern.as_mut_raw_ptr()); }
 }
-
+/*
 // This function allow us to create a QTreeView compatible with draggable items
 extern "C" { fn new_packed_file_treeview(parent: *mut QWidget) -> *mut QTreeView; }
 pub fn new_packed_file_treeview_safe(parent: QPtr<QWidget>) -> QPtr<QTreeView> {
