@@ -15,8 +15,8 @@ rust-version = "1.64"
 [dependencies]
 
 # Internal dependencies.
-rpfm_lib = { path = "../rpfm/rpfm_lib", version = "4.0.4", features = ["integration_log", "integration_git"] }
-rpfm_extensions = { path = "../rpfm/rpfm_extensions", version = "4.0.4" }
+rpfm_lib = { path = "../rpfm/rpfm_lib", version = "4.0.5", features = ["integration_log", "integration_git"] }
+rpfm_extensions = { path = "../rpfm/rpfm_extensions", version = "4.0.5" }
 rpfm_ui_common = { path = "../rpfm/rpfm_ui_common" }
 
 # Serialization support.
@@ -48,6 +48,15 @@ regex = "^1"
 # Steam Workshop support.
 #steam-workshop-api = "^0.2"
 steam-workshop-api = { path = "../rs-steam-workshop-api", version = "0.2" }
+
+# Better iterator support.
+itertools = "^0.10"
+
+# Autoupdate support.
+self_update = { version = "^0.36", features = ["archive-zip", "compression-zip-deflate", "compression-zip-bzip2", "compression-flate2"] }
+tempfile = "^3.1"
+zip-extract = "^0.1"
+reqwest = "^0.11"
 
 # Windows resources support.
 [target.'cfg(windows)'.build-dependencies]

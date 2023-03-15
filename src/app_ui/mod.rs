@@ -12,10 +12,12 @@ use qt_widgets::QAction;
 use qt_widgets::QActionGroup;
 use qt_widgets::QApplication;
 use qt_widgets::QMainWindow;
+use qt_widgets::{QMessageBox, q_message_box};
 use qt_widgets::QWidget;
 
 use qt_core::CheckState;
 use qt_core::QBox;
+use qt_core::QFlags;
 use qt_core::QModelIndex;
 use qt_core::QPtr;
 use qt_core::QString;
@@ -25,12 +27,13 @@ use cpp_core::CppBox;
 use anyhow::{anyhow, Result};
 use getset::Getters;
 
+use std::env::current_exe;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 #[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, exit};
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
@@ -38,7 +41,8 @@ use rpfm_lib::files::pack::Pack;
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::log::*;
 
-use rpfm_ui_common::locale::qtr;
+use rpfm_ui_common::locale::*;
+use rpfm_ui_common::PROGRAM_PATH;
 use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
@@ -50,6 +54,7 @@ use crate::pack_list_ui::PackListUI;
 use crate::settings_ui::SettingsUI;
 use crate::settings_ui::init_settings;
 use crate::SUPPORTED_GAMES;
+use crate::updater::*;
 
 use self::slots::AppUISlots;
 
@@ -96,6 +101,7 @@ pub struct AppUI {
     //-------------------------------------------------------------------------------//
     about_about_qt: QPtr<QAction>,
     about_about_runcher: QPtr<QAction>,
+    about_check_updates: QPtr<QAction>,
 
     //-------------------------------------------------------------------------------//
     // `Actions` section.
@@ -207,6 +213,7 @@ impl AppUI {
         //-----------------------------------------------//
         let about_about_qt = menu_bar_about.add_action_q_string(&qtr("about_qt"));
         let about_about_runcher = menu_bar_about.add_action_q_string(&qtr("about_runcher"));
+        let about_check_updates = menu_bar_about.add_action_q_string(&qtr("check_updates"));
 
         //-------------------------------------------------------------------------------//
         // `Actions` section.
@@ -252,6 +259,7 @@ impl AppUI {
             //-------------------------------------------------------------------------------//
             about_about_qt,
             about_about_runcher,
+            about_check_updates,
 
             //-------------------------------------------------------------------------------//
             // `Actions` section.
@@ -338,6 +346,7 @@ impl AppUI {
 
         self.about_about_qt().triggered().connect(slots.about_qt());
         self.about_about_runcher().triggered().connect(slots.about_runcher());
+        self.about_check_updates().triggered().connect(slots.check_updates());
 
         self.mod_list_ui().model().item_changed().connect(slots.update_pack_list());
         self.mod_list_ui().model().data_changed().connect(slots.update_game_config());
@@ -661,5 +670,87 @@ impl AppUI {
         let indexes_visual = self.mod_list_ui().tree_view().selection_model().selection().indexes();
         let indexes_visual = (0..indexes_visual.count_0a()).rev().map(|x| indexes_visual.at(x)).collect::<Vec<_>>();
         indexes_visual.iter().map(|x| self.mod_list_ui().filter().map_to_source(*x)).collect::<Vec<_>>()
+    }
+
+
+    /// This function checks if there is any newer version of the app released.
+    ///
+    /// If the `use_dialog` is false, we make the checks in the background, and pop up a dialog only in case there is an update available.
+    pub unsafe fn check_updates(&self, use_dialog: bool) {
+        let dialog = QMessageBox::from_icon2_q_string_q_flags_standard_button_q_widget(
+            q_message_box::Icon::Information,
+            &qtr("update_checker"),
+            &qtr("update_searching"),
+            QFlags::from(q_message_box::StandardButton::Close),
+            self.main_window(),
+        );
+
+        let close_button = dialog.button(q_message_box::StandardButton::Close);
+        let update_button = dialog.add_button_q_string_button_role(&qtr("update_button"), q_message_box::ButtonRole::AcceptRole);
+        update_button.set_enabled(false);
+
+        dialog.set_modal(true);
+        if use_dialog {
+            dialog.show();
+        }
+
+        let message = match check_updates_main_program() {
+            Ok(APIResponse::NewStableUpdate(last_release)) => {
+                update_button.set_enabled(true);
+                qtre("api_response_success_new_stable_update", &[&last_release])
+            }
+            Ok(APIResponse::NewBetaUpdate(last_release)) => {
+                update_button.set_enabled(true);
+                qtre("api_response_success_new_beta_update", &[&last_release])
+            }
+            Ok(APIResponse::NewUpdateHotfix(last_release)) => {
+                update_button.set_enabled(true);
+                qtre("api_response_success_new_update_hotfix", &[&last_release])
+            }
+            Ok(APIResponse::NoUpdate) => {
+                if !use_dialog { return; }
+                qtr("api_response_success_no_update")
+            }
+            Ok(APIResponse::UnknownVersion) => {
+                if !use_dialog { return; }
+                qtr("api_response_success_unknown_version")
+            }
+            Err(error) => {
+                if !use_dialog { return; }
+                qtre("api_response_error", &[&error.to_string()])
+            }
+        };
+
+        dialog.set_text(&message);
+        if dialog.exec() == 0 {
+            dialog.show();
+            dialog.set_text(&qtr("update_in_prog"));
+            update_button.set_enabled(false);
+            close_button.set_enabled(false);
+
+            match update_main_program() {
+                Ok(_) => {
+                    let restart_button = dialog.add_button_q_string_button_role(&qtr("restart_button"), q_message_box::ButtonRole::ApplyRole);
+
+                    let changelog_path = PROGRAM_PATH.join(CHANGELOG_FILE);
+                    dialog.set_text(&qtre("update_success_main_program", &[&changelog_path.to_string_lossy()]));
+                    restart_button.set_enabled(true);
+                    close_button.set_enabled(true);
+
+                    // This closes the program and triggers a restart.
+                    if dialog.exec() == 1 {
+                        QApplication::close_all_windows();
+
+                        let app_exe_path = current_exe().unwrap();
+                        Command::new(app_exe_path).spawn().unwrap();
+                        exit(10);
+                    }
+                },
+                Err(error) => {
+                    dialog.set_text(&QString::from_std_str(error.to_string()));
+                    close_button.set_enabled(true);
+                }
+            }
+        }
     }
 }

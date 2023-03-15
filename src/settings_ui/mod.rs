@@ -46,6 +46,7 @@ use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::SUPPORTED_GAMES;
+use crate::updater::*;
 
 use self::slots::SettingsUISlots;
 
@@ -118,6 +119,8 @@ impl SettingsUI {
         let update_chanel_model = QStandardItemModel::new_1a(&update_chanel_combobox);
         default_game_combobox.set_model(&default_game_model);
         update_chanel_combobox.set_model(&update_chanel_model);
+        update_chanel_combobox.add_item_q_string(&QString::from_std_str(STABLE));
+        update_chanel_combobox.add_item_q_string(&QString::from_std_str(BETA));
 
         default_game_label.set_text(&qtr("default_game"));
         update_chanel_label.set_text(&qtr("update_channel"));
@@ -198,12 +201,12 @@ impl SettingsUI {
         //    }
         //}
 
-        //for (index, update_channel_name) in [UpdateChannel::Stable, UpdateChannel::Beta].iter().enumerate() {
-        //    if update_channel_name == &update_channel() {
-        //        self.extra_network_update_channel_combobox.set_current_index(index as i32);
-        //        break;
-        //    }
-        //}
+        for (index, update_channel_name) in [UpdateChannel::Stable, UpdateChannel::Beta].iter().enumerate() {
+            if update_channel_name == &update_channel() {
+                self.update_chanel_combobox.set_current_index(index as i32);
+                break;
+            }
+        }
 
         Ok(())
     }
@@ -230,7 +233,7 @@ impl SettingsUI {
         //    set_setting_string_to_q_setting(&q_settings, "language", &file_name);
         //}
 
-        //set_setting_string_to_q_setting(&q_settings, "update_channel", &self.extra_network_update_channel_combobox.current_text().to_std_string());
+        set_setting_string_to_q_setting(&q_settings, "update_channel", &self.update_chanel_combobox.current_text().to_std_string());
 
         // Save the settings.
         q_settings.sync();
@@ -299,6 +302,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_q_byte_array(&q_settings, "originalWindowState", main_window.save_state_0a().as_ref());
 
     set_setting_string_to_q_setting(&q_settings, "default_game", "warhammer_3");
+    set_setting_string_to_q_setting(&q_settings, "update_channel", "stable");
 
     q_settings.sync();
 }

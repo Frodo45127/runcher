@@ -48,6 +48,7 @@ mod integrations;
 mod mod_list_ui;
 mod pack_list_ui;
 mod settings_ui;
+mod updater;
 
 // Statics, so we don't need to pass them everywhere to use them.
 lazy_static! {
@@ -55,23 +56,12 @@ lazy_static! {
     /// List of supported games and their configuration.
     #[derive(Debug)]
     static ref SUPPORTED_GAMES: SupportedGames = SupportedGames::default();
-    /*
-    /// Currently loaded schema.
-    static ref SCHEMA: Arc<RwLock<Option<Schema>>> = Arc::new(RwLock::new(None));
-    */
+
     /// Sentry client guard, so we can reuse it later on and keep it in scope for the entire duration of the program.
     static ref SENTRY_GUARD: Arc<RwLock<ClientInitGuard>> = Arc::new(RwLock::new(Logger::init(&{
         init_config_path().expect("Error while trying to initialize config path. We're fucked.");
         error_path().unwrap_or_else(|_| PathBuf::from("."))
     }, true, true).unwrap()));
-    /*
-
-    /// Icons for the PackFile TreeView.
-    static ref TREEVIEW_ICONS: Icons = unsafe { Icons::new() };
-
-    /// Icons for the `Game Selected` in the TitleBar.
-    static ref GAME_SELECTED_ICONS: GameSelectedIcons = unsafe { GameSelectedIcons::new() };
-    */
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");

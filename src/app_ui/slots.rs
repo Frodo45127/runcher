@@ -40,6 +40,7 @@ pub struct AppUISlots {
 
     about_qt: QBox<SlotNoArgs>,
     about_runcher: QBox<SlotNoArgs>,
+    check_updates: QBox<SlotNoArgs>,
 
     load_profile: QBox<SlotNoArgs>,
     save_profile: QBox<SlotNoArgs>,
@@ -142,6 +143,12 @@ impl AppUISlots {
                         ", &VERSION, &VERSION_SUBTITLE)
                     )
                 );
+            }
+        ));
+
+        let check_updates = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                view.check_updates(true);
             }
         ));
 
@@ -265,6 +272,7 @@ impl AppUISlots {
 
             about_qt,
             about_runcher,
+            check_updates,
 
             load_profile,
             save_profile,
