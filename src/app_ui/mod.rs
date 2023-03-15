@@ -511,7 +511,7 @@ impl AppUI {
                     let mods = self.game_config().read().unwrap();
                     if let Some(ref mods) = *mods {
                         self.mod_list_ui().load(mods)?;
-                        self.pack_list_ui().load(mods)?;
+                        self.pack_list_ui().load(mods, &self.game_selected().read().unwrap(), &game_path)?;
                     }
                 }
 

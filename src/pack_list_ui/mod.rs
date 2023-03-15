@@ -31,8 +31,10 @@ use anyhow::Result;
 use getset::*;
 
 use std::sync::Arc;
+use std::path::Path;
 
 use rpfm_lib::files::pack::Pack;
+use rpfm_lib::games::GameInfo;
 
 use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::utils::*;
@@ -110,7 +112,7 @@ impl PackListUI {
         self.filter_timer().timeout().connect(slots.filter_trigger());
     }
 
-    pub unsafe fn load(&self, game_config: &GameConfig) -> Result<()> {
+    pub unsafe fn load(&self, game_config: &GameConfig, game_info: &GameInfo, game_path: &Path) -> Result<()> {
         self.model().clear();
 
         // Pre-sort the mods.
@@ -121,6 +123,7 @@ impl PackListUI {
 
         mods.sort_unstable_by(|a, b| a.id().cmp(b.id()));
 
+        let game_data_folder = game_info.data_path(game_path)?;
         for (index, modd) in mods.iter().enumerate() {
             let row = QListOfQStandardItem::new();
             let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
@@ -131,7 +134,13 @@ impl PackListUI {
 
             let item_path = QStandardItem::from_q_string(&QString::from_std_str(&modd.paths()[0].to_string_lossy()));
             let load_order = QStandardItem::from_q_string(&QString::from_std_str(index.to_string()));
-            let location = QStandardItem::from_q_string(&QString::from_std_str("tbd"));
+            let location = QStandardItem::from_q_string(&QString::from_std_str(
+                if modd.paths()[0].starts_with(&game_data_folder) {
+                    "Data"
+                } else {
+                    "Content"
+                }
+            ));
 
             row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
             row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());

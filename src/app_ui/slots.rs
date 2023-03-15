@@ -89,7 +89,9 @@ impl AppUISlots {
                     }
 
                     // Reload the pack view.
-                    if let Err(error) = view.pack_list_ui().load(game_config) {
+                    let game_info = view.game_selected().read().unwrap();
+                    let game_path = setting_path(game_info.game_key_name());
+                    if let Err(error) = view.pack_list_ui().load(game_config, &game_info, &game_path) {
                         show_dialog(view.main_window(), error, false);
                     }
                 }
