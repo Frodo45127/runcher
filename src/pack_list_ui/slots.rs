@@ -36,17 +36,17 @@ pub struct PackListUISlots {
 impl PackListUISlots {
     pub unsafe fn new(view: &Arc<PackListUI>) -> Self {
 
-        let filter_line_edit = SlotOfQString::new(&view.table_view, clone!(
+        let filter_line_edit = SlotOfQString::new(&view.tree_view, clone!(
             view => move |_| {
             view.delayed_updates();
         }));
 
-        let filter_case_sensitive_button = SlotNoArgs::new(&view.table_view, clone!(
+        let filter_case_sensitive_button = SlotNoArgs::new(&view.tree_view, clone!(
             view => move || {
             view.filter_list();
         }));
 
-        let filter_trigger = SlotNoArgs::new(&view.table_view, clone!(
+        let filter_trigger = SlotNoArgs::new(&view.tree_view, clone!(
             view => move || {
             view.filter_list();
         }));

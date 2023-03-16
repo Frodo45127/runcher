@@ -169,6 +169,7 @@ impl ModListUI {
                 if parent.is_none() {
                     let item = QStandardItem::from_q_string(&category);
                     item.set_data_2a(&QVariant::from_bool(true), 40);
+                    item.set_editable(false);
                     self.model().append_row_q_standard_item(item.into_ptr().as_mut_raw_ptr());
 
                     parent = Some(self.model().item_1a(self.model().row_count_0a() - 1))
@@ -184,6 +185,7 @@ impl ModListUI {
                     }
                     item.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.id())), 21);
                     item.set_data_2a(&QVariant::from_bool(false), 40);
+                    item.set_editable(false);
 
                     //if !modd.description().is_empty() {
                     //    if modd.description().contains("for all regions") {

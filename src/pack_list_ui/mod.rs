@@ -11,8 +11,8 @@
 use qt_widgets::QGridLayout;
 use qt_widgets::QLineEdit;
 use qt_widgets::QMainWindow;
-use qt_widgets::QTableView;
 use qt_widgets::QToolButton;
+use qt_widgets::QTreeView;
 
 use qt_gui::QListOfQStandardItem;
 use qt_gui::QStandardItem;
@@ -29,6 +29,7 @@ use qt_core::QVariant;
 
 use anyhow::Result;
 use getset::*;
+use qt_widgets::q_header_view::ResizeMode;
 
 use std::sync::Arc;
 use std::path::Path;
@@ -45,8 +46,8 @@ use self::slots::PackListUISlots;
 
 mod slots;
 
-const VIEW_DEBUG: &str = "ui_templates/filterable_table_widget.ui";
-const VIEW_RELEASE: &str = "ui/filterable_table_widget.ui";
+const VIEW_DEBUG: &str = "ui_templates/filterable_tree_widget.ui";
+const VIEW_RELEASE: &str = "ui/filterable_tree_widget.ui";
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -55,7 +56,7 @@ const VIEW_RELEASE: &str = "ui/filterable_table_widget.ui";
 #[derive(Debug, Getters)]
 #[getset(get = "pub")]
 pub struct PackListUI {
-    table_view: QPtr<QTableView>,
+    tree_view: QPtr<QTreeView>,
     model: QBox<QStandardItemModel>,
     filter: QBox<QSortFilterProxyModel>,
     filter_line_edit: QPtr<QLineEdit>,
@@ -76,15 +77,16 @@ impl PackListUI {
         let template_path = if cfg!(debug_assertions) { VIEW_DEBUG } else { VIEW_RELEASE };
         let main_widget = load_template(main_window, template_path)?;
 
-        let table_view: QPtr<QTableView> = find_widget(&main_widget.static_upcast(), "table_view")?;
+        let tree_view: QPtr<QTreeView> = find_widget(&main_widget.static_upcast(), "tree_view")?;
         let filter_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "filter_line_edit")?;
         let filter_case_sensitive_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "filter_case_sensitive_button")?;
 
         let model = QStandardItemModel::new_1a(&main_widget);
         let filter = QSortFilterProxyModel::new_1a(&main_widget);
         filter.set_source_model(&model);
-        model.set_parent(&table_view);
-        table_view.set_model(&filter);
+        model.set_parent(&tree_view);
+        tree_view.set_model(&filter);
+        tree_view.set_header_hidden(false);
 
         let filter_timer = QTimer::new_1a(&main_widget);
         filter_timer.set_single_shot(true);
@@ -92,7 +94,7 @@ impl PackListUI {
         layout.add_widget_5a(&main_widget, 1, 1, 1, 1);
 
         let list = Arc::new(Self {
-            table_view,
+            tree_view,
             model,
             filter,
             filter_line_edit,
@@ -142,6 +144,11 @@ impl PackListUI {
                 }
             ));
 
+            item_name.set_editable(false);
+            item_path.set_editable(false);
+            load_order.set_editable(false);
+            location.set_editable(false);
+
             row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
             row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());
             row.append_q_standard_item(&load_order.into_ptr().as_mut_raw_ptr());
@@ -151,10 +158,10 @@ impl PackListUI {
         }
 
         // Sort first by pack type, then by ascii order.
-        self.table_view().hide_column(1);
+        self.tree_view().hide_column(1);
 
         self.setup_columns();
-        self.table_view().resize_columns_to_contents();
+        self.tree_view().header().resize_sections(ResizeMode::ResizeToContents);
 
         Ok(())
     }
