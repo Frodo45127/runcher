@@ -558,8 +558,20 @@ impl AppUI {
     pub unsafe fn launch_game(&self) -> Result<()> {
         let pack_list = (0..self.pack_list_ui().model().row_count_0a())
             .filter_map(|index| {
+                let mut string = String::new();
                 let item = self.pack_list_ui().model().item_1a(index);
-                Some(format!("mod \"{}\";", item.text().to_std_string()))
+                let item_path = self.pack_list_ui().model().item_2a(index, 1);
+                let item_location = self.pack_list_ui().model().item_2a(index, 3);
+                let item_steam_id = self.pack_list_ui().model().item_2a(index, 4);
+
+                let steam_id = item_steam_id.text().to_std_string();
+                if item_location.text().to_std_string() == "Content" && !steam_id.is_empty() {
+                    let mut path = PathBuf::from(item_path.text().to_std_string());
+                    path.pop();
+                    string.push_str(&format!("add_working_directory \"{}\";\n", path.to_string_lossy()));
+                }
+                string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
+                Some(string)
                 /*
                 if item.is_checkable() && item.check_state() == CheckState::Checked {
                     Some(format!("mod \"{}\"", item.text().to_std_string()))

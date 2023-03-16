@@ -144,21 +144,30 @@ impl PackListUI {
                 }
             ));
 
+            let steam_id = match modd.steam_id() {
+                Some(steam_id) => QStandardItem::from_q_string(&QString::from_std_str(steam_id)),
+                None => QStandardItem::new(),
+            };
+
+
             item_name.set_editable(false);
             item_path.set_editable(false);
             load_order.set_editable(false);
             location.set_editable(false);
+            steam_id.set_editable(false);
 
             row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
             row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());
             row.append_q_standard_item(&load_order.into_ptr().as_mut_raw_ptr());
             row.append_q_standard_item(&location.into_ptr().as_mut_raw_ptr());
+            row.append_q_standard_item(&steam_id.into_ptr().as_mut_raw_ptr());
 
             self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
         }
 
         // Sort first by pack type, then by ascii order.
         self.tree_view().hide_column(1);
+        self.tree_view().hide_column(4);
 
         self.setup_columns();
         self.tree_view().header().resize_sections(ResizeMode::ResizeToContents);
