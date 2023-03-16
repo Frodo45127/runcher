@@ -138,9 +138,9 @@ impl PackListUI {
             let load_order = QStandardItem::from_q_string(&QString::from_std_str(index.to_string()));
             let location = QStandardItem::from_q_string(&QString::from_std_str(
                 if modd.paths()[0].starts_with(&game_data_folder) {
-                    "Data"
+                    "Data".to_string()
                 } else {
-                    "Content"
+                    format!("Content ({})", modd.steam_id().as_ref().unwrap())
                 }
             ));
 

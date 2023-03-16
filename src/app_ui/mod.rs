@@ -565,7 +565,7 @@ impl AppUI {
                 let item_steam_id = self.pack_list_ui().model().item_2a(index, 4);
 
                 let steam_id = item_steam_id.text().to_std_string();
-                if item_location.text().to_std_string() == "Content" && !steam_id.is_empty() {
+                if item_location.text().to_std_string().starts_with("Content") && !steam_id.is_empty() {
                     let mut path = PathBuf::from(item_path.text().to_std_string());
                     path.pop();
                     string.push_str(&format!("add_working_directory \"{}\";\n", path.to_string_lossy()));
