@@ -10,31 +10,13 @@
 
 
 use anyhow::Result;
-use steam_workshop_api::*;
+use steam_workshop_api::client::Workshop;
+use steam_workshop_api::interfaces::{*, i_steam_remote_storage::*};
 
 use std::collections::HashMap;
 
 use crate::integrations::Mod;
-/*
-    pub result: i8,
-    pub publishedfileid: String,
-    pub creator: String,
-    pub creator_app_id: u32,
-    pub consumer_app_id: u32,
-    pub filename: String,
-    pub file_size: u64,
-    pub file_url: String,
-    pub preview_url: String,
-    pub hcontent_preview: String,
-    pub title: String,
-    pub description: String,
-    pub time_created: usize,
-    pub time_updated: usize,
-    pub subscriptions: u32,
-    pub favorited: u32,
-    pub views: u32,
-    pub tags: Vec<WorkshopItemTag>
- */
+
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
 //-------------------------------------------------------------------------------//
@@ -46,28 +28,28 @@ use crate::integrations::Mod;
 
 pub fn info_for_mod(mod_id: &str) -> Result<Vec<WorkshopItem>> {
     let client = Workshop::new(None);
-    client.get_published_file_details(&[mod_id.to_string()]).map_err(From::from)
+    get_published_file_details(&client, &[mod_id.to_string()]).map_err(From::from)
 }
 
 pub fn info_for_mods(mod_ids: &[String]) -> Result<Vec<WorkshopItem>> {
     let client = Workshop::new(None);
-    client.get_published_file_details(mod_ids).map_err(From::from)
+    get_published_file_details(&client, mod_ids).map_err(From::from)
 }
 
 pub fn populate_mods(mods: &mut HashMap<String, Mod>, mod_ids: &[String]) -> Result<()> {
     let client = Workshop::new(None);
-    let workshop_items = client.get_published_file_details(mod_ids)?;
+    let workshop_items = get_published_file_details(&client, mod_ids)?;
     for workshop_item in workshop_items {
-        if workshop_item.result == 1 {
-            if let Some(modd) = mods.values_mut().filter(|modd| modd.steam_id().is_some()).find(|modd| modd.steam_id().clone().unwrap() == workshop_item.publishedfileid) {
-                modd.set_name(workshop_item.title.unwrap());
-                modd.set_creator(workshop_item.creator.unwrap());
-                modd.set_file_size(workshop_item.file_size.unwrap());
-                modd.set_file_url(workshop_item.file_url.unwrap());
-                modd.set_preview_url(workshop_item.preview_url.unwrap());
-                modd.set_description(workshop_item.description.unwrap());
-                modd.set_time_created(workshop_item.time_created.unwrap());
-                modd.set_time_updated(workshop_item.time_updated.unwrap());
+        if *workshop_item.result() == 1 {
+            if let Some(modd) = mods.values_mut().filter(|modd| modd.steam_id().is_some()).find(|modd| &modd.steam_id().clone().unwrap() == workshop_item.publishedfileid()) {
+                modd.set_name(workshop_item.title().clone().unwrap());
+                modd.set_creator(workshop_item.creator().clone().unwrap());
+                modd.set_file_size(workshop_item.file_size().unwrap());
+                modd.set_file_url(workshop_item.file_url().clone().unwrap());
+                modd.set_preview_url(workshop_item.preview_url().clone().unwrap());
+                modd.set_description(workshop_item.description().clone().unwrap());
+                modd.set_time_created(workshop_item.time_created().unwrap());
+                modd.set_time_updated(workshop_item.time_updated().unwrap());
             }
         }
     }

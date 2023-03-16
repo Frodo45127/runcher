@@ -2340,6 +2340,8 @@ dependencies = [
 name = "steam-workshop-api"
 version = "0.2.5"
 dependencies = [
+ "anyhow",
+ "getset",
  "lazy_static",
  "reqwest",
  "serde",

@@ -12,7 +12,6 @@ use anyhow::Result;
 use getset::*;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
-use steam_workshop_api::WorkshopItem;
 
 use std::collections::HashMap;
 use std::fs::{DirBuilder, File};
