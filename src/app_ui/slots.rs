@@ -182,6 +182,10 @@ impl AppUISlots {
                     return;
                 }
 
+                if selection[0].data_1a(2).to_string().to_std_string() == "Unassigned" {
+                    return;
+                }
+
                 let cat_to_delete = &selection[0];
                 let mods_to_reassign = (0..view.mod_list_ui().model().row_count_1a(cat_to_delete))
                     .map(|index| cat_to_delete.child(index, 0).data_1a(21).to_string().to_std_string())
