@@ -66,6 +66,7 @@ jobs:
           cd E:\runner_runcher\_work\runcher\runcher
 
           # Build the exes in debug mode.
+          $env:CARGO_NET_GIT_FETCH_WITH_CLI = 'true'
           cargo build --release
 
 #      - name: Prepare Assets for Release (Linux)
