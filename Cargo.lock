@@ -1845,6 +1845,8 @@ dependencies = [
 [[package]]
 name = "rpfm_extensions"
 version = "4.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1122a1107bee02b001d5ef4b5ca8108520227e5bc26509dfdd82b1f8a37fa1e3"
 dependencies = [
  "bincode",
  "caseless",
@@ -1855,7 +1857,27 @@ dependencies = [
  "lazy_static",
  "rayon",
  "regex",
- "rpfm_lib",
+ "rpfm_lib 4.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
+ "serde_derive",
+ "serde_json",
+]
+
+[[package]]
+name = "rpfm_extensions"
+version = "4.0.5"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#120dd08e1ef82a4bea1d8fe666bd13cd2f91c5ff"
+dependencies = [
+ "bincode",
+ "caseless",
+ "fancy-regex",
+ "float_eq",
+ "getset",
+ "itertools 0.10.5",
+ "lazy_static",
+ "rayon",
+ "regex",
+ "rpfm_lib 4.0.5 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
  "serde",
  "serde_derive",
  "serde_json",
@@ -1864,6 +1886,50 @@ dependencies = [
 [[package]]
 name = "rpfm_lib"
 version = "4.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "893cdf80fbd09558fcc7c0d60a2bc32cc5a1f0f71acab4006301d146df5441cb"
+dependencies = [
+ "backtrace",
+ "bincode",
+ "bitflags",
+ "byteorder",
+ "caseless",
+ "content_inspector",
+ "csv",
+ "encoding_rs",
+ "float_eq",
+ "fraction",
+ "getset",
+ "git2",
+ "itertools 0.10.5",
+ "lazy_static",
+ "log",
+ "memchr",
+ "os_info",
+ "pelite",
+ "r2d2",
+ "r2d2_sqlite",
+ "rand",
+ "rayon",
+ "regex",
+ "ron",
+ "rusqlite",
+ "sentry",
+ "serde",
+ "serde-xml-rs",
+ "serde_derive",
+ "serde_json",
+ "simplelog",
+ "thiserror",
+ "toml 0.7.2",
+ "uuid",
+ "xz2",
+]
+
+[[package]]
+name = "rpfm_lib"
+version = "4.0.5"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#120dd08e1ef82a4bea1d8fe666bd13cd2f91c5ff"
 dependencies = [
  "backtrace",
  "bincode",
@@ -1905,6 +1971,7 @@ dependencies = [
 [[package]]
 name = "rpfm_ui_common"
 version = "4.0.5"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#120dd08e1ef82a4bea1d8fe666bd13cd2f91c5ff"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -1916,8 +1983,8 @@ dependencies = [
  "qt_gui",
  "qt_ui_tools",
  "qt_widgets",
- "rpfm_extensions",
- "rpfm_lib",
+ "rpfm_extensions 4.0.5 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
+ "rpfm_lib 4.0.5 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
  "time",
  "unic-langid",
 ]
@@ -1938,8 +2005,8 @@ dependencies = [
  "qt_widgets",
  "regex",
  "reqwest",
- "rpfm_extensions",
- "rpfm_lib",
+ "rpfm_extensions 4.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rpfm_lib 4.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "rpfm_ui_common",
  "self_update",
  "serde",
