@@ -67,7 +67,12 @@ impl ModListUISlots {
 
         let context_menu_enabler = SlotNoArgs::new(&view.tree_view, clone!(
             view => move || {
-            view.filter_list();
+            let selection = view.mod_list_selection();
+            let all_categories = selection.iter().all(|index| index.data_1a(40).to_bool());
+            let all_mods = selection.iter().all(|index| !index.data_1a(40).to_bool());
+
+            view.category_delete.set_enabled(all_categories);
+            view.categories_send_to_menu.set_enabled(all_mods);
         }));
 
         let category_new = SlotNoArgs::new(&view.tree_view, clone!(

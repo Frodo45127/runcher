@@ -27,6 +27,7 @@ use qt_gui::QStandardItemModel;
 use qt_core::CaseSensitivity;
 use qt_core::CheckState;
 use qt_core::QBox;
+use qt_core::QModelIndex;
 use qt_core::QPtr;
 use qt_core::QRegExp;
 use qt_core::QSortFilterProxyModel;
@@ -35,6 +36,7 @@ use qt_core::QTimer;
 use qt_core::QVariant;
 use qt_core::SortOrder;
 
+use cpp_core::CppBox;
 use cpp_core::Ptr;
 
 use anyhow::Result;
@@ -255,6 +257,12 @@ impl ModListUI {
         }
 
         cat_item
+    }
+
+    pub unsafe fn mod_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
+        let indexes_visual = self.tree_view().selection_model().selection().indexes();
+        let indexes_visual = (0..indexes_visual.count_0a()).rev().map(|x| indexes_visual.at(x)).collect::<Vec<_>>();
+        indexes_visual.iter().map(|x| self.filter().map_to_source(*x)).collect::<Vec<_>>()
     }
 
     pub unsafe fn filter_list(&self) {

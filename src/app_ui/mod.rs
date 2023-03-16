@@ -682,11 +682,8 @@ impl AppUI {
     }
 
     pub unsafe fn mod_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
-        let indexes_visual = self.mod_list_ui().tree_view().selection_model().selection().indexes();
-        let indexes_visual = (0..indexes_visual.count_0a()).rev().map(|x| indexes_visual.at(x)).collect::<Vec<_>>();
-        indexes_visual.iter().map(|x| self.mod_list_ui().filter().map_to_source(*x)).collect::<Vec<_>>()
+        self.mod_list_ui().mod_list_selection()
     }
-
 
     /// This function checks if there is any newer version of the app released.
     ///
