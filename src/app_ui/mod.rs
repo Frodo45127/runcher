@@ -15,6 +15,8 @@ use qt_widgets::QMainWindow;
 use qt_widgets::{QMessageBox, q_message_box};
 use qt_widgets::QWidget;
 
+use qt_gui::QIcon;
+
 use qt_core::CheckState;
 use qt_core::QBox;
 use qt_core::QFlags;
@@ -41,6 +43,7 @@ use rpfm_lib::files::pack::Pack;
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::log::*;
 
+use rpfm_ui_common::ASSETS_PATH;
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::PROGRAM_PATH;
 use rpfm_ui_common::settings::*;
@@ -146,7 +149,7 @@ impl AppUI {
         let _ = create_grid_layout(widget.static_upcast());
         main_window.set_central_widget(&widget);
         main_window.resize_2a(1300, 800);
-        //QApplication::set_window_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/rpfm.png", ASSETS_PATH.to_string_lossy()))));
+        QApplication::set_window_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/runcher.png", ASSETS_PATH.to_string_lossy()))));
 
         // Get the menu and status bars.
         let menu_bar = main_window.menu_bar();

@@ -35,7 +35,7 @@ fn main() {
 
     // Icon/Exe info gets added here.
     let mut res = winres::WindowsResource::new();
-    res.set_icon("./../icons/runcher.ico");
+    res.set_icon("./icons/runcher.ico");
     res.set("LegalCopyright","Copyright (c) - Ismael Gutiérrez González");
     res.set("ProductName","Runcher");
     if let Err(error) = res.compile() { println!("Error: {}", error); }
