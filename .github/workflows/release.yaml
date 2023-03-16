@@ -63,6 +63,7 @@ jobs:
           echo "file_name_win=runcher-${{ steps.get_version.outputs.version }}-${{ matrix.TARGET }}.${{ matrix.EXTENSION }}" >> $env:GITHUB_OUTPUT
 
           ${{ matrix.DDISK }}:\Craft\craft\craftenv.ps1
+          cd E:\runner_runcher\_work\runcher\runcher
 
           # Build the exes in debug mode.
           cargo build --release
@@ -219,19 +220,19 @@ jobs:
           cp ${{ matrix.DDISK }}:\Craft\bin\zstd.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
 
           # Here we copy files generated from the compilation.
-          cp C:\actions-runner\_work\runcher\runcher/target/release/runcher.exe ${{ matrix.DDISK }}:\deploy\runcher-release-assets
-          cp C:\actions-runner\_work\runcher\runcher/target/release/runcher.pdb ${{ matrix.DDISK }}:\deploy\runcher-release-assets
+          cp E:\runner_runcher\_work\runcher\runcher/target/release/runcher.exe ${{ matrix.DDISK }}:\deploy\runcher-release-assets
+          cp E:\runner_runcher\_work\runcher\runcher/target/release/runcher.pdb ${{ matrix.DDISK }}:\deploy\runcher-release-assets
 
           # Here we copy assets from the repo.
           mkdir icons
           mkdir locale
           mkdir ui
-          cp C:\actions-runner\_work\runcher\runcher/LICENSE ${{ matrix.DDISK }}:\deploy\runcher-release-assets
-          cp C:\actions-runner\_work\runcher\runcher/CHANGELOG.md ${{ matrix.DDISK }}:\deploy\runcher-release-assets
-          cp C:\actions-runner\_work\runcher\runcher/dark-theme.qss ${{ matrix.DDISK }}:\deploy\runcher-release-assets
-          cp C:\actions-runner\_work\runcher\runcher/icons/* ${{ matrix.DDISK }}:\deploy\runcher-release-assets\icons\
-          cp C:\actions-runner\_work\runcher\runcher/locale/* ${{ matrix.DDISK }}:\deploy\runcher-release-assets\locale\
-          cp C:\actions-runner\_work\runcher\runcher/ui_templates/* ${{ matrix.DDISK }}:\deploy\runcher-release-assets\ui\
+          cp E:\runner_runcher\_work\runcher\runcher/LICENSE ${{ matrix.DDISK }}:\deploy\runcher-release-assets
+          cp E:\runner_runcher\_work\runcher\runcher/CHANGELOG.md ${{ matrix.DDISK }}:\deploy\runcher-release-assets
+          cp E:\runner_runcher\_work\runcher\runcher/dark-theme.qss ${{ matrix.DDISK }}:\deploy\runcher-release-assets
+          cp E:\runner_runcher\_work\runcher\runcher/icons/* ${{ matrix.DDISK }}:\deploy\runcher-release-assets\icons\
+          cp E:\runner_runcher\_work\runcher\runcher/locale/* ${{ matrix.DDISK }}:\deploy\runcher-release-assets\locale\
+          cp E:\runner_runcher\_work\runcher\runcher/ui_templates/* ${{ matrix.DDISK }}:\deploy\runcher-release-assets\ui\
 
           # Execute windeployqt to add missing translations and the vcredist if needed.
           ${{ matrix.DDISK }}:\Craft\craft\craftenv.ps1
