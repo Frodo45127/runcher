@@ -279,7 +279,7 @@ jobs:
         id: changelog_reader
         uses: mindsers/changelog-reader-action@v2
         with:
-          path: ./Changelog.md
+          path: ./CHANGELOG.md
 
       - name: Check Version Format in Tag
         id: check_version_format
