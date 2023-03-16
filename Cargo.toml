@@ -47,7 +47,7 @@ regex = "^1"
 
 # Steam Workshop support.
 #steam-workshop-api = "^0.2"
-steam-workshop-api = { path = "../rs-steam-workshop-api", version = "0.2" }
+steam-workshop-api = { git = "https://github.com/Frodo45127/rs-steam-workshop-api.git" }
 
 # Better iterator support.
 itertools = "^0.10"

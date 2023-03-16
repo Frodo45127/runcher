@@ -2406,6 +2406,7 @@ dependencies = [
 [[package]]
 name = "steam-workshop-api"
 version = "0.2.5"
+source = "git+https://github.com/Frodo45127/rs-steam-workshop-api.git#296156494b056976c5bd1fdb6695873481515910"
 dependencies = [
  "anyhow",
  "getset",
