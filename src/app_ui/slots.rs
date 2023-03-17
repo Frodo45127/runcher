@@ -37,7 +37,6 @@ pub struct AppUISlots {
     change_game_selected: QBox<SlotNoArgs>,
 
     update_pack_list: QBox<SlotOfQStandardItem>,
-    update_game_config: QBox<SlotNoArgs>,
 
     about_qt: QBox<SlotNoArgs>,
     about_runcher: QBox<SlotNoArgs>,
@@ -95,20 +94,16 @@ impl AppUISlots {
                     if let Err(error) = view.pack_list_ui().load(game_config, &game_info, &game_path) {
                         show_dialog(view.main_window(), error, false);
                     }
-                }
-            }
-        }));
 
-        let update_game_config = SlotNoArgs::new(&view.main_window, clone!(
-            view => move || {
-                let game_info = view.game_selected().read().unwrap();
-                if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
-                    if let Err(error) = game_config.save(&game_info) {
-                        show_dialog(view.main_window(), error, false);
+                    let game_info = view.game_selected().read().unwrap();
+                    if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
+                        if let Err(error) = game_config.save(&game_info) {
+                            show_dialog(view.main_window(), error, false);
+                        }
                     }
                 }
             }
-        ));
+        }));
 
         let about_qt = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
@@ -214,6 +209,13 @@ impl AppUISlots {
 
                     view.mod_list_ui().model().remove_row_1a(cat_to_delete.row());
                 }
+
+                let game_info = view.game_selected().read().unwrap();
+                if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
+                    if let Err(error) = game_config.save(&game_info) {
+                        show_dialog(view.main_window(), error, false);
+                    }
+                }
             }
         ));
 
@@ -264,7 +266,6 @@ impl AppUISlots {
             change_game_selected,
 
             update_pack_list,
-            update_game_config,
 
             about_qt,
             about_runcher,

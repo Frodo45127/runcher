@@ -352,7 +352,6 @@ impl AppUI {
         self.about_check_updates().triggered().connect(slots.check_updates());
 
         self.mod_list_ui().model().item_changed().connect(slots.update_pack_list());
-        self.mod_list_ui().model().data_changed().connect(slots.update_game_config());
         self.mod_list_ui().context_menu().about_to_show().connect(slots.mod_list_context_menu_open());
         self.mod_list_ui().category_delete().triggered().connect(slots.category_delete());
     }
