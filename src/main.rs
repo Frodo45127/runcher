@@ -68,11 +68,15 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 const VERSION_SUBTITLE: &str = " -- A New Beginning";
 
 const FALLBACK_LOCALE_EN: &str = include_str!("../locale/English_en.ftl");
+const SENTRY_DSN_KEY: &str = "https://4c058b715c304d55b928c3e44a63b4ff@o152833.ingest.sentry.io/4504851217711104";
 
 fn main() {
 
     // Setup the fallback locale before anything else.
     *FALLBACK_LOCALE.write().unwrap() = FALLBACK_LOCALE_EN.to_string();
+
+    // Setup sentry's dsn for error reporting.
+    *SENTRY_DSN.write().unwrap() = SENTRY_DSN_KEY.to_owned();
 
     // Access the guard to make sure it gets initialized.
     if SENTRY_GUARD.read().unwrap().is_enabled() {
