@@ -48,3 +48,12 @@ api_response_error = <h4>Error while checking new updates :(</h4> {"{"}{"}"}
 update_in_prog = <p>Downloading updates, don't close this window…</p> <p>This may take a while.</p>
 restart_button = Restart
 update_success_main_program = <h4>Runcher updated correctly!</h4> <p>To check what changed in this update, check this link: <a href='file:///{"{"}{"}"}'>CHANGELOG.md</a>. If you're updating to a beta, the relevant changes are on the "Unreleased" section.</p> <p>Please, restart the program for the changes to apply.</p>
+
+mod_name = Mod Name (Pack Name)
+creator = Author
+file_size = File Size
+file_url = File Url
+preview_url = Preview Url
+time_created = Creation Date
+time_updated = Last Update Date
+last_check = Last Update Date of Mod Info

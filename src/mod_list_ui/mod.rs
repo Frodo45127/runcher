@@ -13,6 +13,7 @@ use qt_widgets::QDialog;
 use qt_widgets::QDialogButtonBox;
 use qt_widgets::q_dialog_button_box::StandardButton;
 use qt_widgets::QGridLayout;
+use qt_widgets::q_header_view::ResizeMode;
 use qt_widgets::QLabel;
 use qt_widgets::QLineEdit;
 use qt_widgets::QMainWindow;
@@ -48,7 +49,7 @@ use rpfm_ui_common::locale::*;
 use rpfm_ui_common::utils::*;
 
 use crate::ffi::*;
-use crate::integrations::{GameConfig, steam::*};
+use crate::integrations::GameConfig;
 
 use self::slots::ModListUISlots;
 
@@ -182,16 +183,42 @@ impl ModListUI {
 
                 if let Some(ref parent) = parent {
                     let row = QListOfQStandardItem::new();
-                    let item = QStandardItem::from_q_string(&QString::from_std_str(&modd.name()));
                     //let pack = Pack::read_and_merge(&[modd.pack().to_path_buf()], true, false)?;
-                    item.set_checkable(true);
-                    if *modd.enabled() {
-                        item.set_check_state(CheckState::Checked);
-                    }
-                    item.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.id())), VALUE_MOD_ID);
-                    item.set_data_2a(&QVariant::from_bool(false), VALUE_IS_CATEGORY);
-                    item.set_editable(false);
 
+                    let item_mod_name = QStandardItem::from_q_string(&QString::from_std_str(modd.name()));
+                    let item_creator = QStandardItem::new();
+                    let item_file_size = QStandardItem::new();
+                    let item_file_url = QStandardItem::new();
+                    let item_preview_url = QStandardItem::new();
+                    let item_time_created = QStandardItem::new();
+                    let item_time_updated = QStandardItem::new();
+                    let item_last_check = QStandardItem::new();
+
+                    item_mod_name.set_text(&QString::from_std_str(modd.name()));
+                    item_creator.set_text(&QString::from_std_str(modd.creator()));
+                    item_file_size.set_text(&QString::from_std_str(modd.file_size().to_string()));
+                    item_file_url.set_text(&QString::from_std_str(modd.file_url()));
+                    item_preview_url.set_text(&QString::from_std_str(modd.preview_url()));
+                    item_time_created.set_text(&QString::from_std_str(modd.time_created().to_string()));
+                    item_time_updated.set_text(&QString::from_std_str(modd.time_updated().to_string()));
+                    item_last_check.set_text(&QString::from_std_str(modd.last_check().to_string()));
+
+                    item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.id())), VALUE_MOD_ID);
+                    item_mod_name.set_data_2a(&QVariant::from_bool(false), VALUE_IS_CATEGORY);
+                    item_mod_name.set_checkable(true);
+
+                    item_mod_name.set_editable(false);
+                    item_creator.set_editable(false);
+                    item_file_size.set_editable(false);
+                    item_file_url.set_editable(false);
+                    item_preview_url.set_editable(false);
+                    item_time_created.set_editable(false);
+                    item_time_updated.set_editable(false);
+                    item_last_check.set_editable(false);
+
+                    if *modd.enabled() {
+                        item_mod_name.set_check_state(CheckState::Checked);
+                    }
                     //if !modd.description().is_empty() {
                     //    if modd.description().contains("for all regions") {
                     //        println!("{}", parse_to_html(modd.description()));
@@ -199,7 +226,14 @@ impl ModListUI {
                     //    item.set_tool_tip(&QString::from_std_str(parse_to_html(modd.description())));
                     //}
 
-                    row.append_q_standard_item(&item.into_ptr().as_mut_raw_ptr());
+                    row.append_q_standard_item(&item_mod_name.into_ptr().as_mut_raw_ptr());
+                    row.append_q_standard_item(&item_creator.into_ptr().as_mut_raw_ptr());
+                    row.append_q_standard_item(&item_file_size.into_ptr().as_mut_raw_ptr());
+                    row.append_q_standard_item(&item_file_url.into_ptr().as_mut_raw_ptr());
+                    row.append_q_standard_item(&item_preview_url.into_ptr().as_mut_raw_ptr());
+                    row.append_q_standard_item(&item_time_created.into_ptr().as_mut_raw_ptr());
+                    row.append_q_standard_item(&item_time_updated.into_ptr().as_mut_raw_ptr());
+                    row.append_q_standard_item(&item_last_check.into_ptr().as_mut_raw_ptr());
                     parent.append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
 
                 }
@@ -208,8 +242,32 @@ impl ModListUI {
 
         self.tree_view().expand_all();
         self.tree_view().sort_by_column_2a(0, SortOrder::AscendingOrder);
+        self.setup_columns();
+        self.tree_view().header().resize_sections(ResizeMode::ResizeToContents);
+
         Ok(())
     }
+
+    pub unsafe fn setup_columns(&self) {
+        let item_mod_name = QStandardItem::from_q_string(&qtr("mod_name"));
+        let item_creator = QStandardItem::from_q_string(&qtr("creator"));
+        let item_file_size = QStandardItem::from_q_string(&qtr("file_size"));
+        let item_file_url = QStandardItem::from_q_string(&qtr("file_url"));
+        let item_preview_url = QStandardItem::from_q_string(&qtr("preview_url"));
+        let item_time_created = QStandardItem::from_q_string(&qtr("time_created"));
+        let item_time_updated = QStandardItem::from_q_string(&qtr("time_updated"));
+        let item_last_check = QStandardItem::from_q_string(&qtr("last_check"));
+
+        self.model.set_horizontal_header_item(0, item_mod_name.into_ptr());
+        self.model.set_horizontal_header_item(1, item_creator.into_ptr());
+        self.model.set_horizontal_header_item(2, item_file_size.into_ptr());
+        self.model.set_horizontal_header_item(3, item_file_url.into_ptr());
+        self.model.set_horizontal_header_item(4, item_preview_url.into_ptr());
+        self.model.set_horizontal_header_item(5, item_time_created.into_ptr());
+        self.model.set_horizontal_header_item(6, item_time_updated.into_ptr());
+        self.model.set_horizontal_header_item(7, item_last_check.into_ptr());
+    }
+
 
     pub unsafe fn category_new_dialog(&self) -> Result<Option<String>> {
 
