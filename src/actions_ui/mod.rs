@@ -8,15 +8,19 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use qt_widgets::QAction;
 use qt_widgets::QComboBox;
 use qt_widgets::QGridLayout;
 use qt_widgets::QMainWindow;
-use qt_widgets::QToolButton;
+use qt_widgets::QMenu;
+use qt_widgets::{QToolButton, q_tool_button::ToolButtonPopupMode};
 
+use qt_gui::QIcon;
 use qt_gui::QStandardItemModel;
 
 use qt_core::QBox;
 use qt_core::QPtr;
+use qt_core::QString;
 
 use anyhow::Result;
 use getset::*;
@@ -37,6 +41,13 @@ const VIEW_RELEASE: &str = "ui/actions_groupbox.ui";
 pub struct ActionsUI {
     play_button: QPtr<QToolButton>,
     settings_button: QPtr<QToolButton>,
+    folders_button: QPtr<QToolButton>,
+    folders_menu: QBox<QMenu>,
+    open_game_root_folder: QPtr<QAction>,
+    open_game_data_folder: QPtr<QAction>,
+    open_game_content_folder: QPtr<QAction>,
+    open_runcher_config_folder: QPtr<QAction>,
+    open_runcher_error_folder: QPtr<QAction>,
 
     profile_load_button: QPtr<QToolButton>,
     profile_save_button: QPtr<QToolButton>,
@@ -60,8 +71,19 @@ impl ActionsUI {
 
         let play_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "play_button")?;
         let settings_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "settings_button")?;
+        let folders_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "folders_button")?;
         play_button.set_tool_tip(&qtr("launch_game"));
         settings_button.set_tool_tip(&qtr("settings"));
+        folders_button.set_tool_tip(&qtr("open_folders"));
+
+        let folders_menu = QMenu::new();
+        let open_game_root_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_game_root_folder"));
+        let open_game_data_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_game_data_folder"));
+        let open_game_content_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_game_content_folder"));
+        let open_runcher_config_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_runcher_config_folder"));
+        let open_runcher_error_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_runcher_error_folder"));
+        folders_button.set_menu(&folders_menu);
+        folders_button.set_popup_mode(ToolButtonPopupMode::MenuButtonPopup);
 
         let profile_load_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "profile_load_button")?;
         let profile_save_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "profile_save_button")?;
@@ -77,6 +99,13 @@ impl ActionsUI {
         Ok(Self {
             play_button,
             settings_button,
+            folders_button,
+            folders_menu,
+            open_game_root_folder,
+            open_game_data_folder,
+            open_game_content_folder,
+            open_runcher_config_folder,
+            open_runcher_error_folder,
 
             profile_load_button,
             profile_save_button,

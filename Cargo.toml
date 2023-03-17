@@ -15,7 +15,7 @@ rust-version = "1.64"
 [dependencies]
 
 # Internal dependencies.
-rpfm_lib = { version = "4.0.6", features = ["integration_log", "integration_git"] }
+rpfm_lib = { path = "./../rpfm/rpfm_lib", version = "4.0.6", features = ["integration_log", "integration_git"] }
 rpfm_extensions = { version = "4.0.6" }
 rpfm_ui_common = { git = "https://github.com/Frodo45127/rpfm.git", branch = "develop" }
 
@@ -44,6 +44,9 @@ qt_ui_tools = "^0.5"
 
 # Support for Regex operations.
 regex = "^1"
+
+# Support for open files in a native way.
+open = "^4"
 
 # Steam Workshop support.
 #steam-workshop-api = "^0.2"

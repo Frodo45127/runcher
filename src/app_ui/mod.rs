@@ -332,6 +332,11 @@ impl AppUI {
     pub unsafe fn set_connections(&self, slots: &AppUISlots) {
         self.actions_ui().play_button().released().connect(slots.launch_game());
         self.actions_ui().settings_button().released().connect(slots.open_settings());
+        self.actions_ui().open_game_root_folder().triggered().connect(slots.open_game_root_folder());
+        self.actions_ui().open_game_data_folder().triggered().connect(slots.open_game_data_folder());
+        self.actions_ui().open_game_content_folder().triggered().connect(slots.open_game_content_folder());
+        self.actions_ui().open_runcher_config_folder().triggered().connect(slots.open_runcher_config_folder());
+        self.actions_ui().open_runcher_error_folder().triggered().connect(slots.open_runcher_error_folder());
         self.actions_ui().profile_load_button().released().connect(slots.load_profile());
         self.actions_ui().profile_save_button().released().connect(slots.save_profile());
 

@@ -1347,6 +1347,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
+name = "open"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd61e3bf9d78956c72ee864bba52431f7f43994b21a17e9e72596a81bd61075b"
+dependencies = [
+ "pathdiff 0.2.1",
+]
+
+[[package]]
 name = "openssl"
 version = "0.10.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1441,6 +1450,12 @@ name = "pathdiff"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3bf70094d203e07844da868b634207e71bfab254fe713171fae9a6e751ccf31"
+
+[[package]]
+name = "pathdiff"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
 name = "pbkdf2"
@@ -1827,7 +1842,7 @@ dependencies = [
  "lazy_static",
  "log",
  "num_cpus",
- "pathdiff",
+ "pathdiff 0.1.0",
  "regex",
  "semver 0.9.0",
  "serde",
@@ -1893,6 +1908,46 @@ dependencies = [
 [[package]]
 name = "rpfm_lib"
 version = "4.0.6"
+dependencies = [
+ "backtrace",
+ "bitflags",
+ "byteorder",
+ "caseless",
+ "content_inspector",
+ "csv",
+ "encoding_rs",
+ "float_eq",
+ "fraction",
+ "getset",
+ "git2",
+ "itertools 0.10.5",
+ "lazy_static",
+ "log",
+ "memchr",
+ "os_info",
+ "pelite",
+ "r2d2",
+ "r2d2_sqlite",
+ "rand",
+ "rayon",
+ "regex",
+ "ron",
+ "rusqlite",
+ "sentry",
+ "serde",
+ "serde-xml-rs",
+ "serde_derive",
+ "serde_json",
+ "simplelog",
+ "thiserror",
+ "toml 0.7.3",
+ "uuid",
+ "xz2",
+]
+
+[[package]]
+name = "rpfm_lib"
+version = "4.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2d11aa1d49207a61b735cbca0341e09acbddae72be78457286bf8eb588e72df"
 dependencies = [
@@ -1907,7 +1962,6 @@ dependencies = [
  "float_eq",
  "fraction",
  "getset",
- "git2",
  "itertools 0.10.5",
  "lazy_static",
  "log",
@@ -2006,6 +2060,7 @@ dependencies = [
  "getset",
  "itertools 0.10.5",
  "lazy_static",
+ "open",
  "qt_core",
  "qt_gui",
  "qt_ui_tools",
@@ -2013,7 +2068,7 @@ dependencies = [
  "regex",
  "reqwest",
  "rpfm_extensions 4.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "rpfm_lib 4.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rpfm_lib 4.0.6",
  "rpfm_ui_common",
  "self_update",
  "serde",

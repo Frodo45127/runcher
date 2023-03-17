@@ -30,6 +30,28 @@
     <number>2</number>
    </property>
    <item row="0" column="4">
+    <widget class="QToolButton" name="settings_button">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="settings-configure">
+       <normaloff>.</normaloff>.</iconset>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QToolButton" name="profile_load_button">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="dialog-ok-apply">
+       <normaloff>.</normaloff>.</iconset>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="5">
     <widget class="QToolButton" name="play_button">
      <property name="text">
       <string/>
@@ -47,34 +69,24 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="3">
-    <widget class="QToolButton" name="settings_button">
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset theme="settings-configure">
-       <normaloff>.</normaloff>.</iconset>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="1">
-    <widget class="QToolButton" name="profile_load_button">
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset theme="dialog-ok-apply"/>
-     </property>
-    </widget>
-   </item>
    <item row="0" column="2">
     <widget class="QToolButton" name="profile_save_button">
      <property name="text">
       <string/>
      </property>
      <property name="icon">
-      <iconset theme="document-save"/>
+      <iconset theme="document-save">
+       <normaloff>.</normaloff>.</iconset>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="3">
+    <widget class="QToolButton" name="folders_button">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="folder"/>
      </property>
     </widget>
    </item>

@@ -1,5 +1,11 @@
 launch_game = Launch Game
 settings = Settings
+open_folders = Open Folders...
+open_game_root_folder = Open Game Root Folder
+open_game_data_folder = Open Game Data Folder
+open_game_content_folder = Open Game Content Folder
+open_runcher_config_folder = Open Runcher Config Folder
+open_runcher_error_folder = Open Runcher Error Folder
 
 menu_bar_game_selected = Game Selected
 menu_bar_about = About
