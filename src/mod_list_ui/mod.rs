@@ -44,7 +44,7 @@ use getset::*;
 
 use std::sync::Arc;
 
-use rpfm_ui_common::locale::qtr;
+use rpfm_ui_common::locale::*;
 use rpfm_ui_common::utils::*;
 
 use crate::ffi::*;
@@ -223,8 +223,18 @@ impl ModListUI {
         name_line_edit.set_text(&qtr("category_new_placeholder"));
         name_label.set_text(&qtr("category_name"));
 
-        // TODO: make sure we don't allow to hit ok with invalid names.
         button_box.button(StandardButton::Ok).released().connect(dialog.slot_accept());
+
+        // Do not allow entering already used names.
+        let categories = self.categories();
+        if categories.contains(&tr("category_new_placeholder")) {
+            button_box.button(StandardButton::Ok).set_enabled(false);
+        }
+
+        name_line_edit.text_changed().connect(&qt_core::SlotNoArgs::new(&name_line_edit, move || {
+            let name_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "name_line_edit").unwrap();
+            button_box.button(StandardButton::Ok).set_enabled(!categories.contains(&name_line_edit.text().to_std_string()));
+        }));
 
         if dialog.exec() == 1 {
             Ok(Some(name_line_edit.text().to_std_string())) }
