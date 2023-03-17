@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use rpfm_ui_common::clone;
 
+use crate::mod_list_ui::VALUE_MOD_ID;
 use crate::VERSION;
 use crate::VERSION_SUBTITLE;
 
@@ -81,7 +82,7 @@ impl AppUISlots {
             view => move |item| {
             if item.column() == 0 {
                 if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
-                    let mod_id = item.data_1a(21).to_string().to_std_string();
+                    let mod_id = item.data_1a(VALUE_MOD_ID).to_string().to_std_string();
 
                     // Update the mod's status.
                     if let Some(modd) = game_config.mods_mut().get_mut(&mod_id) {
@@ -172,54 +173,47 @@ impl AppUISlots {
 
         let category_delete = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
+                let mut selection = view.mod_list_selection();
+                selection.sort_by(|a, b| b.row().cmp(&a.row()));
 
-                let selection = view.mod_list_selection();
-                if selection.len() != 1 {
+                if selection.iter().any(|index| index.data_1a(2).to_string().to_std_string() == "Unassigned") {
                     return;
                 }
 
-                if !selection[0].data_1a(40).to_bool() {
-                    return;
-                }
+                for cat_to_delete in &selection {
+                    let mods_to_reassign = (0..view.mod_list_ui().model().row_count_1a(cat_to_delete))
+                        .map(|index| cat_to_delete.child(index, 0).data_1a(VALUE_MOD_ID).to_string().to_std_string())
+                        .collect::<Vec<_>>();
 
-                if selection[0].data_1a(2).to_string().to_std_string() == "Unassigned" {
-                    return;
-                }
-
-                let cat_to_delete = &selection[0];
-                let mods_to_reassign = (0..view.mod_list_ui().model().row_count_1a(cat_to_delete))
-                    .map(|index| cat_to_delete.child(index, 0).data_1a(21).to_string().to_std_string())
-                    .collect::<Vec<_>>();
-
-                if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
-                    game_config.mods_mut()
-                        .iter_mut()
-                        .for_each(|(id, modd)| if mods_to_reassign.contains(id) {
-                            modd.set_category(None);
-                        });
-                }
-
-                // Find the unassigned category.
-                let mut unassigned_item = None;
-                let unassigned = QString::from_std_str("Unassigned");
-                for index in 0..view.mod_list_ui().model().row_count_0a() {
-                    let item = view.mod_list_ui().model().item_1a(index);
-                    if !item.is_null() && item.text().compare_q_string(&unassigned) == 0 {
-                        unassigned_item = Some(item);
-                        break;
+                    if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
+                        game_config.mods_mut()
+                            .iter_mut()
+                            .for_each(|(id, modd)| if mods_to_reassign.contains(id) {
+                                modd.set_category(None);
+                            });
                     }
-                }
 
-                if let Some(unassigned_item) = unassigned_item {
-                    let cat_item = view.mod_list_ui().model().item_from_index(cat_to_delete);
-                    for index in view.mod_list_ui().model().row_count_1a(cat_to_delete)..0 {
-                        let index = index - 1;
-                        let taken = cat_item.take_row(index).into_ptr();
-                        unassigned_item.append_row_q_list_of_q_standard_item(taken.as_ref().unwrap());
+                    // Find the unassigned category.
+                    let mut unassigned_item = None;
+                    let unassigned = QString::from_std_str("Unassigned");
+                    for index in 0..view.mod_list_ui().model().row_count_0a() {
+                        let item = view.mod_list_ui().model().item_1a(index);
+                        if !item.is_null() && item.text().compare_q_string(&unassigned) == 0 {
+                            unassigned_item = Some(item);
+                            break;
+                        }
                     }
-                }
 
-                view.mod_list_ui().model().remove_row_1a(cat_to_delete.row());
+                    if let Some(unassigned_item) = unassigned_item {
+                        let cat_item = view.mod_list_ui().model().item_from_index(cat_to_delete);
+                        for index in (0..view.mod_list_ui().model().row_count_1a(cat_to_delete)).rev() {
+                            let taken = cat_item.take_row(index).into_ptr();
+                            unassigned_item.append_row_q_list_of_q_standard_item(taken.as_ref().unwrap());
+                        }
+                    }
+
+                    view.mod_list_ui().model().remove_row_1a(cat_to_delete.row());
+                }
             }
         ));
 
@@ -235,28 +229,24 @@ impl AppUISlots {
                         let slot = SlotNoArgs::new(view.mod_list_ui().categories_send_to_menu(), clone!(
                             category,
                             view => move || {
-                                let selection = view.mod_list_selection();
-                                if selection.len() != 1 {
-                                    return;
-                                }
+                                let mut selection = view.mod_list_selection();
+                                selection.sort_by(|a, b| b.row().cmp(&a.row()));
 
-                                if selection[0].data_1a(40).to_bool() {
-                                    return;
-                                }
-                                let mod_item = &selection[0];
-                                let current_cat = mod_item.parent();
-                                let mod_id = mod_item.data_1a(21).to_string().to_std_string();
-                                let taken = view.mod_list_ui().model().item_from_index(&current_cat).take_row(mod_item.row()).into_ptr();
-                                item.append_row_q_list_of_q_standard_item(taken.as_ref().unwrap());
+                                for mod_item in &selection {
+                                    let current_cat = mod_item.parent();
+                                    let mod_id = mod_item.data_1a(VALUE_MOD_ID).to_string().to_std_string();
+                                    let taken = view.mod_list_ui().model().item_from_index(&current_cat).take_row(mod_item.row()).into_ptr();
+                                    item.append_row_q_list_of_q_standard_item(taken.as_ref().unwrap());
 
-                                if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
-                                    if let Some(ref mut modd) = game_config.mods_mut().get_mut(&mod_id) {
-                                        modd.set_category(Some(category.to_string()));
-                                    }
+                                    if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
+                                        if let Some(ref mut modd) = game_config.mods_mut().get_mut(&mod_id) {
+                                            modd.set_category(Some(category.to_string()));
+                                        }
 
-                                    let game_info = view.game_selected().read().unwrap();
-                                    if let Err(error) = game_config.save(&game_info) {
-                                        show_dialog(view.main_window(), error, false);
+                                        let game_info = view.game_selected().read().unwrap();
+                                        if let Err(error) = game_config.save(&game_info) {
+                                            show_dialog(view.main_window(), error, false);
+                                        }
                                     }
                                 }
                             }

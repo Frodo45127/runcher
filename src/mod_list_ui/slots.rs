@@ -68,8 +68,8 @@ impl ModListUISlots {
         let context_menu_enabler = SlotNoArgs::new(&view.tree_view, clone!(
             view => move || {
             let selection = view.mod_list_selection();
-            let all_categories = selection.iter().all(|index| index.data_1a(40).to_bool());
-            let all_mods = selection.iter().all(|index| !index.data_1a(40).to_bool());
+            let all_categories = selection.iter().all(|index| index.data_1a(VALUE_IS_CATEGORY).to_bool());
+            let all_mods = selection.iter().all(|index| !index.data_1a(VALUE_IS_CATEGORY).to_bool());
 
             view.category_delete.set_enabled(all_categories);
             view.categories_send_to_menu.set_enabled(all_mods);
@@ -80,7 +80,7 @@ impl ModListUISlots {
             match view.category_new_dialog() {
                 Ok(name) => if let Some(name) = name {
                     let item = QStandardItem::from_q_string(&QString::from_std_str(name));
-                    item.set_data_2a(&QVariant::from_bool(true), 40);
+                    item.set_data_2a(&QVariant::from_bool(true), VALUE_IS_CATEGORY);
                     view.model().append_row_q_standard_item(item.into_ptr().as_mut_raw_ptr());
                 },
                 Err(error) => show_dialog(view.tree_view(), error, false),

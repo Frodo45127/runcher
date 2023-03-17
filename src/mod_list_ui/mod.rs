@@ -60,6 +60,9 @@ const VIEW_RELEASE: &str = "ui/filterable_tree_widget.ui";
 const CATEGORY_NEW_VIEW_DEBUG: &str = "ui_templates/category_new_dialog.ui";
 const CATEGORY_NEW_VIEW_RELEASE: &str = "ui/category_new_dialog.ui";
 
+pub const VALUE_MOD_ID: i32 = 21;
+pub const VALUE_IS_CATEGORY: i32 = 40;
+
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
 //-------------------------------------------------------------------------------//
@@ -170,7 +173,7 @@ impl ModListUI {
                 // If no parent is found, create the category parent.
                 if parent.is_none() {
                     let item = QStandardItem::from_q_string(&category);
-                    item.set_data_2a(&QVariant::from_bool(true), 40);
+                    item.set_data_2a(&QVariant::from_bool(true), VALUE_IS_CATEGORY);
                     item.set_editable(false);
                     self.model().append_row_q_standard_item(item.into_ptr().as_mut_raw_ptr());
 
@@ -185,8 +188,8 @@ impl ModListUI {
                     if *modd.enabled() {
                         item.set_check_state(CheckState::Checked);
                     }
-                    item.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.id())), 21);
-                    item.set_data_2a(&QVariant::from_bool(false), 40);
+                    item.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.id())), VALUE_MOD_ID);
+                    item.set_data_2a(&QVariant::from_bool(false), VALUE_IS_CATEGORY);
                     item.set_editable(false);
 
                     //if !modd.description().is_empty() {
