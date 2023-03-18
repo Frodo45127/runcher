@@ -150,10 +150,8 @@ impl AppUISlots {
                     }
 
                     let game_info = view.game_selected().read().unwrap();
-                    if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
-                        if let Err(error) = game_config.save(&game_info) {
-                            show_dialog(view.main_window(), error, false);
-                        }
+                    if let Err(error) = game_config.save(&game_info) {
+                        show_dialog(view.main_window(), error, false);
                     }
                 }
             }

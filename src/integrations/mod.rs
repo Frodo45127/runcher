@@ -60,6 +60,7 @@ pub struct Mod {
 
     // Creator of the mod.
     creator: String,
+    creator_name: String,
     file_size: u64,
     file_url: String,
     preview_url: String,

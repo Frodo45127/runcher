@@ -52,6 +52,9 @@ open = "^4"
 #steam-workshop-api = "^0.2"
 steam-workshop-api = { git = "https://github.com/Frodo45127/rs-steam-workshop-api.git" }
 
+# Date displays
+time = "^0.3"
+
 # Better iterator support.
 itertools = "^0.10"
 

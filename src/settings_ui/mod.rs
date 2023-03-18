@@ -67,6 +67,9 @@ pub struct SettingsUI {
     paths_games_line_edits: BTreeMap<String, QBox<QLineEdit>>,
     paths_games_buttons: BTreeMap<String, QBox<QToolButton>>,
 
+    steam_api_key_label: QPtr<QLabel>,
+    steam_api_key_line_edit: QPtr<QLineEdit>,
+
     default_game_combobox: QPtr<QComboBox>,
     update_chanel_combobox: QPtr<QComboBox>,
 
@@ -112,8 +115,10 @@ impl SettingsUI {
         let paths_groupbox: QPtr<QGroupBox> = find_widget(&main_widget.static_upcast(), "paths_groupbox")?;
         let default_game_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "default_game_label")?;
         let update_chanel_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "update_chanel_label")?;
+        let steam_api_key_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "steam_api_key_label")?;
         let default_game_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "default_game_combobox")?;
         let update_chanel_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "update_chanel_combobox")?;
+        let steam_api_key_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "steam_api_key_line_edit")?;
         let paths_layout: QPtr<QGridLayout> = paths_groupbox.layout().static_downcast();
         let default_game_model = QStandardItemModel::new_1a(&default_game_combobox);
         let update_chanel_model = QStandardItemModel::new_1a(&update_chanel_combobox);
@@ -124,6 +129,7 @@ impl SettingsUI {
 
         default_game_label.set_text(&qtr("default_game"));
         update_chanel_label.set_text(&qtr("update_channel"));
+        steam_api_key_label.set_text(&qtr("steam_api_key"));
 
         // We automatically add a Label/LineEdit/Button for each game we support.
         let mut paths_games_line_edits = BTreeMap::new();
@@ -159,6 +165,8 @@ impl SettingsUI {
             dialog,
             paths_games_line_edits,
             paths_games_buttons,
+            steam_api_key_label,
+            steam_api_key_line_edit,
             default_game_combobox,
             update_chanel_combobox,
             default_game_model,
@@ -177,9 +185,9 @@ impl SettingsUI {
 
         // Load the Game Paths, if they exists.
         for (key, path) in self.paths_games_line_edits.iter() {
-            let stored_path = setting_string(key);
+            let stored_path = setting_string_from_q_setting(&q_settings, key);
             if !stored_path.is_empty() {
-                path.set_text(&QString::from_std_str(setting_string_from_q_setting(&q_settings, key)));
+                path.set_text(&QString::from_std_str(stored_path));
             }
         }
 
@@ -208,6 +216,8 @@ impl SettingsUI {
             }
         }
 
+        self.steam_api_key_line_edit().set_text(&QString::from_std_str(setting_string_from_q_setting(&q_settings, "steam_api_key")));
+
         Ok(())
     }
 
@@ -234,6 +244,7 @@ impl SettingsUI {
         //}
 
         set_setting_string_to_q_setting(&q_settings, "update_channel", &self.update_chanel_combobox.current_text().to_std_string());
+        set_setting_string_to_q_setting(&q_settings, "steam_api_key", &self.steam_api_key_line_edit().text().to_std_string());
 
         // Save the settings.
         q_settings.sync();
@@ -301,8 +312,9 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_q_byte_array(&q_settings, "originalGeometry", main_window.save_geometry().as_ref());
     set_setting_if_new_q_byte_array(&q_settings, "originalWindowState", main_window.save_state_0a().as_ref());
 
-    set_setting_string_to_q_setting(&q_settings, "default_game", "warhammer_3");
-    set_setting_string_to_q_setting(&q_settings, "update_channel", "stable");
+    set_setting_if_new_string(&q_settings, "steam_api_key", "");
+    set_setting_if_new_string(&q_settings, "default_game", "warhammer_3");
+    set_setting_if_new_string(&q_settings, "update_channel", "stable");
 
     q_settings.sync();
 }

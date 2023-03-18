@@ -25,9 +25,11 @@ use qt_gui::QListOfQStandardItem;
 use qt_gui::QStandardItem;
 use qt_gui::QStandardItemModel;
 
+use qt_core::AlignmentFlag;
 use qt_core::CaseSensitivity;
 use qt_core::CheckState;
 use qt_core::QBox;
+use qt_core::QFlags;
 use qt_core::QModelIndex;
 use qt_core::QPtr;
 use qt_core::QRegExp;
@@ -42,9 +44,12 @@ use cpp_core::Ptr;
 
 use anyhow::Result;
 use getset::*;
+use time::OffsetDateTime;
 
 use std::sync::Arc;
+use std::time::UNIX_EPOCH;
 
+use rpfm_ui_common::FULL_DATE_FORMAT;
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::utils::*;
 
@@ -185,7 +190,7 @@ impl ModListUI {
                     let row = QListOfQStandardItem::new();
                     //let pack = Pack::read_and_merge(&[modd.pack().to_path_buf()], true, false)?;
 
-                    let item_mod_name = QStandardItem::from_q_string(&QString::from_std_str(modd.name()));
+                    let item_mod_name = QStandardItem::new();
                     let item_creator = QStandardItem::new();
                     let item_file_size = QStandardItem::new();
                     let item_file_url = QStandardItem::new();
@@ -194,13 +199,42 @@ impl ModListUI {
                     let item_time_updated = QStandardItem::new();
                     let item_last_check = QStandardItem::new();
 
-                    item_mod_name.set_text(&QString::from_std_str(modd.name()));
-                    item_creator.set_text(&QString::from_std_str(modd.creator()));
-                    item_file_size.set_text(&QString::from_std_str(modd.file_size().to_string()));
+                    // TODO: make this use <b> and <i>
+                    let mod_name = if modd.name() != modd.id() {
+                        format!("{} ({})", modd.name(), modd.id())
+                    } else {
+                        modd.name().to_owned()
+                    };
+
+                    // TODO: show discrepancies between steam's reported data and real data.
+                    let mod_size = if *modd.file_size() != 0 {
+                        format!("{:.2} MB", *modd.file_size() as f64 / 8.0 / 1024.0 / 1024.0)
+                    } else {
+                        let size = modd.paths()[0].metadata().unwrap().len();
+                        format!("{:.2} MB", size as f64 / 8.0 / 1024.0 / 1024.0)
+                    };
+
+                    let time_created = if *modd.time_created() != 0 {
+                        OffsetDateTime::from_unix_timestamp(*modd.time_created() as i64).unwrap().format(&FULL_DATE_FORMAT).unwrap()
+                    } else {
+                        let date = modd.paths()[0].metadata().unwrap().created().unwrap().duration_since(UNIX_EPOCH).unwrap();
+                        OffsetDateTime::from_unix_timestamp(date.as_secs() as i64).unwrap().format(&FULL_DATE_FORMAT).unwrap()
+                    };
+
+                    let time_updated = if *modd.time_updated() != 0 {
+                        OffsetDateTime::from_unix_timestamp(*modd.time_updated() as i64).unwrap().format(&FULL_DATE_FORMAT).unwrap().to_string()
+                    } else {
+                        "-".to_string()
+                    };
+
+
+                    item_mod_name.set_text(&QString::from_std_str(mod_name));
+                    item_creator.set_text(&QString::from_std_str(modd.creator_name()));
+                    item_file_size.set_text(&QString::from_std_str(&mod_size));
                     item_file_url.set_text(&QString::from_std_str(modd.file_url()));
                     item_preview_url.set_text(&QString::from_std_str(modd.preview_url()));
-                    item_time_created.set_text(&QString::from_std_str(modd.time_created().to_string()));
-                    item_time_updated.set_text(&QString::from_std_str(modd.time_updated().to_string()));
+                    item_time_created.set_text(&QString::from_std_str(&time_created));
+                    item_time_updated.set_text(&QString::from_std_str(&time_updated));
                     item_last_check.set_text(&QString::from_std_str(modd.last_check().to_string()));
 
                     item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.id())), VALUE_MOD_ID);
@@ -215,6 +249,8 @@ impl ModListUI {
                     item_time_created.set_editable(false);
                     item_time_updated.set_editable(false);
                     item_last_check.set_editable(false);
+
+                    item_file_size.set_text_alignment(QFlags::from(AlignmentFlag::AlignRight));
 
                     if *modd.enabled() {
                         item_mod_name.set_check_state(CheckState::Checked);
@@ -244,6 +280,9 @@ impl ModListUI {
         self.tree_view().sort_by_column_2a(0, SortOrder::AscendingOrder);
         self.setup_columns();
         self.tree_view().header().resize_sections(ResizeMode::ResizeToContents);
+
+        self.tree_view().hide_column(3);
+        self.tree_view().hide_column(4);
 
         Ok(())
     }

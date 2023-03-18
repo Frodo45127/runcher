@@ -9,13 +9,20 @@
 //---------------------------------------------------------------------------//
 
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use regex::Regex;
 use steam_workshop_api::client::Workshop;
-use steam_workshop_api::interfaces::{*, i_steam_remote_storage::*};
+use steam_workshop_api::interfaces::{*, i_steam_remote_storage::*, i_steam_user::*};
 
 use std::collections::HashMap;
 
+use rpfm_ui_common::settings::setting_string;
+
 use crate::integrations::Mod;
+
+lazy_static::lazy_static! {
+    pub static ref REGEX_URL: Regex = Regex::new(r"(\[url=)(.*)(\])(.*)(\[/url\])").unwrap();
+}
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -54,15 +61,32 @@ pub fn populate_mods(mods: &mut HashMap<String, Mod>, mod_ids: &[String]) -> Res
         }
     }
 
+    let user_ids = mods.values()
+        .filter_map(|modd| if !modd.creator().is_empty() {
+            Some(modd.creator().to_owned())
+        } else { None }
+        ).collect::<Vec<_>>();
+
+    populate_user_names(mods, &user_ids)?;
+
     Ok(())
 }
 
-use regex::Regex;
+pub fn populate_user_names(mods: &mut HashMap<String, Mod>, user_ids: &[String]) -> Result<()> {
+    let mut client = Workshop::new(None);
+    let api_key = setting_string("steam_api_key");
+    if !api_key.is_empty() {
+        client.set_apikey(Some(api_key));
+        let user_names = get_player_names(&client, user_ids)?;
 
-lazy_static::lazy_static! {
-    pub static ref REGEX_URL: Regex = Regex::new(r"(\[url=)(.*)(\])(.*)(\[/url\])").unwrap();
-    pub static ref REGEX_URL_REPLACE: Regex = Regex::new(r"<url src='\2>\4</url>").unwrap();
-    pub static ref REGEX_QUOTE: Regex = Regex::new(r"portrait_settings\S+.bin$").unwrap();
+        for modd in mods.values_mut() {
+            if let Some(creator_name) = user_names.get(modd.creator()) {
+                modd.set_creator_name(creator_name.to_string());
+            }
+        }
+    }
+
+    Ok(())
 }
 
 pub fn parse_to_html(string: &str) -> String {
