@@ -12,6 +12,7 @@ use qt_widgets::QAction;
 use qt_widgets::QActionGroup;
 use qt_widgets::QApplication;
 use qt_widgets::QMainWindow;
+use qt_widgets::QSplitter;
 use qt_widgets::{QMessageBox, q_message_box};
 use qt_widgets::QWidget;
 
@@ -81,6 +82,7 @@ pub struct AppUI {
     // Main Window.
     //-------------------------------------------------------------------------------//
     main_window: QBox<QMainWindow>,
+    splitter: QBox<QSplitter>,
 
     //-------------------------------------------------------------------------------//
     // `Game Selected` menu.
@@ -146,10 +148,20 @@ impl AppUI {
         // Initialize and configure the main window.
         let main_window = launcher_window_safe();
         let widget = QWidget::new_1a(&main_window);
-        let _ = create_grid_layout(widget.static_upcast());
+        let central_layout = create_grid_layout(widget.static_upcast());
         main_window.set_central_widget(&widget);
         main_window.resize_2a(1300, 800);
         QApplication::set_window_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/runcher.png", ASSETS_PATH.to_string_lossy()))));
+
+        let splitter = QSplitter::from_q_widget(&widget);
+        let left_widget = QWidget::new_1a(&splitter);
+        let right_widget = QWidget::new_1a(&splitter);
+        let _ = create_grid_layout(left_widget.static_upcast());
+        let _ = create_grid_layout(right_widget.static_upcast());
+        splitter.set_stretch_factor(10, 0);
+        right_widget.set_maximum_width(400);
+
+        central_layout.add_widget(&splitter);
 
         // Get the menu and status bars.
         let menu_bar = main_window.menu_bar();
@@ -221,17 +233,17 @@ impl AppUI {
         //-------------------------------------------------------------------------------//
         // `Actions` section.
         //-------------------------------------------------------------------------------//
-        let actions_ui = ActionsUI::new(&main_window)?;
+        let actions_ui = ActionsUI::new(&right_widget)?;
 
         //-------------------------------------------------------------------------------//
         // `Mod List` section.
         //-------------------------------------------------------------------------------//
-        let mod_list_ui = ModListUI::new(&main_window)?;
+        let mod_list_ui = ModListUI::new(&left_widget)?;
 
         //-------------------------------------------------------------------------------//
         // `Pack List` section.
         //-------------------------------------------------------------------------------//
-        let pack_list_ui = PackListUI::new(&main_window)?;
+        let pack_list_ui = PackListUI::new(&right_widget)?;
 
         let app_ui = Arc::new(Self {
 
@@ -239,6 +251,7 @@ impl AppUI {
             // Main Window.
             //-------------------------------------------------------------------------------//
             main_window,
+            splitter,
 
             //-------------------------------------------------------------------------------//
             // "Game Selected" menu.

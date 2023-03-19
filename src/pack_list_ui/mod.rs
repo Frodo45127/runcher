@@ -10,9 +10,9 @@
 
 use qt_widgets::QGridLayout;
 use qt_widgets::QLineEdit;
-use qt_widgets::QMainWindow;
 use qt_widgets::QToolButton;
 use qt_widgets::QTreeView;
+use qt_widgets::QWidget;
 
 use qt_gui::QListOfQStandardItem;
 use qt_gui::QStandardItem;
@@ -70,12 +70,12 @@ pub struct PackListUI {
 
 impl PackListUI {
 
-    pub unsafe fn new(main_window: &QBox<QMainWindow>) -> Result<Arc<Self>> {
-        let layout: QPtr<QGridLayout> = main_window.central_widget().layout().static_downcast();
+    pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Arc<Self>> {
+        let layout: QPtr<QGridLayout> = parent.layout().static_downcast();
 
         // Load the UI Template.
         let template_path = if cfg!(debug_assertions) { VIEW_DEBUG } else { VIEW_RELEASE };
-        let main_widget = load_template(main_window, template_path)?;
+        let main_widget = load_template(parent, template_path)?;
 
         let tree_view: QPtr<QTreeView> = find_widget(&main_widget.static_upcast(), "tree_view")?;
         let filter_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "filter_line_edit")?;
@@ -91,7 +91,7 @@ impl PackListUI {
         let filter_timer = QTimer::new_1a(&main_widget);
         filter_timer.set_single_shot(true);
 
-        layout.add_widget_5a(&main_widget, 1, 1, 1, 1);
+        layout.add_widget_5a(&main_widget, 1, 0, 1, 1);
 
         let list = Arc::new(Self {
             tree_view,

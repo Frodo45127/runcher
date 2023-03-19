@@ -11,9 +11,9 @@
 use qt_widgets::QAction;
 use qt_widgets::QComboBox;
 use qt_widgets::QGridLayout;
-use qt_widgets::QMainWindow;
 use qt_widgets::QMenu;
 use qt_widgets::{QToolButton, q_tool_button::ToolButtonPopupMode};
+use qt_widgets::QWidget;
 
 use qt_gui::QIcon;
 use qt_gui::QStandardItemModel;
@@ -62,12 +62,12 @@ pub struct ActionsUI {
 
 impl ActionsUI {
 
-    pub unsafe fn new(main_window: &QBox<QMainWindow>) -> Result<Self> {
-        let layout: QPtr<QGridLayout> = main_window.central_widget().layout().static_downcast();
+    pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Self> {
+        let layout: QPtr<QGridLayout> = parent.layout().static_downcast();
 
         // Load the UI Template.
         let template_path = if cfg!(debug_assertions) { VIEW_DEBUG } else { VIEW_RELEASE };
-        let main_widget = load_template(main_window, template_path)?;
+        let main_widget = load_template(parent, template_path)?;
 
         let play_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "play_button")?;
         let settings_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "settings_button")?;
@@ -94,7 +94,7 @@ impl ActionsUI {
         profile_load_button.set_tool_tip(&qtr("load_profile"));
         profile_save_button.set_tool_tip(&qtr("save_profile"));
 
-        layout.add_widget_5a(&main_widget, 0, 1, 1, 1);
+        layout.add_widget_5a(&main_widget, 0, 0, 1, 1);
 
         Ok(Self {
             play_button,
