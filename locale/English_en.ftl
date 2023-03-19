@@ -61,3 +61,5 @@ last_check = Last Update Date of Mod Info
 
 open_in_explorer = Open in Explorer
 open_in_steam = Open in Steam Workshop
+
+language = Language

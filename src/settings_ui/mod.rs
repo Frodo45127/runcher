@@ -67,14 +67,11 @@ pub struct SettingsUI {
     paths_games_line_edits: BTreeMap<String, QBox<QLineEdit>>,
     paths_games_buttons: BTreeMap<String, QBox<QToolButton>>,
 
-    steam_api_key_label: QPtr<QLabel>,
     steam_api_key_line_edit: QPtr<QLineEdit>,
 
+    language_combobox: QPtr<QComboBox>,
     default_game_combobox: QPtr<QComboBox>,
     update_chanel_combobox: QPtr<QComboBox>,
-
-    default_game_model: QBox<QStandardItemModel>,
-    update_chanel_model: QBox<QStandardItemModel>,
 
     restore_default_button: QPtr<QPushButton>,
     accept_button: QPtr<QPushButton>,
@@ -113,20 +110,19 @@ impl SettingsUI {
         let dialog: QPtr<QDialog> = main_widget.static_downcast();
 
         let paths_groupbox: QPtr<QGroupBox> = find_widget(&main_widget.static_upcast(), "paths_groupbox")?;
+        let language_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "language_label")?;
         let default_game_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "default_game_label")?;
         let update_chanel_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "update_chanel_label")?;
         let steam_api_key_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "steam_api_key_label")?;
+        let language_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "language_combobox")?;
         let default_game_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "default_game_combobox")?;
         let update_chanel_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "update_chanel_combobox")?;
         let steam_api_key_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "steam_api_key_line_edit")?;
         let paths_layout: QPtr<QGridLayout> = paths_groupbox.layout().static_downcast();
-        let default_game_model = QStandardItemModel::new_1a(&default_game_combobox);
-        let update_chanel_model = QStandardItemModel::new_1a(&update_chanel_combobox);
-        default_game_combobox.set_model(&default_game_model);
-        update_chanel_combobox.set_model(&update_chanel_model);
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(STABLE));
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(BETA));
 
+        language_label.set_text(&qtr("language"));
         default_game_label.set_text(&qtr("default_game"));
         update_chanel_label.set_text(&qtr("update_channel"));
         steam_api_key_label.set_text(&qtr("steam_api_key"));
@@ -156,6 +152,12 @@ impl SettingsUI {
             }
         }
 
+        if let Ok(locales) = Locale::get_available_locales() {
+            for (language, _) in locales {
+                language_combobox.add_item_q_string(&QString::from_std_str(language));
+            }
+        }
+
         let button_box: QPtr<QDialogButtonBox> = find_widget(&main_widget.static_upcast(), "button_box")?;
         let restore_default_button: QPtr<QPushButton> = button_box.button(StandardButton::RestoreDefaults);
         let accept_button: QPtr<QPushButton> = button_box.button(StandardButton::Ok);
@@ -165,12 +167,10 @@ impl SettingsUI {
             dialog,
             paths_games_line_edits,
             paths_games_buttons,
-            steam_api_key_label,
             steam_api_key_line_edit,
+            language_combobox,
             default_game_combobox,
             update_chanel_combobox,
-            default_game_model,
-            update_chanel_model,
 
             restore_default_button,
             accept_button,
@@ -200,14 +200,14 @@ impl SettingsUI {
             }
         }
 
-        //let language_selected = setting_string("language");
-        //let language_selected_split = language_selected.split('_').collect::<Vec<&str>>()[0];
-        //for (index, (language,_)) in Locale::get_available_locales()?.iter().enumerate() {
-        //    if *language == language_selected_split {
-        //        self.general_language_combobox.set_current_index(index as i32);
-        //        break;
-        //    }
-        //}
+        let language_selected = setting_string("language");
+        let language_selected_split = language_selected.split('_').collect::<Vec<&str>>()[0];
+        for (index, (language,_)) in Locale::get_available_locales()?.iter().enumerate() {
+            if *language == language_selected_split {
+                self.language_combobox.set_current_index(index as i32);
+                break;
+            }
+        }
 
         for (index, update_channel_name) in [UpdateChannel::Stable, UpdateChannel::Beta].iter().enumerate() {
             if update_channel_name == &update_channel() {
@@ -236,12 +236,12 @@ impl SettingsUI {
         set_setting_string_to_q_setting(&q_settings, "default_game", &game);
 
         // We need to store the full locale filename, not just the visible name!
-        //let mut language = self.general_language_combobox.current_text().to_std_string();
-        //if let Some(index) = language.find('&') { language.remove(index); }
-        //if let Some((_, locale)) = Locale::get_available_locales()?.iter().find(|(x, _)| &language == x) {
-        //    let file_name = format!("{}_{}", language, locale.language);
-        //    set_setting_string_to_q_setting(&q_settings, "language", &file_name);
-        //}
+        let mut language = self.language_combobox.current_text().to_std_string();
+        if let Some(index) = language.find('&') { language.remove(index); }
+        if let Some((_, locale)) = Locale::get_available_locales()?.iter().find(|(x, _)| &language == x) {
+            let file_name = format!("{}_{}", language, locale.language);
+            set_setting_string_to_q_setting(&q_settings, "language", &file_name);
+        }
 
         set_setting_string_to_q_setting(&q_settings, "update_channel", &self.update_chanel_combobox.current_text().to_std_string());
         set_setting_string_to_q_setting(&q_settings, "steam_api_key", &self.steam_api_key_line_edit().text().to_std_string());
@@ -315,6 +315,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_string(&q_settings, "steam_api_key", "");
     set_setting_if_new_string(&q_settings, "default_game", "warhammer_3");
     set_setting_if_new_string(&q_settings, "update_channel", "stable");
+    set_setting_if_new_string(&q_settings, "language", "English_en");
 
     q_settings.sync();
 }
