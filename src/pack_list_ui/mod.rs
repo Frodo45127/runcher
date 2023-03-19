@@ -86,6 +86,7 @@ impl PackListUI {
         filter.set_source_model(&model);
         model.set_parent(&tree_view);
         tree_view.set_model(&filter);
+        tree_view.set_sorting_enabled(false);
 
         let filter_timer = QTimer::new_1a(&main_widget);
         filter_timer.set_single_shot(true);
