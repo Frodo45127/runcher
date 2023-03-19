@@ -35,29 +35,6 @@ extern "C" { fn mod_list_trigger_filter(filter: *const QSortFilterProxyModel, pa
 pub fn mod_list_trigger_filter_safe(filter: &QSortFilterProxyModel, pattern: &Ptr<QRegExp>) {
     unsafe { mod_list_trigger_filter(filter, pattern.as_mut_raw_ptr()); }
 }
-/*
-// This function allow us to create a QTreeView compatible with draggable items
-extern "C" { fn new_packed_file_treeview(parent: *mut QWidget) -> *mut QTreeView; }
-pub fn new_packed_file_treeview_safe(parent: QPtr<QWidget>) -> QPtr<QTreeView> {
-    unsafe { QPtr::from_raw(new_packed_file_treeview(parent.as_mut_raw_ptr())) }
-}
-
-pub fn draggable_file_tree_view_drop_signal(widget: QPtr<QWidget>) -> Signal<(*const QModelIndex, i32)> {
-    unsafe {
-        Signal::new(
-            ::cpp_core::Ref::from_raw(widget.as_raw_ptr()).expect("attempted to construct a null Ref"),
-            ::std::ffi::CStr::from_bytes_with_nul_unchecked(
-                b"2itemDrop(QModelIndex const &,int)\0",
-            ),
-        )
-    }
-}
-
-// This function allow us to create a model compatible with draggable items
-extern "C" { fn new_packed_file_model() -> *mut QStandardItemModel; }
-pub fn new_packed_file_model_safe() -> QBox<QStandardItemModel> {
-    unsafe { QBox::from_raw(new_packed_file_model()) }
-}*/
 
 // This function allow us to create a custom window.
 extern "C" { fn launcher_window() -> *mut QMainWindow; }
@@ -74,4 +51,9 @@ pub fn main_window_drop_pack_signal(widget: QPtr<QWidget>) -> Signal<(*const ::q
             ),
         )
     }
+}
+
+extern "C" { fn html_item_delegate(view: *mut QObject, column: i32); }
+pub fn html_item_delegate_safe(view: &Ptr<QObject>, column: i32) {
+    unsafe { html_item_delegate(view.as_mut_raw_ptr(), column) }
 }

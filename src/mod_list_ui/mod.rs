@@ -31,6 +31,7 @@ use qt_core::CheckState;
 use qt_core::QBox;
 use qt_core::QFlags;
 use qt_core::QModelIndex;
+use qt_core::QObject;
 use qt_core::QPtr;
 use qt_core::QRegExp;
 use qt_core::QSortFilterProxyModel;
@@ -212,9 +213,9 @@ impl ModListUI {
 
                     // TODO: make this use <b> and <i>
                     let mod_name = if modd.name() != modd.id() {
-                        format!("{} ({})", modd.name(), modd.id())
+                        format!("<b>{}</b> <i>({})</i>", modd.name(), modd.id())
                     } else {
-                        modd.name().to_owned()
+                        format!("<i>{}</i>", modd.name())
                     };
 
                     // TODO: show discrepancies between steam's reported data and real data.
@@ -266,7 +267,7 @@ impl ModListUI {
                     item_time_updated.set_editable(false);
                     item_last_check.set_editable(false);
 
-                    item_file_size.set_text_alignment(QFlags::from(AlignmentFlag::AlignRight));
+                    item_file_size.set_text_alignment(AlignmentFlag::AlignVCenter | AlignmentFlag::AlignRight);
 
                     if *modd.enabled() {
                         item_mod_name.set_check_state(CheckState::Checked);
@@ -329,6 +330,8 @@ impl ModListUI {
         self.model.set_horizontal_header_item(5, item_time_created.into_ptr());
         self.model.set_horizontal_header_item(6, item_time_updated.into_ptr());
         self.model.set_horizontal_header_item(7, item_last_check.into_ptr());
+
+        html_item_delegate_safe(&self.tree_view().static_upcast::<QObject>().as_ptr(), 0);
     }
 
 
