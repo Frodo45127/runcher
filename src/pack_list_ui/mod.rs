@@ -9,6 +9,7 @@
 //---------------------------------------------------------------------------//
 
 use qt_widgets::QGridLayout;
+use qt_widgets::q_header_view::ResizeMode;
 use qt_widgets::QLineEdit;
 use qt_widgets::QToolButton;
 use qt_widgets::QTreeView;
@@ -29,7 +30,6 @@ use qt_core::QVariant;
 
 use anyhow::Result;
 use getset::*;
-use qt_widgets::q_header_view::ResizeMode;
 
 use std::sync::Arc;
 use std::path::Path;

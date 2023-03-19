@@ -63,3 +63,4 @@ open_in_explorer = Open in Explorer
 open_in_steam = Open in Steam Workshop
 
 language = Language
+dark_mode = Dark Mode

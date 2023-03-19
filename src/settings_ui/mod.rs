@@ -8,6 +8,7 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use qt_widgets::QCheckBox;
 use qt_widgets::QComboBox;
 use qt_widgets::QDialog;
 use qt_widgets::QDialogButtonBox;
@@ -72,6 +73,7 @@ pub struct SettingsUI {
     language_combobox: QPtr<QComboBox>,
     default_game_combobox: QPtr<QComboBox>,
     update_chanel_combobox: QPtr<QComboBox>,
+    dark_mode_checkbox: QPtr<QCheckBox>,
 
     restore_default_button: QPtr<QPushButton>,
     accept_button: QPtr<QPushButton>,
@@ -114,10 +116,12 @@ impl SettingsUI {
         let default_game_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "default_game_label")?;
         let update_chanel_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "update_chanel_label")?;
         let steam_api_key_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "steam_api_key_label")?;
+        let dark_mode_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "dark_mode_label")?;
         let language_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "language_combobox")?;
         let default_game_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "default_game_combobox")?;
         let update_chanel_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "update_chanel_combobox")?;
         let steam_api_key_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "steam_api_key_line_edit")?;
+        let dark_mode_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "dark_mode_checkbox")?;
         let paths_layout: QPtr<QGridLayout> = paths_groupbox.layout().static_downcast();
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(STABLE));
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(BETA));
@@ -126,6 +130,7 @@ impl SettingsUI {
         default_game_label.set_text(&qtr("default_game"));
         update_chanel_label.set_text(&qtr("update_channel"));
         steam_api_key_label.set_text(&qtr("steam_api_key"));
+        dark_mode_label.set_text(&qtr("dark_mode"));
 
         // We automatically add a Label/LineEdit/Button for each game we support.
         let mut paths_games_line_edits = BTreeMap::new();
@@ -171,6 +176,7 @@ impl SettingsUI {
             language_combobox,
             default_game_combobox,
             update_chanel_combobox,
+            dark_mode_checkbox,
 
             restore_default_button,
             accept_button,
@@ -217,6 +223,7 @@ impl SettingsUI {
         }
 
         self.steam_api_key_line_edit().set_text(&QString::from_std_str(setting_string_from_q_setting(&q_settings, "steam_api_key")));
+        self.dark_mode_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "dark_mode"));
 
         Ok(())
     }
@@ -245,6 +252,7 @@ impl SettingsUI {
 
         set_setting_string_to_q_setting(&q_settings, "update_channel", &self.update_chanel_combobox.current_text().to_std_string());
         set_setting_string_to_q_setting(&q_settings, "steam_api_key", &self.steam_api_key_line_edit().text().to_std_string());
+        set_setting_bool_to_q_setting(&q_settings, "dark_mode", self.dark_mode_checkbox().is_checked());
 
         // Save the settings.
         q_settings.sync();
@@ -316,6 +324,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_string(&q_settings, "default_game", "warhammer_3");
     set_setting_if_new_string(&q_settings, "update_channel", "stable");
     set_setting_if_new_string(&q_settings, "language", "English_en");
+    set_setting_if_new_bool(&q_settings, "dark_mode", false);
 
     q_settings.sync();
 }

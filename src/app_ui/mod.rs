@@ -20,6 +20,7 @@ use qt_gui::QIcon;
 
 use qt_core::CheckState;
 use qt_core::QBox;
+use qt_core::QCoreApplication;
 use qt_core::QFlags;
 use qt_core::QModelIndex;
 use qt_core::QPtr;
@@ -33,7 +34,7 @@ use getset::Getters;
 use std::env::current_exe;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufWriter, Write};
+use std::io::{BufWriter, Read, Write};
 #[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
 use std::process::{Command, exit};
@@ -51,8 +52,11 @@ use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::actions_ui::ActionsUI;
+use crate::DARK_PALETTE;
 use crate::ffi::launcher_window_safe;
 use crate::integrations::{GameConfig, Mod, Profile, steam::*};
+use crate::LIGHT_PALETTE;
+use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::ModListUI;
 use crate::pack_list_ui::PackListUI;
 use crate::settings_ui::SettingsUI;
@@ -309,6 +313,9 @@ impl AppUI {
 
         // Initialize settings.
         init_settings(&app_ui.main_window().static_upcast());
+
+        // Load the correct theme.
+        Self::reload_theme();
 
         // Apply last ui state.
         app_ui.main_window().restore_geometry(&setting_byte_array("geometry"));
@@ -782,4 +789,65 @@ impl AppUI {
             }
         }
     }
+
+    /// This function creates the stylesheet used for the dark theme in windows.
+    pub fn dark_stylesheet() -> Result<String> {
+        let mut file = File::open(ASSETS_PATH.join("dark-theme.qss"))?;
+        let mut string = String::new();
+        file.read_to_string(&mut string)?;
+        Ok(string.replace("{assets_path}", &ASSETS_PATH.to_string_lossy()))
+    }
+
+    /// This function is used to load/reload a theme live.
+    pub unsafe fn reload_theme() {
+        let app = QCoreApplication::instance();
+        let qapp = app.static_downcast::<QApplication>();
+        let use_dark_theme = setting_bool("dark_mode");
+        dbg!(use_dark_theme);
+
+        // Initialize the globals before applying anything.
+        let light_style_sheet = ref_from_atomic(&*LIGHT_STYLE_SHEET);
+        let light_palette = ref_from_atomic(&*LIGHT_PALETTE);
+        let dark_palette = ref_from_atomic(&*DARK_PALETTE);
+
+        // On Windows, we use the dark theme switch to control the Style, StyleSheet and Palette.
+        if cfg!(target_os = "windows") {
+            if use_dark_theme {
+                QApplication::set_style_q_string(&QString::from_std_str("fusion"));
+                QApplication::set_palette_1a(dark_palette);
+                if let Ok(dark_stylesheet) = Self::dark_stylesheet() {
+                    qapp.set_style_sheet(&QString::from_std_str(dark_stylesheet));
+                }
+            } else {
+                QApplication::set_style_q_string(&QString::from_std_str("windowsvista"));
+                QApplication::set_palette_1a(light_palette);
+                qapp.set_style_sheet(light_style_sheet);
+            }
+        }
+
+        // On MacOS, we use the dark theme switch to control the StyleSheet and Palette.
+        else if cfg!(target_os = "macos") {
+            if use_dark_theme {
+                QApplication::set_palette_1a(dark_palette);
+                if let Ok(dark_stylesheet) = Self::dark_stylesheet() {
+                    qapp.set_style_sheet(&QString::from_std_str(dark_stylesheet));
+                }
+            } else {
+                QApplication::set_palette_1a(light_palette);
+                qapp.set_style_sheet(light_style_sheet);
+            }
+        }
+
+        // Linux and company.
+        else if use_dark_theme {
+            qt_widgets::QApplication::set_palette_1a(dark_palette);
+            if let Ok(dark_stylesheet) = Self::dark_stylesheet() {
+                qapp.set_style_sheet(&QString::from_std_str(dark_stylesheet));
+            }
+        } else {
+            qt_widgets::QApplication::set_palette_1a(light_palette);
+            qapp.set_style_sheet(light_style_sheet);
+        }
+    }
+
 }

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>594</width>
-    <height>250</height>
+    <height>288</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,22 +22,49 @@
      <layout class="QGridLayout" name="gridLayout_2"/>
     </widget>
    </item>
-   <item row="2" column="0">
-    <widget class="QDialogButtonBox" name="button_box">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok|QDialogButtonBox::RestoreDefaults</set>
-     </property>
-    </widget>
-   </item>
    <item row="1" column="0">
     <widget class="QGroupBox" name="tweaks_groupbox">
      <property name="title">
       <string>GroupBox</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
+      <item row="2" column="0">
+       <widget class="QLabel" name="update_chanel_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="KComboBox" name="update_chanel_combobox"/>
+      </item>
+      <item row="3" column="1">
+       <widget class="KComboBox" name="language_combobox"/>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="language_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="steam_api_key_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="default_game_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="KLineEdit" name="steam_api_key_line_edit"/>
+      </item>
       <item row="1" column="1">
        <widget class="QComboBox" name="default_game_combobox">
         <property name="sizePolicy">
@@ -48,44 +75,31 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
-       <widget class="KComboBox" name="update_chanel_combobox"/>
+      <item row="4" column="1">
+       <widget class="QCheckBox" name="dark_mode_checkbox">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="steam_api_key_label">
+      <item row="4" column="0">
+       <widget class="QLabel" name="dark_mode_label">
         <property name="text">
          <string>TextLabel</string>
         </property>
        </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="update_chanel_label">
-        <property name="text">
-         <string>TextLabel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="KLineEdit" name="steam_api_key_line_edit"/>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="default_game_label">
-        <property name="text">
-         <string>TextLabel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="language_label">
-        <property name="text">
-         <string>TextLabel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="KComboBox" name="language_combobox"/>
       </item>
      </layout>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QDialogButtonBox" name="button_box">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok|QDialogButtonBox::RestoreDefaults</set>
+     </property>
     </widget>
    </item>
   </layout>

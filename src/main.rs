@@ -27,16 +27,23 @@
 
 use qt_widgets::QApplication;
 
+use qt_gui::QColor;
+use qt_gui::{QPalette, q_palette::{ColorRole, ColorGroup}};
+
+use qt_core::QCoreApplication;
+use qt_core::QString;
+
 use lazy_static::lazy_static;
 
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, atomic::AtomicPtr, RwLock};
 
 use rpfm_lib::games::supported_games::SupportedGames;
 use rpfm_lib::integrations::log::*;
 
 use rpfm_ui_common::locale::FALLBACK_LOCALE;
 use rpfm_ui_common::settings::*;
+use rpfm_ui_common::utils::*;
 
 use crate::app_ui::AppUI;
 use crate::settings_ui::*;
@@ -62,6 +69,52 @@ lazy_static! {
         init_config_path().expect("Error while trying to initialize config path. We're fucked.");
         error_path().unwrap_or_else(|_| PathBuf::from("."))
     }, true, true).unwrap()));
+
+    /// Light stylesheet.
+    static ref LIGHT_STYLE_SHEET: AtomicPtr<QString> = unsafe {
+        let app = QCoreApplication::instance();
+        let qapp = app.static_downcast::<QApplication>();
+        atomic_from_cpp_box(qapp.style_sheet())
+    };
+
+    /// Bright and dark palettes of colours for Windows.
+    /// The dark one is taken from here, with some modifications: https://gist.github.com/QuantumCD/6245215
+    static ref LIGHT_PALETTE: AtomicPtr<QPalette> = unsafe { atomic_from_cpp_box(QPalette::new()) };
+    static ref DARK_PALETTE: AtomicPtr<QPalette> = unsafe {{
+        let palette = QPalette::new();
+
+        // Base config.
+        palette.set_color_2a(ColorRole::Window, &QColor::from_3_int(51, 51, 51));
+        palette.set_color_2a(ColorRole::WindowText, &QColor::from_3_int(187, 187, 187));
+        palette.set_color_2a(ColorRole::Base, &QColor::from_3_int(34, 34, 34));
+        palette.set_color_2a(ColorRole::AlternateBase, &QColor::from_3_int(51, 51, 51));
+        palette.set_color_2a(ColorRole::ToolTipBase, &QColor::from_3_int(187, 187, 187));
+        palette.set_color_2a(ColorRole::ToolTipText, &QColor::from_3_int(187, 187, 187));
+        palette.set_color_2a(ColorRole::Text, &QColor::from_3_int(187, 187, 187));
+        palette.set_color_2a(ColorRole::Button, &QColor::from_3_int(51, 51, 51));
+        palette.set_color_2a(ColorRole::ButtonText, &QColor::from_3_int(187, 187, 187));
+        palette.set_color_2a(ColorRole::BrightText, &QColor::from_3_int(255, 0, 0));
+        palette.set_color_2a(ColorRole::Link, &QColor::from_3_int(42, 130, 218));
+        palette.set_color_2a(ColorRole::Highlight, &QColor::from_3_int(42, 130, 218));
+        palette.set_color_2a(ColorRole::HighlightedText, &QColor::from_3_int(204, 204, 204));
+
+        // Disabled config.
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::Window, &QColor::from_3_int(34, 34, 34));
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::WindowText, &QColor::from_3_int(85, 85, 85));
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::Base, &QColor::from_3_int(34, 34, 34));
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::AlternateBase, &QColor::from_3_int(34, 34, 34));
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::ToolTipBase, &QColor::from_3_int(85, 85, 85));
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::ToolTipText, &QColor::from_3_int(85, 85, 85));
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::Text, &QColor::from_3_int(85, 85, 85));
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::Button, &QColor::from_3_int(34, 34, 34));
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::ButtonText, &QColor::from_3_int(85, 85, 85));
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::BrightText, &QColor::from_3_int(170, 0, 0));
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::Link, &QColor::from_3_int(42, 130, 218));
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::Highlight, &QColor::from_3_int(42, 130, 218));
+        palette.set_color_3a(ColorGroup::Disabled, ColorRole::HighlightedText, &QColor::from_3_int(85, 85, 85));
+
+        atomic_from_cpp_box(palette)
+    }};
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
