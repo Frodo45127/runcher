@@ -49,8 +49,9 @@ use time::OffsetDateTime;
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
-use rpfm_ui_common::FULL_DATE_FORMAT;
+use rpfm_ui_common::SLASH_DMY_DATE_FORMAT;
 use rpfm_ui_common::locale::*;
+use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::ffi::*;
@@ -215,18 +216,17 @@ impl ModListUI {
                     };
 
                     let time_created = if *modd.time_created() != 0 {
-                        OffsetDateTime::from_unix_timestamp(*modd.time_created() as i64).unwrap().format(&FULL_DATE_FORMAT).unwrap()
+                        OffsetDateTime::from_unix_timestamp(*modd.time_created() as i64).unwrap().format(&SLASH_DMY_DATE_FORMAT).unwrap()
                     } else {
                         let date = modd.paths()[0].metadata().unwrap().created().unwrap().duration_since(UNIX_EPOCH).unwrap();
-                        OffsetDateTime::from_unix_timestamp(date.as_secs() as i64).unwrap().format(&FULL_DATE_FORMAT).unwrap()
+                        OffsetDateTime::from_unix_timestamp(date.as_secs() as i64).unwrap().format(&SLASH_DMY_DATE_FORMAT).unwrap()
                     };
 
                     let time_updated = if *modd.time_updated() != 0 {
-                        OffsetDateTime::from_unix_timestamp(*modd.time_updated() as i64).unwrap().format(&FULL_DATE_FORMAT).unwrap().to_string()
+                        OffsetDateTime::from_unix_timestamp(*modd.time_updated() as i64).unwrap().format(&SLASH_DMY_DATE_FORMAT).unwrap().to_string()
                     } else {
                         "-".to_string()
                     };
-
 
                     item_mod_name.set_text(&QString::from_std_str(mod_name));
                     item_creator.set_text(&QString::from_std_str(modd.creator_name()));
@@ -276,13 +276,20 @@ impl ModListUI {
             }
         }
 
-        self.tree_view().expand_all();
-        self.tree_view().sort_by_column_2a(0, SortOrder::AscendingOrder);
         self.setup_columns();
-        self.tree_view().header().resize_sections(ResizeMode::ResizeToContents);
 
         self.tree_view().hide_column(3);
         self.tree_view().hide_column(4);
+        self.tree_view().hide_column(7);
+
+        // If we have no api key, don't show the author column, as we cannot get it without api key.
+        if setting_string("steam_api_key").is_empty() {
+            self.tree_view().hide_column(1);
+        }
+
+        self.tree_view().expand_all();
+        self.tree_view().sort_by_column_2a(0, SortOrder::AscendingOrder);
+        self.tree_view().header().resize_sections(ResizeMode::ResizeToContents);
 
         Ok(())
     }
