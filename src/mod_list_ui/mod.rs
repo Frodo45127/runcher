@@ -68,6 +68,8 @@ const CATEGORY_NEW_VIEW_DEBUG: &str = "ui_templates/category_new_dialog.ui";
 const CATEGORY_NEW_VIEW_RELEASE: &str = "ui/category_new_dialog.ui";
 
 pub const VALUE_MOD_ID: i32 = 21;
+pub const VALUE_PACK_PATH: i32 = 22;
+pub const VALUE_MOD_STEAM_ID: i32 = 23;
 pub const VALUE_IS_CATEGORY: i32 = 40;
 
 //-------------------------------------------------------------------------------//
@@ -87,8 +89,10 @@ pub struct ModListUI {
     context_menu: QBox<QMenu>,
     category_new: QPtr<QAction>,
     category_delete: QPtr<QAction>,
-
     categories_send_to_menu: QBox<QMenu>,
+
+    open_in_explorer: QPtr<QAction>,
+    open_in_steam: QPtr<QAction>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -123,10 +127,12 @@ impl ModListUI {
         let context_menu = QMenu::from_q_widget(&main_widget);
         let category_new = context_menu.add_action_q_string(&qtr("category_new"));
         let category_delete = context_menu.add_action_q_string(&qtr("category_delete"));
-
-
         let categories_send_to_menu = QMenu::from_q_string(&qtr("categories_send_to_menu"));
         context_menu.add_menu_q_menu(&categories_send_to_menu);
+
+        let open_in_explorer = context_menu.add_action_q_string(&qtr("open_in_explorer"));
+        let open_in_steam = context_menu.add_action_q_string(&qtr("open_in_steam"));
+        context_menu.insert_separator(&open_in_explorer);
 
         let list = Arc::new(Self {
             tree_view,
@@ -140,6 +146,8 @@ impl ModListUI {
             category_new,
             category_delete,
             categories_send_to_menu,
+            open_in_explorer,
+            open_in_steam
         });
 
         let slots = ModListUISlots::new(&list);
@@ -159,6 +167,8 @@ impl ModListUI {
         self.context_menu().about_to_show().connect(slots.context_menu_enabler());
 
         self.category_new().triggered().connect(slots.category_new());
+        self.open_in_explorer().triggered().connect(slots.open_in_explorer());
+        self.open_in_steam().triggered().connect(slots.open_in_steam());
     }
 
     pub unsafe fn load(&self, game_config: &GameConfig) -> Result<()> {
@@ -238,6 +248,12 @@ impl ModListUI {
                     item_last_check.set_text(&QString::from_std_str(modd.last_check().to_string()));
 
                     item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.id())), VALUE_MOD_ID);
+                    item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.paths()[0].to_string_lossy())), VALUE_PACK_PATH);
+
+                    if let Some(steam_id) = modd.steam_id() {
+                        item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(steam_id)), VALUE_MOD_STEAM_ID);
+                    }
+
                     item_mod_name.set_data_2a(&QVariant::from_bool(false), VALUE_IS_CATEGORY);
                     item_mod_name.set_checkable(true);
 
@@ -255,6 +271,7 @@ impl ModListUI {
                     if *modd.enabled() {
                         item_mod_name.set_check_state(CheckState::Checked);
                     }
+
                     //if !modd.description().is_empty() {
                     //    if modd.description().contains("for all regions") {
                     //        println!("{}", parse_to_html(modd.description()));

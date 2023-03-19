@@ -15,6 +15,7 @@ use qt_gui::QCursor;
 use qt_core::QBox;
 use qt_core::{SlotNoArgs, SlotOfQString};
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use rpfm_ui_common::clone;
@@ -36,6 +37,8 @@ pub struct ModListUISlots {
     context_menu_enabler: QBox<SlotNoArgs>,
 
     category_new: QBox<SlotNoArgs>,
+    open_in_explorer: QBox<SlotNoArgs>,
+    open_in_steam: QBox<SlotNoArgs>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -68,11 +71,14 @@ impl ModListUISlots {
         let context_menu_enabler = SlotNoArgs::new(&view.tree_view, clone!(
             view => move || {
             let selection = view.mod_list_selection();
-            let all_categories = selection.iter().all(|index| index.data_1a(VALUE_IS_CATEGORY).to_bool());
-            let all_mods = selection.iter().all(|index| !index.data_1a(VALUE_IS_CATEGORY).to_bool());
+            let all_categories = !selection.is_empty() && selection.iter().all(|index| index.data_1a(VALUE_IS_CATEGORY).to_bool());
+            let all_mods = !selection.is_empty() && selection.iter().all(|index| !index.data_1a(VALUE_IS_CATEGORY).to_bool());
 
             view.category_delete.set_enabled(all_categories);
             view.categories_send_to_menu.set_enabled(all_mods);
+
+            view.open_in_explorer.set_enabled(all_mods);
+            view.open_in_steam.set_enabled(all_mods);
         }));
 
         let category_new = SlotNoArgs::new(&view.tree_view, clone!(
@@ -87,6 +93,27 @@ impl ModListUISlots {
             }
         }));
 
+        let open_in_explorer = SlotNoArgs::new(&view.tree_view, clone!(
+            view => move || {
+            let selection = view.mod_list_selection();
+            for selection in &selection {
+                let mut folder_path = PathBuf::from(selection.data_1a(VALUE_PACK_PATH).to_string().to_std_string());
+                folder_path.pop();
+                let _ = open::that(folder_path);
+            }
+        }));
+
+        let open_in_steam = SlotNoArgs::new(&view.tree_view, clone!(
+            view => move || {
+            let selection = view.mod_list_selection();
+            for selection in &selection {
+                let url = selection.data_1a(VALUE_MOD_STEAM_ID).to_string().to_std_string();
+                if !url.is_empty() {
+                    let _ = open::that("https://steamcommunity.com/sharedfiles/filedetails/?id=".to_string() + &url);
+                }
+            }
+        }));
+
         Self {
             filter_line_edit,
             filter_case_sensitive_button,
@@ -95,6 +122,8 @@ impl ModListUISlots {
             context_menu,
             context_menu_enabler,
             category_new,
+            open_in_explorer,
+            open_in_steam,
         }
     }
 }
