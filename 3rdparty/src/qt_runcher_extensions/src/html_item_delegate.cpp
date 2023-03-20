@@ -48,8 +48,8 @@ QSize HtmlItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QMode
 
     QTextDocument doc;
     doc.setHtml(opt.text);
-    doc.setTextWidth(opt.rect.width());
+    //doc.setTextWidth(opt.rect.width());
 
     QTreeView* view = dynamic_cast<QTreeView*>(parent());
-    return QSize(doc.idealWidth() + (view->indentation() * 2), doc.size().height());
+    return QSize(doc.idealWidth() + (view->indentation()), doc.size().height());
 }
