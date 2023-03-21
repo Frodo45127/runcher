@@ -22,6 +22,8 @@ use qt_widgets::QMainWindow;
 use qt_widgets::QPushButton;
 use qt_widgets::QToolButton;
 
+use qt_gui::QIcon;
+
 use qt_core::QBox;
 use qt_core::QFlags;
 use qt_core::QPtr;
@@ -141,6 +143,7 @@ impl SettingsUI {
                 let game_line_edit = QLineEdit::from_q_widget(&paths_groupbox);
                 let game_button = QToolButton::new_1a(&paths_groupbox);
                 game_line_edit.set_placeholder_text(&qtre("settings_game_line_ph", &[game.display_name()]));
+                game_button.set_icon(&QIcon::from_theme_1a(&QString::from_std_str("folder")));
 
                 paths_layout.add_widget_5a(&game_label, index as i32, 0, 1, 1);
                 paths_layout.add_widget_5a(&game_line_edit, index as i32, 1, 1, 1);
