@@ -29,7 +29,14 @@
    <property name="spacing">
     <number>2</number>
    </property>
-   <item row="0" column="4">
+   <item row="0" column="0">
+    <widget class="KComboBox" name="profile_combobox">
+     <property name="editable">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="5">
     <widget class="QToolButton" name="settings_button">
      <property name="text">
       <string/>
@@ -37,6 +44,12 @@
      <property name="icon">
       <iconset theme="settings-configure">
        <normaloff>.</normaloff>.</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
      </property>
     </widget>
    </item>
@@ -49,23 +62,11 @@
       <iconset theme="dialog-ok-apply">
        <normaloff>.</normaloff>.</iconset>
      </property>
-    </widget>
-   </item>
-   <item row="0" column="5">
-    <widget class="QToolButton" name="play_button">
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset theme="media-playback-start">
-       <normaloff>.</normaloff>.</iconset>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="0">
-    <widget class="KComboBox" name="profile_combobox">
-     <property name="editable">
-      <bool>true</bool>
+     <property name="iconSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
      </property>
     </widget>
    </item>
@@ -78,6 +79,12 @@
       <iconset theme="document-save">
        <normaloff>.</normaloff>.</iconset>
      </property>
+     <property name="iconSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
+     </property>
     </widget>
    </item>
    <item row="0" column="3">
@@ -86,7 +93,47 @@
       <string/>
      </property>
      <property name="icon">
-      <iconset theme="folder"/>
+      <iconset theme="folder">
+       <normaloff>.</normaloff>.</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="6">
+    <widget class="QToolButton" name="play_button">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="media-playback-start">
+       <normaloff>.</normaloff>.</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="4">
+    <widget class="QToolButton" name="reload_button">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="view-refresh-symbolic"/>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
      </property>
     </widget>
    </item>

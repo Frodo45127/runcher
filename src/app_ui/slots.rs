@@ -47,6 +47,7 @@ pub struct AppUISlots {
     about_runcher: QBox<SlotNoArgs>,
     check_updates: QBox<SlotNoArgs>,
 
+    reload: QBox<SlotNoArgs>,
     load_profile: QBox<SlotNoArgs>,
     save_profile: QBox<SlotNoArgs>,
 
@@ -202,6 +203,16 @@ impl AppUISlots {
             }
         ));
 
+        let reload = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+
+                // We just re-use the game selected logic
+                if let Err(error) = view.change_game_selected() {
+                    show_dialog(view.main_window(), error, false);
+                }
+            }
+        ));
+
         let load_profile = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 if let Err(error) = view.load_profile() {
@@ -327,6 +338,8 @@ impl AppUISlots {
             about_qt,
             about_runcher,
             check_updates,
+
+            reload,
 
             load_profile,
             save_profile,

@@ -357,6 +357,7 @@ impl AppUI {
         self.actions_ui().open_game_content_folder().triggered().connect(slots.open_game_content_folder());
         self.actions_ui().open_runcher_config_folder().triggered().connect(slots.open_runcher_config_folder());
         self.actions_ui().open_runcher_error_folder().triggered().connect(slots.open_runcher_error_folder());
+        self.actions_ui().reload_button().released().connect(slots.reload());
         self.actions_ui().profile_load_button().released().connect(slots.load_profile());
         self.actions_ui().profile_save_button().released().connect(slots.save_profile());
 
@@ -426,9 +427,9 @@ impl AppUI {
         let new_game_selected = new_game_selected.replace(' ', "_").to_lowercase();
 
         // If the game changed or we're initializing the program, change the game selected.
-        if new_game_selected != self.game_selected().read().unwrap().game_key_name() {
+        //if new_game_selected != self.game_selected().read().unwrap().game_key_name() {
             self.set_game_selected(&new_game_selected)?;
-        }
+        //}
 
         Ok(())
     }

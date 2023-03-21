@@ -49,6 +49,8 @@ pub struct ActionsUI {
     open_runcher_config_folder: QPtr<QAction>,
     open_runcher_error_folder: QPtr<QAction>,
 
+    reload_button: QPtr<QToolButton>,
+
     profile_load_button: QPtr<QToolButton>,
     profile_save_button: QPtr<QToolButton>,
     profile_combobox: QPtr<QComboBox>,
@@ -85,6 +87,9 @@ impl ActionsUI {
         folders_button.set_menu(&folders_menu);
         folders_button.set_popup_mode(ToolButtonPopupMode::MenuButtonPopup);
 
+        let reload_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "reload_button")?;
+        reload_button.set_tool_tip(&qtr("reload"));
+
         let profile_load_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "profile_load_button")?;
         let profile_save_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "profile_save_button")?;
         let profile_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "profile_combobox")?;
@@ -107,10 +112,13 @@ impl ActionsUI {
             open_runcher_config_folder,
             open_runcher_error_folder,
 
+            reload_button,
+
             profile_load_button,
             profile_save_button,
             profile_combobox,
             profile_model,
+
         })
     }
 }
