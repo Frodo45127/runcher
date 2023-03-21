@@ -173,6 +173,8 @@ impl ModListUI {
     }
 
     pub unsafe fn load(&self, game_config: &GameConfig) -> Result<()> {
+        self.model().clear();
+
         for modd in game_config.mods().values() {
 
             if !modd.paths().is_empty() {
