@@ -1867,25 +1867,6 @@ dependencies = [
 [[package]]
 name = "rpfm_extensions"
 version = "4.0.9"
-dependencies = [
- "bincode",
- "caseless",
- "fancy-regex",
- "float_eq",
- "getset",
- "itertools 0.10.5",
- "lazy_static",
- "rayon",
- "regex",
- "rpfm_lib 4.0.9",
- "serde",
- "serde_derive",
- "serde_json",
-]
-
-[[package]]
-name = "rpfm_extensions"
-version = "4.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d9ccf6e954fa4813578d521ef5eeac7a91e7a1fa4789034a359d3d0cd253758"
 dependencies = [
@@ -1905,44 +1886,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "rpfm_lib"
+name = "rpfm_extensions"
 version = "4.0.9"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#acf120fec04fba885d0dfe0b945224cae1331748"
 dependencies = [
- "backtrace",
  "bincode",
- "bitflags",
- "byteorder",
  "caseless",
- "content_inspector",
- "csv",
- "encoding_rs",
+ "fancy-regex",
  "float_eq",
- "fraction",
  "getset",
- "git2",
  "itertools 0.10.5",
  "lazy_static",
- "log",
- "memchr",
- "os_info",
- "pelite",
- "r2d2",
- "r2d2_sqlite",
- "rand",
  "rayon",
  "regex",
- "ron",
- "rusqlite",
- "sentry",
+ "rpfm_lib 4.0.9 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
  "serde",
- "serde-xml-rs",
  "serde_derive",
  "serde_json",
- "simplelog",
- "thiserror",
- "toml 0.7.3",
- "uuid",
- "xz2",
 ]
 
 [[package]]
@@ -1989,8 +1949,51 @@ dependencies = [
 ]
 
 [[package]]
+name = "rpfm_lib"
+version = "4.0.9"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#acf120fec04fba885d0dfe0b945224cae1331748"
+dependencies = [
+ "backtrace",
+ "bincode",
+ "bitflags",
+ "byteorder",
+ "caseless",
+ "content_inspector",
+ "csv",
+ "encoding_rs",
+ "float_eq",
+ "fraction",
+ "getset",
+ "git2",
+ "itertools 0.10.5",
+ "lazy_static",
+ "log",
+ "memchr",
+ "os_info",
+ "pelite",
+ "r2d2",
+ "r2d2_sqlite",
+ "rand",
+ "rayon",
+ "regex",
+ "ron",
+ "rusqlite",
+ "sentry",
+ "serde",
+ "serde-xml-rs",
+ "serde_derive",
+ "serde_json",
+ "simplelog",
+ "thiserror",
+ "toml 0.7.3",
+ "uuid",
+ "xz2",
+]
+
+[[package]]
 name = "rpfm_ui_common"
 version = "4.0.9"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#acf120fec04fba885d0dfe0b945224cae1331748"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -2002,8 +2005,8 @@ dependencies = [
  "qt_gui",
  "qt_ui_tools",
  "qt_widgets",
- "rpfm_extensions 4.0.9",
- "rpfm_lib 4.0.9",
+ "rpfm_extensions 4.0.9 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
+ "rpfm_lib 4.0.9 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
  "time",
  "unic-langid",
 ]
