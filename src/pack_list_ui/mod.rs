@@ -27,6 +27,7 @@ use qt_core::QSortFilterProxyModel;
 use qt_core::QString;
 use qt_core::QTimer;
 use qt_core::QVariant;
+use qt_core::SortOrder;
 
 use anyhow::Result;
 use getset::*;
@@ -123,7 +124,7 @@ impl PackListUI {
             .filter(|modd| *modd.enabled() && !modd.paths().is_empty())
             .collect::<Vec<_>>();
 
-        mods.sort_unstable_by(|a, b| a.id().cmp(b.id()));
+        mods.sort_by_key(|a| a.id());
 
         let game_data_folder = game_info.data_path(game_path)?;
         for (index, modd) in mods.iter().enumerate() {
@@ -170,6 +171,7 @@ impl PackListUI {
         self.tree_view().hide_column(4);
 
         self.setup_columns();
+        self.tree_view().sort_by_column_2a(2, SortOrder::AscendingOrder);
         self.tree_view().header().resize_sections(ResizeMode::ResizeToContents);
 
         Ok(())
