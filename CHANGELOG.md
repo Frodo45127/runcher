@@ -6,6 +6,26 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.2.0]
+### Added
+- Implemented "Open Folder" actions for commonly used folders.
+- Implemented "Open In Explorer" feature.
+- Implemented "Open In Steam Workshop" feature.
+- Implemented multilanguage support.
+- Implemented dark theme support.
+- Implemented "Reload" feature.
+- Added more columns with mod data to the mod list.
+- Added support for passing the game selected as an argument.
+
+### Changed
+- Pack name is now shown beside the mod name for steam mods.
+- Mod list is now sortable.
+- Mod list is now resizable.
+
+### Fixed
+- Fixed a few settings not being remembered between sessions.
+- Fixed mod list not being cleared on reload.
+
 ## [0.1.1]
 ### Changed
 - Location column now shows the Steam Id for Content mods.
@@ -23,6 +43,7 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Frodo45127/runcher/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Frodo45127/runcher/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Frodo45127/runcher/compare/...v0.1.0

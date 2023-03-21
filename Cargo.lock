@@ -1866,9 +1866,7 @@ dependencies = [
 
 [[package]]
 name = "rpfm_extensions"
-version = "4.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73d43785cdff942f1c9ed0442bfe2f8e8bfff8fec03088ea1caa57c84aa0c76d"
+version = "4.0.8"
 dependencies = [
  "bincode",
  "caseless",
@@ -1879,27 +1877,7 @@ dependencies = [
  "lazy_static",
  "rayon",
  "regex",
- "rpfm_lib 4.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde",
- "serde_derive",
- "serde_json",
-]
-
-[[package]]
-name = "rpfm_extensions"
-version = "4.0.7"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#774b254c4522547f57d83fc6a59d1fa43ed6a5c3"
-dependencies = [
- "bincode",
- "caseless",
- "fancy-regex",
- "float_eq",
- "getset",
- "itertools 0.10.5",
- "lazy_static",
- "rayon",
- "regex",
- "rpfm_lib 4.0.7 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
+ "rpfm_lib",
  "serde",
  "serde_derive",
  "serde_json",
@@ -1907,90 +1885,7 @@ dependencies = [
 
 [[package]]
 name = "rpfm_lib"
-version = "4.0.7"
-dependencies = [
- "backtrace",
- "bitflags",
- "byteorder",
- "caseless",
- "content_inspector",
- "csv",
- "encoding_rs",
- "float_eq",
- "fraction",
- "getset",
- "git2",
- "itertools 0.10.5",
- "lazy_static",
- "log",
- "memchr",
- "os_info",
- "pelite",
- "r2d2",
- "r2d2_sqlite",
- "rand",
- "rayon",
- "regex",
- "ron",
- "rusqlite",
- "sentry",
- "serde",
- "serde-xml-rs",
- "serde_derive",
- "serde_json",
- "simplelog",
- "thiserror",
- "toml 0.7.3",
- "uuid",
- "xz2",
-]
-
-[[package]]
-name = "rpfm_lib"
-version = "4.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c291f53813649aca880454ac36690eeea0167a017858f560f003a6a87b518c8b"
-dependencies = [
- "backtrace",
- "bincode",
- "bitflags",
- "byteorder",
- "caseless",
- "content_inspector",
- "csv",
- "encoding_rs",
- "float_eq",
- "fraction",
- "getset",
- "itertools 0.10.5",
- "lazy_static",
- "log",
- "memchr",
- "os_info",
- "pelite",
- "r2d2",
- "r2d2_sqlite",
- "rand",
- "rayon",
- "regex",
- "ron",
- "rusqlite",
- "sentry",
- "serde",
- "serde-xml-rs",
- "serde_derive",
- "serde_json",
- "simplelog",
- "thiserror",
- "toml 0.7.3",
- "uuid",
- "xz2",
-]
-
-[[package]]
-name = "rpfm_lib"
-version = "4.0.7"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#774b254c4522547f57d83fc6a59d1fa43ed6a5c3"
+version = "4.0.8"
 dependencies = [
  "backtrace",
  "bincode",
@@ -2031,8 +1926,7 @@ dependencies = [
 
 [[package]]
 name = "rpfm_ui_common"
-version = "4.0.7"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#774b254c4522547f57d83fc6a59d1fa43ed6a5c3"
+version = "4.0.8"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -2044,8 +1938,8 @@ dependencies = [
  "qt_gui",
  "qt_ui_tools",
  "qt_widgets",
- "rpfm_extensions 4.0.7 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
- "rpfm_lib 4.0.7 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
+ "rpfm_extensions",
+ "rpfm_lib",
  "time",
  "unic-langid",
 ]
@@ -2067,8 +1961,8 @@ dependencies = [
  "qt_widgets",
  "regex",
  "reqwest",
- "rpfm_extensions 4.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "rpfm_lib 4.0.7",
+ "rpfm_extensions",
+ "rpfm_lib",
  "rpfm_ui_common",
  "self_update",
  "serde",
