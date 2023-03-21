@@ -1866,7 +1866,7 @@ dependencies = [
 
 [[package]]
 name = "rpfm_extensions"
-version = "4.0.8"
+version = "4.0.9"
 dependencies = [
  "bincode",
  "caseless",
@@ -1877,7 +1877,28 @@ dependencies = [
  "lazy_static",
  "rayon",
  "regex",
- "rpfm_lib",
+ "rpfm_lib 4.0.9",
+ "serde",
+ "serde_derive",
+ "serde_json",
+]
+
+[[package]]
+name = "rpfm_extensions"
+version = "4.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d9ccf6e954fa4813578d521ef5eeac7a91e7a1fa4789034a359d3d0cd253758"
+dependencies = [
+ "bincode",
+ "caseless",
+ "fancy-regex",
+ "float_eq",
+ "getset",
+ "itertools 0.10.5",
+ "lazy_static",
+ "rayon",
+ "regex",
+ "rpfm_lib 4.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "serde_derive",
  "serde_json",
@@ -1885,7 +1906,50 @@ dependencies = [
 
 [[package]]
 name = "rpfm_lib"
-version = "4.0.8"
+version = "4.0.9"
+dependencies = [
+ "backtrace",
+ "bincode",
+ "bitflags",
+ "byteorder",
+ "caseless",
+ "content_inspector",
+ "csv",
+ "encoding_rs",
+ "float_eq",
+ "fraction",
+ "getset",
+ "git2",
+ "itertools 0.10.5",
+ "lazy_static",
+ "log",
+ "memchr",
+ "os_info",
+ "pelite",
+ "r2d2",
+ "r2d2_sqlite",
+ "rand",
+ "rayon",
+ "regex",
+ "ron",
+ "rusqlite",
+ "sentry",
+ "serde",
+ "serde-xml-rs",
+ "serde_derive",
+ "serde_json",
+ "simplelog",
+ "thiserror",
+ "toml 0.7.3",
+ "uuid",
+ "xz2",
+]
+
+[[package]]
+name = "rpfm_lib"
+version = "4.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4d4ebae5972469ec6e2714259367a84f963877860f8442a04a565f855303198"
 dependencies = [
  "backtrace",
  "bincode",
@@ -1926,7 +1990,7 @@ dependencies = [
 
 [[package]]
 name = "rpfm_ui_common"
-version = "4.0.8"
+version = "4.0.9"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -1938,15 +2002,15 @@ dependencies = [
  "qt_gui",
  "qt_ui_tools",
  "qt_widgets",
- "rpfm_extensions",
- "rpfm_lib",
+ "rpfm_extensions 4.0.9",
+ "rpfm_lib 4.0.9",
  "time",
  "unic-langid",
 ]
 
 [[package]]
 name = "runcher"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -1961,8 +2025,8 @@ dependencies = [
  "qt_widgets",
  "regex",
  "reqwest",
- "rpfm_extensions",
- "rpfm_lib",
+ "rpfm_extensions 4.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rpfm_lib 4.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "rpfm_ui_common",
  "self_update",
  "serde",
