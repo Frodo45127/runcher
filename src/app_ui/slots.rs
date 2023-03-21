@@ -15,6 +15,7 @@ use qt_gui::SlotOfQStandardItem;
 use qt_core::QBox;
 use qt_core::SlotNoArgs;
 
+use std::cmp::Reverse;
 use std::sync::Arc;
 
 use rpfm_ui_common::clone;
@@ -232,7 +233,7 @@ impl AppUISlots {
         let category_delete = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 let mut selection = view.mod_list_selection();
-                selection.sort_by(|a, b| b.row().cmp(&a.row()));
+                selection.sort_by_key(|b| Reverse(b.row()));
 
                 if selection.iter().any(|index| index.data_1a(2).to_string().to_std_string() == "Unassigned") {
                     return;
@@ -295,7 +296,7 @@ impl AppUISlots {
                             category,
                             view => move || {
                                 let mut selection = view.mod_list_selection();
-                                selection.sort_by(|a, b| b.row().cmp(&a.row()));
+                                selection.sort_by_key(|b| Reverse(b.row()));
 
                                 for mod_item in &selection {
                                     let current_cat = mod_item.parent();

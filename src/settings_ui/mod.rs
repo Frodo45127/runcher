@@ -22,8 +22,6 @@ use qt_widgets::QMainWindow;
 use qt_widgets::QPushButton;
 use qt_widgets::QToolButton;
 
-use qt_gui::QStandardItemModel;
-
 use qt_core::QBox;
 use qt_core::QFlags;
 use qt_core::QPtr;

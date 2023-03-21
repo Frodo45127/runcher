@@ -29,7 +29,6 @@ use qt_core::AlignmentFlag;
 use qt_core::CaseSensitivity;
 use qt_core::CheckState;
 use qt_core::QBox;
-use qt_core::QFlags;
 use qt_core::QModelIndex;
 use qt_core::QObject;
 use qt_core::QPtr;
@@ -335,7 +334,6 @@ impl ModListUI {
 
         html_item_delegate_safe(&self.tree_view().static_upcast::<QObject>().as_ptr(), 0);
     }
-
 
     pub unsafe fn category_new_dialog(&self) -> Result<Option<String>> {
 

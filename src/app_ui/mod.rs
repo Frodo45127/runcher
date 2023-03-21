@@ -68,7 +68,7 @@ use self::slots::AppUISlots;
 
 pub mod slots;
 
-const CREATE_NO_WINDOW: u32 = 0x08000000;
+#[cfg(target_os = "windows")] const CREATE_NO_WINDOW: u32 = 0x08000000;
 //const DETACHED_PROCESS: u32 = 0x00000008;
 
 //-------------------------------------------------------------------------------//
@@ -599,7 +599,7 @@ impl AppUI {
 
     pub unsafe fn launch_game(&self) -> Result<()> {
         let pack_list = (0..self.pack_list_ui().model().row_count_0a())
-            .filter_map(|index| {
+            .map(|index| {
                 let mut string = String::new();
                 let item = self.pack_list_ui().model().item_1a(index);
                 let item_path = self.pack_list_ui().model().item_2a(index, 1);
@@ -613,13 +613,7 @@ impl AppUI {
                     string.push_str(&format!("add_working_directory \"{}\";\n", path.to_string_lossy()));
                 }
                 string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
-                Some(string)
-                /*
-                if item.is_checkable() && item.check_state() == CheckState::Checked {
-                    Some(format!("mod \"{}\"", item.text().to_std_string()))
-                } else {
-                    None
-                }*/
+                string
             })
             .collect::<Vec<_>>()
             .join("\n");
@@ -689,7 +683,7 @@ impl AppUI {
 
                 Ok(())
             }
-            None => return Err(anyhow!("No profile with said name found."))
+            None => Err(anyhow!("No profile with said name found."))
         }
     }
 
@@ -714,7 +708,7 @@ impl AppUI {
 
             self.actions_ui().profile_model().clear();
             for profile in self.game_profiles().read().unwrap().keys() {
-                self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(&profile));
+                self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
             }
 
             return profile.save(&self.game_selected().read().unwrap(), &profile_name);
@@ -821,7 +815,6 @@ impl AppUI {
         let app = QCoreApplication::instance();
         let qapp = app.static_downcast::<QApplication>();
         let use_dark_theme = setting_bool("dark_mode");
-        dbg!(use_dark_theme);
 
         // Initialize the globals before applying anything.
         let light_style_sheet = ref_from_atomic(&*LIGHT_STYLE_SHEET);

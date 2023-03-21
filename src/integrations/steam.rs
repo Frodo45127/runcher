@@ -9,7 +9,7 @@
 //---------------------------------------------------------------------------//
 
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use regex::Regex;
 use steam_workshop_api::client::Workshop;
 use steam_workshop_api::interfaces::{*, i_steam_remote_storage::*, i_steam_user::*};
@@ -113,7 +113,7 @@ pub fn parse_to_html(string: &str) -> String {
 
         // Line jumps.
         .replace("\r\n", "<br/>")
-        .replace("\n", "<br/>"));
+        .replace('\n', "<br/>"));
     new_string.push_str("</html>");
 
     // Replace urls before the rest, as they require regexes.
