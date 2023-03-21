@@ -548,7 +548,7 @@ impl AppUI {
                             }
 
                             if let Err(error) = populate_mods(mods.mods_mut(), &steam_ids) {
-                                show_dialog(self.main_window(), error, false);
+                                //show_dialog(self.main_window(), error, false);
                             }
                         }
                     }
