@@ -31,7 +31,7 @@ use cpp_core::CppBox;
 use anyhow::{anyhow, Result};
 use getset::Getters;
 
-use std::env::current_exe;
+use std::env::{args, current_exe};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};
@@ -325,11 +325,28 @@ impl AppUI {
         app_ui.main_window().show();
         log_to_status_bar(app_ui.main_window().status_bar(), "Initializing, please wait...");
 
-        // Set the game selected based on the default game.
+        // Set the game selected based on the default game. If we passed a game through an argument, use that one.
         //
         // Note: set_checked does *NOT* trigger the slot for changing game selected. We need to trigger that one manually.
-        // TODO: Allow to provide said game through an argument.
-        let default_game = setting_string("default_game");
+        let mut default_game = setting_string("default_game");
+        let args = args().collect::<Vec<String>>();
+        if args.len() == 2 {
+            match &*args[1] {
+                KEY_WARHAMMER_3 |
+                KEY_TROY |
+                KEY_THREE_KINGDOMS |
+                KEY_WARHAMMER_2 |
+                KEY_WARHAMMER |
+                KEY_THRONES_OF_BRITANNIA |
+                KEY_ATTILA |
+                KEY_ROME_2 |
+                KEY_SHOGUN_2 |
+                KEY_NAPOLEON |
+                KEY_EMPIRE => default_game = args[1].to_string(),
+                _ => {},
+            }
+        }
+
         match &*default_game {
             KEY_WARHAMMER_3 => app_ui.game_selected_warhammer_3().set_checked(true),
             KEY_TROY => app_ui.game_selected_troy().set_checked(true),
