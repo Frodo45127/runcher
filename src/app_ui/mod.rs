@@ -37,7 +37,7 @@ use std::fs::File;
 use std::io::{BufWriter, Read, Write};
 #[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
-use std::process::{Command, exit};
+use std::process::{Command as SystemCommand, exit};
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
@@ -52,6 +52,8 @@ use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::actions_ui::ActionsUI;
+use crate::CENTRAL_COMMAND;
+use crate::communications::*;
 use crate::DARK_PALETTE;
 use crate::ffi::launcher_window_safe;
 use crate::integrations::{GameConfig, Mod, Profile, steam::*};
@@ -324,6 +326,11 @@ impl AppUI {
         // Show the Main Window.
         app_ui.main_window().show();
         log_to_status_bar(app_ui.main_window().status_bar(), "Initializing, please wait...");
+
+        // If we have it enabled in the prefs, check if there are updates.
+        if setting_bool("check_updates_on_start") {
+            app_ui.check_updates(false);
+        }
 
         // Set the game selected based on the default game. If we passed a game through an argument, use that one.
         //
@@ -629,7 +636,7 @@ impl AppUI {
         let exec_game = game.executable_path(&game_path).unwrap();
 
         if cfg!(target_os = "windows") {
-            let mut command = Command::new("cmd");
+            let mut command = SystemCommand::new("cmd");
             command.arg("/C");
             command.arg("start");
             command.arg("/d");
@@ -725,6 +732,8 @@ impl AppUI {
     ///
     /// If the `use_dialog` is false, we make the checks in the background, and pop up a dialog only in case there is an update available.
     pub unsafe fn check_updates(&self, use_dialog: bool) {
+        let receiver = CENTRAL_COMMAND.send_network(Command::CheckUpdates);
+
         let dialog = QMessageBox::from_icon2_q_string_q_flags_standard_button_q_widget(
             q_message_box::Icon::Information,
             &qtr("update_checker"),
@@ -742,42 +751,52 @@ impl AppUI {
             dialog.show();
         }
 
-        let message = match check_updates_main_program() {
-            Ok(APIResponse::NewStableUpdate(last_release)) => {
-                update_button.set_enabled(true);
-                qtre("api_response_success_new_stable_update", &[&last_release])
+        let response = CENTRAL_COMMAND.recv_try(&receiver);
+        let message = match response {
+            Response::APIResponse(response) => {
+                match response {
+                    APIResponse::NewStableUpdate(last_release) => {
+                        update_button.set_enabled(true);
+                        qtre("api_response_success_new_stable_update", &[&last_release])
+                    }
+                    APIResponse::NewBetaUpdate(last_release) => {
+                        update_button.set_enabled(true);
+                        qtre("api_response_success_new_beta_update", &[&last_release])
+                    }
+                    APIResponse::NewUpdateHotfix(last_release) => {
+                        update_button.set_enabled(true);
+                        qtre("api_response_success_new_update_hotfix", &[&last_release])
+                    }
+                    APIResponse::NoUpdate => {
+                        if !use_dialog { return; }
+                        qtr("api_response_success_no_update")
+                    }
+                    APIResponse::UnknownVersion => {
+                        if !use_dialog { return; }
+                        qtr("api_response_success_unknown_version")
+                    }
+                }
             }
-            Ok(APIResponse::NewBetaUpdate(last_release)) => {
-                update_button.set_enabled(true);
-                qtre("api_response_success_new_beta_update", &[&last_release])
-            }
-            Ok(APIResponse::NewUpdateHotfix(last_release)) => {
-                update_button.set_enabled(true);
-                qtre("api_response_success_new_update_hotfix", &[&last_release])
-            }
-            Ok(APIResponse::NoUpdate) => {
-                if !use_dialog { return; }
-                qtr("api_response_success_no_update")
-            }
-            Ok(APIResponse::UnknownVersion) => {
-                if !use_dialog { return; }
-                qtr("api_response_success_unknown_version")
-            }
-            Err(error) => {
+
+            Response::Error(error) => {
                 if !use_dialog { return; }
                 qtre("api_response_error", &[&error.to_string()])
             }
+            _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
         };
 
         dialog.set_text(&message);
         if dialog.exec() == 0 {
+            let receiver = CENTRAL_COMMAND.send_background(Command::UpdateMainProgram);
+
             dialog.show();
             dialog.set_text(&qtr("update_in_prog"));
             update_button.set_enabled(false);
             close_button.set_enabled(false);
 
-            match update_main_program() {
-                Ok(_) => {
+            let response = CENTRAL_COMMAND.recv_try(&receiver);
+            match response {
+                Response::Success => {
                     let restart_button = dialog.add_button_q_string_button_role(&qtr("restart_button"), q_message_box::ButtonRole::ApplyRole);
 
                     let changelog_path = PROGRAM_PATH.join(CHANGELOG_FILE);
@@ -787,17 +806,22 @@ impl AppUI {
 
                     // This closes the program and triggers a restart.
                     if dialog.exec() == 1 {
+
+                        // Make sure we close both threads and the window. In windows the main window doesn't get closed for some reason.
+                        CENTRAL_COMMAND.send_background(Command::Exit);
+                        CENTRAL_COMMAND.send_network(Command::Exit);
                         QApplication::close_all_windows();
 
-                        let app_exe_path = current_exe().unwrap();
-                        Command::new(app_exe_path).spawn().unwrap();
+                        let rpfm_exe_path = current_exe().unwrap();
+                        SystemCommand::new(rpfm_exe_path).spawn().unwrap();
                         exit(10);
                     }
                 },
-                Err(error) => {
+                Response::Error(error) => {
                     dialog.set_text(&QString::from_std_str(error.to_string()));
                     close_button.set_enabled(true);
                 }
+                _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
             }
         }
     }

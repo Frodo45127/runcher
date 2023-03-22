@@ -65,3 +65,4 @@ open_in_steam = Open in Steam Workshop
 language = Language
 dark_mode = Dark Mode
 reload = Reload Mod List
+check_updates_on_start = Check Updates on Start

@@ -1,11 +1,11 @@
 //---------------------------------------------------------------------------//
 // Copyright (c) 2017-2023 Ismael Gutiérrez González. All rights reserved.
 //
-// This file is part of the Rusted PackFile Manager (RPFM) project,
-// which can be found here&: https://github.com/Frodo45127/rpfm.
+// This file is part of the Rusted Launcher (Runcher) project,
+// which can be found here&: https://github.com/Frodo45127/runcher.
 //
 // This file is licensed under the MIT license, which can be found here:
-// https://github.com/Frodo45127/rpfm/blob/master/LICENSE.
+// https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
 // Disabled `Clippy` linters, with the reasons why they were disabled.
@@ -37,6 +37,7 @@ use lazy_static::lazy_static;
 
 use std::path::PathBuf;
 use std::sync::{Arc, atomic::AtomicPtr, RwLock};
+use std::thread;
 
 use rpfm_lib::games::supported_games::SupportedGames;
 use rpfm_lib::integrations::log::*;
@@ -46,13 +47,17 @@ use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::app_ui::AppUI;
+use crate::communications::*;
 use crate::settings_ui::*;
 
 mod actions_ui;
 mod app_ui;
+mod background_thread;
+mod communications;
 mod ffi;
 mod integrations;
 mod mod_list_ui;
+mod network_thread;
 mod pack_list_ui;
 mod settings_ui;
 mod updater;
@@ -115,6 +120,9 @@ lazy_static! {
 
         atomic_from_cpp_box(palette)
     }};
+
+    /// Global variable to hold the sender/receivers used to comunicate between threads.
+    static ref CENTRAL_COMMAND: CentralCommand<Response> = CentralCommand::default();
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -138,21 +146,41 @@ fn main() {
         info!("Sentry Logging support disabled. Starting...");
     }
 
+    // Create the background and network threads, where all the magic will happen.
+    info!("Initializing threads...");
+    let bac_handle = thread::spawn(|| { background_thread::background_loop(); });
+    let net_handle = thread::spawn(|| { network_thread::network_loop(); });
+
     // Create the application and start the loop.
     QApplication::init(|_app| {
         match unsafe { AppUI::new() } {
             Ok(app_ui) => {
 
                 // If we closed the window BEFORE executing, exit the app.
-                if unsafe { app_ui.main_window().is_visible() } {
+                let exit_code = if unsafe { app_ui.main_window().is_visible() } {
                     unsafe { QApplication::exec() }
-                } else {
-                    0
-                }
+                } else { 0 };
+
+                // Close and rejoin the threads on exit, so we don't leave a rogue thread running.
+                CENTRAL_COMMAND.send_background(Command::Exit);
+                CENTRAL_COMMAND.send_network(Command::Exit);
+
+                let _ = bac_handle.join();
+                let _ = net_handle.join();
+
+                exit_code
             }
             Err(error) => {
                 error!("{}", error);
-                1
+
+                // Close and rejoin the threads on exit, so we don't leave a rogue thread running.
+                CENTRAL_COMMAND.send_background(Command::Exit);
+                CENTRAL_COMMAND.send_network(Command::Exit);
+
+                let _ = bac_handle.join();
+                let _ = net_handle.join();
+
+                55
             }
         }
     })
