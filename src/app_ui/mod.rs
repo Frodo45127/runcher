@@ -157,6 +157,7 @@ impl AppUI {
         let central_layout = create_grid_layout(widget.static_upcast());
         main_window.set_central_widget(&widget);
         main_window.resize_2a(1300, 800);
+        main_window.set_window_title(&QString::from_std_str("The Runcher"));
         QApplication::set_window_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/runcher.png", ASSETS_PATH.to_string_lossy()))));
 
         let splitter = QSplitter::from_q_widget(&widget);
@@ -164,8 +165,8 @@ impl AppUI {
         let right_widget = QWidget::new_1a(&splitter);
         let _ = create_grid_layout(left_widget.static_upcast());
         let _ = create_grid_layout(right_widget.static_upcast());
-        splitter.set_stretch_factor(10, 0);
-        right_widget.set_maximum_width(400);
+        splitter.set_stretch_factor(0, 1);
+        right_widget.set_minimum_width(400);
 
         central_layout.add_widget(&splitter);
 
