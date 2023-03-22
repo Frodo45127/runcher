@@ -2070,6 +2070,7 @@ dependencies = [
  "qt_gui",
  "qt_ui_tools",
  "qt_widgets",
+ "rayon",
  "regex",
  "reqwest",
  "rpfm_extensions 4.0.9 (registry+https://github.com/rust-lang/crates.io-index)",

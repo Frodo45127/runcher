@@ -137,7 +137,7 @@ impl PackListUI {
                 item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(combined_name)), 20);
 
                 let item_path = QStandardItem::from_q_string(&QString::from_std_str(&modd.paths()[0].to_string_lossy()));
-                let load_order = QStandardItem::from_q_string(&QString::from_std_str(index.to_string()));
+                let load_order = QStandardItem::new();
                 let location = QStandardItem::from_q_string(&QString::from_std_str(
                     if modd.paths()[0].starts_with(&game_data_folder) {
                         "Data".to_string()
@@ -151,6 +151,7 @@ impl PackListUI {
                     None => QStandardItem::new(),
                 };
 
+                load_order.set_data_2a(&QVariant::from_int(index as i32), 2);
 
                 item_name.set_editable(false);
                 item_path.set_editable(false);

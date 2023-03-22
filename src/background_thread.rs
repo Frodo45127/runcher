@@ -10,6 +10,7 @@
 
 use base64::{Engine as _, engine::general_purpose};
 use crossbeam::channel::Sender;
+use rayon::prelude::*;
 use zstd::stream::*;
 
 use std::path::PathBuf;
@@ -54,7 +55,8 @@ pub fn background_loop() {
 
                 // Pre-sort the mods.
                 let mut mods = game_config.mods()
-                    .values()
+                    .par_iter()
+                    .map(|(_, modd)| modd)
                     .filter(|modd| *modd.enabled() && !modd.paths().is_empty())
                     .map(ShareableMod::from)
                     .collect::<Vec<_>>();
