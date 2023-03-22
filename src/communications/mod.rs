@@ -65,7 +65,7 @@ pub enum Response {
     String(String),
     APIResponse(APIResponse),
     GameConfig(GameConfig),
-    VecMods(Vec<Mod>),
+    VecShareableMods(Vec<ShareableMod>),
 }
 
 //-------------------------------------------------------------------------------//

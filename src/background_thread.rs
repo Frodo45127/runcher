@@ -20,7 +20,7 @@ use rpfm_ui_common::settings::error_path;
 
 use crate::CENTRAL_COMMAND;
 use crate::communications::*;
-use crate::integrations::Mod;
+use crate::integrations::*;
 
 /// This is the background loop that's going to be executed in a parallel thread to the UI. No UI or "Unsafe" stuff here.
 ///
@@ -56,9 +56,10 @@ pub fn background_loop() {
                 let mut mods = game_config.mods()
                     .values()
                     .filter(|modd| *modd.enabled() && !modd.paths().is_empty())
+                    .map(ShareableMod::from)
                     .collect::<Vec<_>>();
 
-                mods.sort_by_key(|a| a.id());
+                mods.sort_by_key(|a| a.id().clone());
 
                 let mods = serde_json::to_string(&mods).unwrap();
                 let mut compressed = vec![];
@@ -72,9 +73,9 @@ pub fn background_loop() {
                 let mut decompressed = vec![];
 
                 copy_decode(debased.as_slice(), &mut decompressed).unwrap();
-                let mods: Vec<Mod> = serde_json::from_slice(&decompressed).unwrap();
+                let mods: Vec<ShareableMod> = serde_json::from_slice(&decompressed).unwrap();
 
-                CentralCommand::send_back(&sender, Response::VecMods(mods));
+                CentralCommand::send_back(&sender, Response::VecShareableMods(mods));
             }
 
             Command::CheckUpdates => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),

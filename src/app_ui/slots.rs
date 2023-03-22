@@ -15,6 +15,8 @@ use qt_gui::SlotOfQStandardItem;
 use qt_core::QBox;
 use qt_core::SlotNoArgs;
 
+use sha256::try_digest;
+
 use std::cmp::Reverse;
 use std::sync::Arc;
 
@@ -209,6 +211,8 @@ impl AppUISlots {
         let copy_load_order = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 if let Some(ref game_config) = *view.game_config().read().unwrap() {
+                    view.toggle_main_window(false);
+
                     let receiver = CENTRAL_COMMAND.send_background(Command::GetStringFromLoadOrder(game_config.clone()));
                     let response = CENTRAL_COMMAND.recv_try(&receiver);
                     match response {
@@ -219,6 +223,8 @@ impl AppUISlots {
                         }
                         _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
                     }
+
+                    view.toggle_main_window(true);
                 }
             }
         ));
@@ -227,24 +233,44 @@ impl AppUISlots {
             view => move || {
                 match view.load_order_string_dialog(None) {
                     Ok(string) => if let Some(string) = string {
+                        view.toggle_main_window(false);
+
                         let receiver = CENTRAL_COMMAND.send_background(Command::GetLoadOrderFromString(string));
                         let response = CENTRAL_COMMAND.recv_try(&receiver);
                         match response {
-                            Response::VecMods(response) => {
+                            Response::VecShareableMods(response) => {
                                 if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
                                     let mut missing = vec![];
+                                    let mut wrong_hash = vec![];
                                     for modd in &response {
                                         match game_config.mods_mut().get_mut(modd.id()) {
-                                            Some(modd) => { modd.set_enabled(true); },
+                                            Some(modd_local) => {
+                                                let current_hash = try_digest(modd_local.paths()[0].as_path()).unwrap();
+                                                if &current_hash != modd.hash() {
+                                                    wrong_hash.push(modd.clone());
+                                                }
+
+                                                modd_local.set_enabled(true);
+                                            },
                                             None => missing.push(modd.clone()),
                                         }
                                     }
 
                                     // Report any missing mods.
-                                    if !missing.is_empty() {
-                                        let message = format!("<p>The following mods have not been found in the mod list:<p> <ul>{}</ul>",
-                                            missing.iter().map(|modd| format!("<li>{}</li>", modd.id())).collect::<Vec<_>>().join("\n")
-                                        );
+                                    if !missing.is_empty() || !wrong_hash.is_empty() {
+                                        let mut message = String::new();
+
+                                        if !missing.is_empty() {
+                                            message.push_str(&format!("<p>The following mods have not been found in the mod list:<p> <ul>{}</ul>",
+                                                missing.iter().map(|modd| format!("<li>{}</li>", modd.id())).collect::<Vec<_>>().join("\n")
+                                            ));
+                                        }
+
+                                        if !wrong_hash.is_empty() {
+                                            message.push_str(&format!("<p>The following mods have been found, but their packs are different from the ones expected:<p> <ul>{}</ul>",
+                                                wrong_hash.iter().map(|modd| format!("<li>{}</li>", modd.id())).collect::<Vec<_>>().join("\n")
+                                            ));
+                                        }
                                         show_dialog(view.main_window(), message, false);
                                     }
 
@@ -260,6 +286,8 @@ impl AppUISlots {
                             }
                             _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
                         }
+
+                        view.toggle_main_window(true);
                     }
                     Err(error) => show_dialog(view.main_window(), error, false),
                 }

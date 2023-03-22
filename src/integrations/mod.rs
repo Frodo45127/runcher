@@ -12,6 +12,7 @@ use anyhow::Result;
 use getset::*;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
+use sha256::try_digest;
 
 use std::collections::HashMap;
 use std::fs::{DirBuilder, File};
@@ -70,6 +71,15 @@ pub struct Mod {
 
     // Time stamp of the last time we checked. So we don't spam steam.
     last_check: u64,
+}
+
+#[derive(Clone, Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
+#[getset(get = "pub", get_mut = "pub", set = "pub")]
+pub struct ShareableMod {
+    name: String,
+    id: String,
+    steam_id: Option<String>,
+    hash: String
 }
 
 #[derive(Clone, Debug, Default, Getters, Setters, Serialize, Deserialize)]
@@ -165,5 +175,18 @@ impl Profile {
         let mut file = BufWriter::new(File::create(path)?);
         file.write_all(to_string_pretty(&self)?.as_bytes())?;
         Ok(())
+    }
+}
+
+impl From<&Mod> for ShareableMod {
+
+    fn from(value: &Mod) -> Self {
+        let hash = try_digest(value.paths()[0].as_path()).unwrap();
+        Self {
+            name: value.name().to_owned(),
+            id: value.id().to_owned(),
+            steam_id: value.steam_id().to_owned(),
+            hash,
+        }
     }
 }
