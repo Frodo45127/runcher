@@ -907,10 +907,10 @@ impl AppUI {
         button_box.button(StandardButton::Ok).released().connect(dialog.slot_accept());
 
         if let Some(ref string) = string {
-            info_label.set_text(&qtr("load_order_string_info_paste"));
+            info_label.set_text(&qtr("load_order_string_info_copy"));
             string_text_edit.set_text(&QString::from_std_str(string));
         } else {
-            info_label.set_text(&qtr("load_order_string_info_copy"));
+            info_label.set_text(&qtr("load_order_string_info_paste"));
         }
 
         // If we're in "receive" mode, add a cancel button.
