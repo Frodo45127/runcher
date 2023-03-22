@@ -18,6 +18,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use rpfm_lib::integrations::log::info;
 
+use crate::integrations::*;
 use crate::updater::APIResponse;
 
 /// This const is the standard message in case of message communication error. If this happens, crash the program.
@@ -50,6 +51,8 @@ pub enum Command {
     Exit,
     CheckUpdates,
     UpdateMainProgram,
+    GetStringFromLoadOrder(GameConfig),
+    GetLoadOrderFromString(String),
 }
 
 /// This enum defines the responses (messages) you can send to the to the UI thread as result of a command.
@@ -59,7 +62,10 @@ pub enum Command {
 pub enum Response {
     Success,
     Error(Error),
-    APIResponse(APIResponse)
+    String(String),
+    APIResponse(APIResponse),
+    GameConfig(GameConfig),
+    VecMods(Vec<Mod>),
 }
 
 //-------------------------------------------------------------------------------//

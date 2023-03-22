@@ -8,15 +8,19 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use base64::{Engine as _, engine::general_purpose};
 use crossbeam::channel::Sender;
+use zstd::stream::*;
 
 use std::path::PathBuf;
 
 use rpfm_lib::integrations::log::*;
+
 use rpfm_ui_common::settings::error_path;
 
 use crate::CENTRAL_COMMAND;
 use crate::communications::*;
+use crate::integrations::Mod;
 
 /// This is the background loop that's going to be executed in a parallel thread to the UI. No UI or "Unsafe" stuff here.
 ///
@@ -44,6 +48,33 @@ pub fn background_loop() {
                     Ok(_) => CentralCommand::send_back(&sender, Response::Success),
                     Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
                 }
+            }
+
+            Command::GetStringFromLoadOrder(game_config) => {
+
+                // Pre-sort the mods.
+                let mut mods = game_config.mods()
+                    .values()
+                    .filter(|modd| *modd.enabled() && !modd.paths().is_empty())
+                    .collect::<Vec<_>>();
+
+                mods.sort_by_key(|a| a.id());
+
+                let mods = serde_json::to_string(&mods).unwrap();
+                let mut compressed = vec![];
+                copy_encode(mods.as_bytes(), &mut compressed, 3).unwrap();
+
+                let encoded: String = general_purpose::STANDARD_NO_PAD.encode(compressed);
+                CentralCommand::send_back(&sender, Response::String(encoded));
+            }
+            Command::GetLoadOrderFromString(string) => {
+                let debased = general_purpose::STANDARD_NO_PAD.decode(string.as_bytes()).unwrap();
+                let mut decompressed = vec![];
+
+                copy_decode(debased.as_slice(), &mut decompressed).unwrap();
+                let mods: Vec<Mod> = serde_json::from_slice(&decompressed).unwrap();
+
+                CentralCommand::send_back(&sender, Response::VecMods(mods));
             }
 
             Command::CheckUpdates => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),

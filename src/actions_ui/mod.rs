@@ -49,6 +49,8 @@ pub struct ActionsUI {
     open_runcher_config_folder: QPtr<QAction>,
     open_runcher_error_folder: QPtr<QAction>,
 
+    copy_load_order_button: QPtr<QToolButton>,
+    paste_load_order_button: QPtr<QToolButton>,
     reload_button: QPtr<QToolButton>,
 
     profile_load_button: QPtr<QToolButton>,
@@ -87,7 +89,11 @@ impl ActionsUI {
         folders_button.set_menu(&folders_menu);
         folders_button.set_popup_mode(ToolButtonPopupMode::MenuButtonPopup);
 
+        let copy_load_order_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "copy_load_order_button")?;
+        let paste_load_order_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "paste_load_order_button")?;
         let reload_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "reload_button")?;
+        copy_load_order_button.set_tool_tip(&qtr("copy_load_order"));
+        paste_load_order_button.set_tool_tip(&qtr("paste_load_order"));
         reload_button.set_tool_tip(&qtr("reload"));
 
         let profile_load_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "profile_load_button")?;
@@ -112,6 +118,8 @@ impl ActionsUI {
             open_runcher_config_folder,
             open_runcher_error_folder,
 
+            copy_load_order_button,
+            paste_load_order_button,
             reload_button,
 
             profile_load_button,

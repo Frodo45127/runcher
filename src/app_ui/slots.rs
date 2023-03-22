@@ -48,6 +48,8 @@ pub struct AppUISlots {
     about_runcher: QBox<SlotNoArgs>,
     check_updates: QBox<SlotNoArgs>,
 
+    copy_load_order: QBox<SlotNoArgs>,
+    paste_load_order: QBox<SlotNoArgs>,
     reload: QBox<SlotNoArgs>,
     load_profile: QBox<SlotNoArgs>,
     save_profile: QBox<SlotNoArgs>,
@@ -204,6 +206,66 @@ impl AppUISlots {
             }
         ));
 
+        let copy_load_order = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                if let Some(ref game_config) = *view.game_config().read().unwrap() {
+                    let receiver = CENTRAL_COMMAND.send_background(Command::GetStringFromLoadOrder(game_config.clone()));
+                    let response = CENTRAL_COMMAND.recv_try(&receiver);
+                    match response {
+                        Response::String(response) => {
+                            if let Err(error) = view.load_order_string_dialog(Some(response)) {
+                                show_dialog(view.main_window(), error, false)
+                            }
+                        }
+                        _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
+                    }
+                }
+            }
+        ));
+
+        let paste_load_order = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                match view.load_order_string_dialog(None) {
+                    Ok(string) => if let Some(string) = string {
+                        let receiver = CENTRAL_COMMAND.send_background(Command::GetLoadOrderFromString(string));
+                        let response = CENTRAL_COMMAND.recv_try(&receiver);
+                        match response {
+                            Response::VecMods(response) => {
+                                if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
+                                    let mut missing = vec![];
+                                    for modd in &response {
+                                        match game_config.mods_mut().get_mut(modd.id()) {
+                                            Some(modd) => { modd.set_enabled(true); },
+                                            None => missing.push(modd.clone()),
+                                        }
+                                    }
+
+                                    // Report any missing mods.
+                                    if !missing.is_empty() {
+                                        let message = format!("<p>The following mods have not been found in the mod list:<p> <ul>{}</ul>",
+                                            missing.iter().map(|modd| format!("<li>{}</li>", modd.id())).collect::<Vec<_>>().join("\n")
+                                        );
+                                        show_dialog(view.main_window(), message, false);
+                                    }
+
+                                    let game = view.game_selected().read().unwrap();
+                                    let game_path = setting_path(game.game_key_name());
+                                    view.mod_list_ui().load(game_config).unwrap();
+                                    view.pack_list_ui().load(game_config, &game, &game_path).unwrap();
+
+                                    if let Err(error) = game_config.save(&game) {
+                                        show_dialog(view.main_window(), error, false);
+                                    }
+                                }
+                            }
+                            _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
+                        }
+                    }
+                    Err(error) => show_dialog(view.main_window(), error, false),
+                }
+            }
+        ));
+
         let reload = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
 
@@ -340,6 +402,8 @@ impl AppUISlots {
             about_runcher,
             check_updates,
 
+            copy_load_order,
+            paste_load_order,
             reload,
 
             load_profile,

@@ -11,8 +11,11 @@
 use qt_widgets::QAction;
 use qt_widgets::QActionGroup;
 use qt_widgets::QApplication;
+use qt_widgets::{QDialog, QDialogButtonBox, q_dialog_button_box::StandardButton};
+use qt_widgets::QLabel;
 use qt_widgets::QMainWindow;
 use qt_widgets::QSplitter;
+use qt_widgets::QTextEdit;
 use qt_widgets::{QMessageBox, q_message_box};
 use qt_widgets::QWidget;
 
@@ -72,6 +75,9 @@ pub mod slots;
 
 #[cfg(target_os = "windows")] const CREATE_NO_WINDOW: u32 = 0x08000000;
 //const DETACHED_PROCESS: u32 = 0x00000008;
+
+const LOAD_ORDER_STRING_VIEW_DEBUG: &str = "ui_templates/load_order_string_dialog.ui";
+const LOAD_ORDER_STRING_VIEW_RELEASE: &str = "ui/load_order_string_dialog.ui";
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -382,6 +388,8 @@ impl AppUI {
         self.actions_ui().open_game_content_folder().triggered().connect(slots.open_game_content_folder());
         self.actions_ui().open_runcher_config_folder().triggered().connect(slots.open_runcher_config_folder());
         self.actions_ui().open_runcher_error_folder().triggered().connect(slots.open_runcher_error_folder());
+        self.actions_ui().copy_load_order_button().released().connect(slots.copy_load_order());
+        self.actions_ui().paste_load_order_button().released().connect(slots.paste_load_order());
         self.actions_ui().reload_button().released().connect(slots.reload());
         self.actions_ui().profile_load_button().released().connect(slots.load_profile());
         self.actions_ui().profile_save_button().released().connect(slots.save_profile());
@@ -478,12 +486,12 @@ impl AppUI {
                 }
 
                 // If we don't have a path in the settings for the game, disable the play button.
-                let game_path = setting_string(game.game_key_name());
-                self.actions_ui().play_button().set_enabled(!game_path.is_empty());
+                let game_path_str = setting_string(game.game_key_name());
+                self.actions_ui().play_button().set_enabled(!game_path_str.is_empty());
 
                 // If we have a path, load all the mods to the UI.
-                if !game_path.is_empty() {
-                    let game_path = PathBuf::from(game_path);
+                let game_path = PathBuf::from(&game_path_str);
+                if !game_path_str.is_empty() {
                     let data_paths = game.data_packs_paths(&game_path);
                     let content_paths = game.content_packs_paths(&game_path);
 
@@ -560,12 +568,12 @@ impl AppUI {
                             }
                         }
                     }
+                }
 
-                    let mods = self.game_config().read().unwrap();
-                    if let Some(ref mods) = *mods {
-                        self.mod_list_ui().load(mods)?;
-                        self.pack_list_ui().load(mods, &self.game_selected().read().unwrap(), &game_path)?;
-                    }
+                let mods = self.game_config().read().unwrap();
+                if let Some(ref mods) = *mods {
+                    self.mod_list_ui().load(mods)?;
+                    self.pack_list_ui().load(mods, &self.game_selected().read().unwrap(), &game_path)?;
                 }
 
                 Ok(())
@@ -886,4 +894,34 @@ impl AppUI {
         }
     }
 
+    pub unsafe fn load_order_string_dialog(&self, string: Option<String>) -> Result<Option<String>> {
+
+        // Load the UI Template.
+        let template_path = if cfg!(debug_assertions) { LOAD_ORDER_STRING_VIEW_DEBUG } else { LOAD_ORDER_STRING_VIEW_RELEASE };
+        let main_widget = load_template(self.main_window(), template_path)?;
+        let dialog = main_widget.static_downcast::<QDialog>();
+
+        let info_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "string_label")?;
+        let string_text_edit: QPtr<QTextEdit> = find_widget(&main_widget.static_upcast(), "string_text_edit")?;
+        let button_box: QPtr<QDialogButtonBox> = find_widget(&main_widget.static_upcast(), "button_box")?;
+        button_box.button(StandardButton::Ok).released().connect(dialog.slot_accept());
+
+        if let Some(ref string) = string {
+            info_label.set_text(&qtr("load_order_string_info_paste"));
+            string_text_edit.set_text(&QString::from_std_str(string));
+        } else {
+            info_label.set_text(&qtr("load_order_string_info_copy"));
+        }
+
+        // If we're in "receive" mode, add a cancel button.
+        if string.is_none() {
+            button_box.add_button_standard_button(StandardButton::Cancel);
+        }
+
+        if dialog.exec() == 1 && string.is_none() {
+            Ok(Some(string_text_edit.to_plain_text().to_std_string()))
+        } else {
+            Ok(None)
+        }
+    }
 }

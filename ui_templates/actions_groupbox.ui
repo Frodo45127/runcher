@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>558</width>
-    <height>34</height>
+    <height>46</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -29,26 +29,13 @@
    <property name="spacing">
     <number>2</number>
    </property>
-   <item row="0" column="0">
-    <widget class="KComboBox" name="profile_combobox">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="editable">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="5">
-    <widget class="QToolButton" name="settings_button">
+   <item row="0" column="8">
+    <widget class="QToolButton" name="play_button">
      <property name="text">
       <string/>
      </property>
      <property name="icon">
-      <iconset theme="settings-configure">
+      <iconset theme="media-playback-start">
        <normaloff>.</normaloff>.</iconset>
      </property>
      <property name="iconSize">
@@ -76,6 +63,23 @@
      </property>
     </widget>
    </item>
+   <item row="0" column="5">
+    <widget class="QToolButton" name="folders_button">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="folder">
+       <normaloff>.</normaloff>.</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
+     </property>
+    </widget>
+   </item>
    <item row="0" column="2">
     <widget class="QToolButton" name="profile_save_button">
      <property name="text">
@@ -93,13 +97,20 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="3">
-    <widget class="QToolButton" name="folders_button">
+   <item row="0" column="4">
+    <widget class="QToolButton" name="paste_load_order_button">
+     <property name="text">
+      <string>...</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="7">
+    <widget class="QToolButton" name="settings_button">
      <property name="text">
       <string/>
      </property>
      <property name="icon">
-      <iconset theme="folder">
+      <iconset theme="settings-configure">
        <normaloff>.</normaloff>.</iconset>
      </property>
      <property name="iconSize">
@@ -107,27 +118,29 @@
        <width>22</width>
        <height>22</height>
       </size>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="KComboBox" name="profile_combobox">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>200</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="editable">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
    <item row="0" column="6">
-    <widget class="QToolButton" name="play_button">
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset theme="media-playback-start">
-       <normaloff>.</normaloff>.</iconset>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>22</width>
-       <height>22</height>
-      </size>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="4">
     <widget class="QToolButton" name="reload_button">
      <property name="text">
       <string/>
@@ -135,6 +148,19 @@
      <property name="icon">
       <iconset theme="view-refresh-symbolic">
        <normaloff>.</normaloff>.</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="3">
+    <widget class="QToolButton" name="copy_load_order_button">
+     <property name="text">
+      <string>...</string>
      </property>
      <property name="iconSize">
       <size>

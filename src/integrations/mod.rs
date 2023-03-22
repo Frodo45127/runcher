@@ -29,14 +29,14 @@ pub mod steam;
 //                              Enums & Structs
 //-------------------------------------------------------------------------------//
 
-#[derive(Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
 #[getset(get = "pub", get_mut = "pub", set = "pub")]
 pub struct GameConfig {
     game_key: String,
     mods: HashMap<String, Mod>,
 }
 
-#[derive(Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
 #[getset(get = "pub", get_mut = "pub", set = "pub")]
 pub struct Mod {
 
