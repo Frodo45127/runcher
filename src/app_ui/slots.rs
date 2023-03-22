@@ -262,13 +262,19 @@ impl AppUISlots {
 
                                         if !missing.is_empty() {
                                             message.push_str(&format!("<p>The following mods have not been found in the mod list:<p> <ul>{}</ul>",
-                                                missing.iter().map(|modd| format!("<li>{}</li>", modd.id())).collect::<Vec<_>>().join("\n")
+                                                missing.iter().map(|modd| match modd.steam_id() {
+                                                    Some(steam_id) => format!("<li>{}: <a src=\"https://steamcommunity.com/sharedfiles/filedetails/?id={}\">{}</a></li>", modd.id(), steam_id, modd.name()),
+                                                    None => format!("<li>{}</li>", modd.id())
+                                                }).collect::<Vec<_>>().join("\n")
                                             ));
                                         }
 
                                         if !wrong_hash.is_empty() {
                                             message.push_str(&format!("<p>The following mods have been found, but their packs are different from the ones expected:<p> <ul>{}</ul>",
-                                                wrong_hash.iter().map(|modd| format!("<li>{}</li>", modd.id())).collect::<Vec<_>>().join("\n")
+                                                wrong_hash.iter().map(|modd| match modd.steam_id() {
+                                                    Some(steam_id) => format!("<li>{}: <a src=\"https://steamcommunity.com/sharedfiles/filedetails/?id={}\">{}</a></li>", modd.id(), steam_id, modd.name()),
+                                                    None => format!("<li>{}</li>", modd.id())
+                                                }).collect::<Vec<_>>().join("\n")
                                             ));
                                         }
                                         show_dialog(view.main_window(), message, false);
