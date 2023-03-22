@@ -71,3 +71,5 @@ copy_load_order = Copy Load Order
 paste_load_order = Paste Load Order
 load_order_string_info_paste = Paste a String you have copied in another instance of Runcher to replicate its load order.
 load_order_string_info_copy = Copy this String, and paste it in another instance of Runcher to replicate this load order.
+load_order_string_title_copy = Copy Load Order
+load_order_string_title_paste = Paste Load Order

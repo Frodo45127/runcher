@@ -907,9 +907,11 @@ impl AppUI {
         button_box.button(StandardButton::Ok).released().connect(dialog.slot_accept());
 
         if let Some(ref string) = string {
+            dialog.set_window_title(&qtr("load_order_string_title_copy"));
             info_label.set_text(&qtr("load_order_string_info_copy"));
             string_text_edit.set_text(&QString::from_std_str(string));
         } else {
+            dialog.set_window_title(&qtr("load_order_string_title_paste"));
             info_label.set_text(&qtr("load_order_string_info_paste"));
         }
 
