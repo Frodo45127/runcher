@@ -89,6 +89,7 @@ pub struct ModListUI {
     context_menu: QBox<QMenu>,
     category_new: QPtr<QAction>,
     category_delete: QPtr<QAction>,
+    category_rename: QPtr<QAction>,
     categories_send_to_menu: QBox<QMenu>,
 
     open_in_explorer: QPtr<QAction>,
@@ -127,6 +128,7 @@ impl ModListUI {
         let context_menu = QMenu::from_q_widget(&main_widget);
         let category_new = context_menu.add_action_q_string(&qtr("category_new"));
         let category_delete = context_menu.add_action_q_string(&qtr("category_delete"));
+        let category_rename = context_menu.add_action_q_string(&qtr("category_rename"));
         let categories_send_to_menu = QMenu::from_q_string(&qtr("categories_send_to_menu"));
         context_menu.add_menu_q_menu(&categories_send_to_menu);
 
@@ -145,6 +147,7 @@ impl ModListUI {
             context_menu,
             category_new,
             category_delete,
+            category_rename,
             categories_send_to_menu,
             open_in_explorer,
             open_in_steam
@@ -335,14 +338,18 @@ impl ModListUI {
         html_item_delegate_safe(&self.tree_view().static_upcast::<QObject>().as_ptr(), 0);
     }
 
-    pub unsafe fn category_new_dialog(&self) -> Result<Option<String>> {
+    pub unsafe fn category_new_dialog(&self, rename: bool) -> Result<Option<String>> {
 
         // Load the UI Template.
         let template_path = if cfg!(debug_assertions) { CATEGORY_NEW_VIEW_DEBUG } else { CATEGORY_NEW_VIEW_RELEASE };
         let main_widget = load_template(self.tree_view(), template_path)?;
 
         let dialog = main_widget.static_downcast::<QDialog>();
-        dialog.set_window_title(&qtr("category_new"));
+        if rename {
+            dialog.set_window_title(&qtr("category_rename"));
+        } else {
+            dialog.set_window_title(&qtr("category_new"));
+        }
 
         let name_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "name_line_edit")?;
         let name_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "name_label")?;

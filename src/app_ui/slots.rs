@@ -55,6 +55,7 @@ pub struct AppUISlots {
     save_profile: QBox<SlotNoArgs>,
 
     category_delete: QBox<SlotNoArgs>,
+    category_rename: QBox<SlotNoArgs>,
     mod_list_context_menu_open: QBox<SlotNoArgs>,
 }
 
@@ -290,6 +291,14 @@ impl AppUISlots {
             }
         ));
 
+        let category_rename = SlotNoArgs::new(view.main_window(), clone!(
+            view => move || {
+                if let Err(error) = view.rename_category() {
+                    show_dialog(view.main_window(), error, false);
+                }
+            }
+        ));
+
         let mod_list_context_menu_open = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 AppUI::generate_move_to_category_submenu(&view);
@@ -321,6 +330,7 @@ impl AppUISlots {
             save_profile,
 
             category_delete,
+            category_rename,
             mod_list_context_menu_open,
         }
     }

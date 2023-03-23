@@ -30,8 +30,9 @@ profile_name = Profile Name
 
 category_name = Category Name
 category_new = New Category
-category_new_placeholder = Category
+category_new_placeholder = Category Name
 category_delete = Delete Category
+category_rename = Rename Category
 categories_send_to_menu = Send to Category...
 
 title_success = Success!

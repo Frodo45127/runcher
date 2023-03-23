@@ -75,6 +75,7 @@ impl ModListUISlots {
             let all_mods = !selection.is_empty() && selection.iter().all(|index| !index.data_1a(VALUE_IS_CATEGORY).to_bool());
 
             view.category_delete.set_enabled(all_categories);
+            view.category_rename.set_enabled(all_categories && selection.len() == 1);
             view.categories_send_to_menu.set_enabled(all_mods);
 
             view.open_in_explorer.set_enabled(all_mods);
@@ -83,7 +84,7 @@ impl ModListUISlots {
 
         let category_new = SlotNoArgs::new(&view.tree_view, clone!(
             view => move || {
-            match view.category_new_dialog() {
+            match view.category_new_dialog(false) {
                 Ok(name) => if let Some(name) = name {
                     let item = QStandardItem::from_q_string(&QString::from_std_str(name));
                     item.set_data_2a(&QVariant::from_bool(true), VALUE_IS_CATEGORY);

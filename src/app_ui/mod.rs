@@ -28,6 +28,7 @@ use qt_core::QFlags;
 use qt_core::QModelIndex;
 use qt_core::QPtr;
 use qt_core::QString;
+use qt_core::QVariant;
 use qt_core::SlotNoArgs;
 
 use cpp_core::CppBox;
@@ -416,6 +417,7 @@ impl AppUI {
         self.mod_list_ui().model().item_changed().connect(slots.update_pack_list());
         self.mod_list_ui().context_menu().about_to_show().connect(slots.mod_list_context_menu_open());
         self.mod_list_ui().category_delete().triggered().connect(slots.category_delete());
+        self.mod_list_ui().category_rename().triggered().connect(slots.category_rename());
     }
 
     /// Function to toggle the main window on and off, while keeping the stupid focus from breaking.
@@ -1031,6 +1033,36 @@ impl AppUI {
             game_config.save(&game_info)?;
         }
 
+        Ok(())
+    }
+
+    pub unsafe fn rename_category(&self) -> Result<()> {
+        if let Some(new_cat_name) = self.mod_list_ui().category_new_dialog(true)? {
+            let selection = self.mod_list_selection();
+            let cat_index = &selection[0];
+            let old_cat_name = cat_index.data_1a(2).to_string().to_std_string();
+            if old_cat_name == "Unassigned" {
+                return Err(anyhow!("Dude, did you just tried to rename the Unassigned category?!! You cannot rename perfection!!!"));
+            }
+
+            let cat_item = self.mod_list_ui().model().item_from_index(cat_index);
+            cat_item.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(&new_cat_name)), 2);
+
+            if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
+                game_config.mods_mut()
+                    .values_mut()
+                    .for_each(|modd| if let Some(ref mut old_cat) = modd.category_mut() {
+                        if *old_cat == old_cat_name {
+                            *old_cat = new_cat_name.to_owned();
+                        }
+                    });
+            }
+
+            let game_info = self.game_selected().read().unwrap();
+            if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
+                game_config.save(&game_info)?;
+            }
+        }
         Ok(())
     }
 
