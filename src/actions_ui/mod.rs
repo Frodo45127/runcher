@@ -42,7 +42,6 @@ pub struct ActionsUI {
     play_button: QPtr<QToolButton>,
     settings_button: QPtr<QToolButton>,
     folders_button: QPtr<QToolButton>,
-    folders_menu: QBox<QMenu>,
     open_game_root_folder: QPtr<QAction>,
     open_game_data_folder: QPtr<QAction>,
     open_game_content_folder: QPtr<QAction>,
@@ -80,13 +79,13 @@ impl ActionsUI {
         settings_button.set_tool_tip(&qtr("settings"));
         folders_button.set_tool_tip(&qtr("open_folders"));
 
-        let folders_menu = QMenu::new();
+        let folders_menu = QMenu::from_q_widget(&folders_button);
         let open_game_root_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_game_root_folder"));
         let open_game_data_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_game_data_folder"));
         let open_game_content_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_game_content_folder"));
         let open_runcher_config_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_runcher_config_folder"));
         let open_runcher_error_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_runcher_error_folder"));
-        folders_button.set_menu(&folders_menu);
+        folders_button.set_menu(folders_menu.into_raw_ptr());
         folders_button.set_popup_mode(ToolButtonPopupMode::MenuButtonPopup);
 
         let copy_load_order_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "copy_load_order_button")?;
@@ -111,7 +110,6 @@ impl ActionsUI {
             play_button,
             settings_button,
             folders_button,
-            folders_menu,
             open_game_root_folder,
             open_game_data_folder,
             open_game_content_folder,

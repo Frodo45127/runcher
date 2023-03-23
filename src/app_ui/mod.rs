@@ -28,13 +28,16 @@ use qt_core::QFlags;
 use qt_core::QModelIndex;
 use qt_core::QPtr;
 use qt_core::QString;
+use qt_core::SlotNoArgs;
 
 use cpp_core::CppBox;
 
 use anyhow::{anyhow, Result};
 use getset::Getters;
+use sha256::try_digest;
 
 use std::env::{args, current_exe};
+use std::cmp::Reverse;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};
@@ -49,6 +52,7 @@ use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::log::*;
 
 use rpfm_ui_common::ASSETS_PATH;
+use rpfm_ui_common::clone;
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::PROGRAM_PATH;
 use rpfm_ui_common::settings::*;
@@ -59,10 +63,10 @@ use crate::CENTRAL_COMMAND;
 use crate::communications::*;
 use crate::DARK_PALETTE;
 use crate::ffi::launcher_window_safe;
-use crate::integrations::{GameConfig, Mod, Profile, steam::*};
+use crate::integrations::{GameConfig, Mod, Profile, ShareableMod, steam::*};
 use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
-use crate::mod_list_ui::ModListUI;
+use crate::mod_list_ui::*;
 use crate::pack_list_ui::PackListUI;
 use crate::settings_ui::SettingsUI;
 use crate::settings_ui::init_settings;
@@ -94,7 +98,6 @@ pub struct AppUI {
     // Main Window.
     //-------------------------------------------------------------------------------//
     main_window: QBox<QMainWindow>,
-    splitter: QBox<QSplitter>,
 
     //-------------------------------------------------------------------------------//
     // `Game Selected` menu.
@@ -172,9 +175,9 @@ impl AppUI {
         let _ = create_grid_layout(left_widget.static_upcast());
         let _ = create_grid_layout(right_widget.static_upcast());
         splitter.set_stretch_factor(0, 1);
-        right_widget.set_minimum_width(400);
+        right_widget.set_minimum_width(540);
 
-        central_layout.add_widget(&splitter);
+        central_layout.add_widget(splitter.into_raw_ptr());
 
         // Get the menu and status bars.
         let menu_bar = main_window.menu_bar();
@@ -264,7 +267,6 @@ impl AppUI {
             // Main Window.
             //-------------------------------------------------------------------------------//
             main_window,
-            splitter,
 
             //-------------------------------------------------------------------------------//
             // "Game Selected" menu.
@@ -375,7 +377,7 @@ impl AppUI {
             KEY_EMPIRE => app_ui.game_selected_empire().set_checked(true),
             _ => app_ui.game_selected_warhammer_3().set_checked(true),
         }
-        app_ui.set_game_selected(&default_game)?;
+        app_ui.load_data(&default_game)?;
 
         Ok(app_ui)
     }
@@ -383,6 +385,7 @@ impl AppUI {
     pub unsafe fn set_connections(&self, slots: &AppUISlots) {
         self.actions_ui().play_button().released().connect(slots.launch_game());
         self.actions_ui().settings_button().released().connect(slots.open_settings());
+        self.actions_ui().folders_button().released().connect(slots.open_folders_submenu());
         self.actions_ui().open_game_root_folder().triggered().connect(slots.open_game_root_folder());
         self.actions_ui().open_game_data_folder().triggered().connect(slots.open_game_data_folder());
         self.actions_ui().open_game_content_folder().triggered().connect(slots.open_game_content_folder());
@@ -452,7 +455,7 @@ impl AppUI {
         }
     }
 
-    pub unsafe fn change_game_selected(&self) -> Result<()> {
+    pub unsafe fn change_game_selected(&self, reload_same_game: bool) -> Result<()> {
 
         // Get the new `Game Selected` and clean his name up, so it ends up like "x_y".
         let mut new_game_selected = self.game_selected_group.checked_action().text().to_std_string();
@@ -460,14 +463,14 @@ impl AppUI {
         let new_game_selected = new_game_selected.replace(' ', "_").to_lowercase();
 
         // If the game changed or we're initializing the program, change the game selected.
-        //if new_game_selected != self.game_selected().read().unwrap().game_key_name() {
-            self.set_game_selected(&new_game_selected)?;
-        //}
+        if reload_same_game || new_game_selected != self.game_selected().read().unwrap().game_key_name() {
+            self.load_data(&new_game_selected)?;
+        }
 
         Ok(())
     }
 
-    pub unsafe fn set_game_selected(&self, game: &str) -> Result<()> {
+    pub unsafe fn load_data(&self, game: &str) -> Result<()> {
 
         // We may receive invalid games here, so rule out the invalid ones.
         match SUPPORTED_GAMES.game(game) {
@@ -563,9 +566,10 @@ impl AppUI {
                                 }
                             }
 
-                            if let Err(error) = populate_mods(mods.mods_mut(), &steam_ids) {
-                                //show_dialog(self.main_window(), error, false);
-                            }
+                            let _ = populate_mods(mods.mods_mut(), &steam_ids);
+                            //if let Err(error) = populate_mods(mods.mods_mut(), &steam_ids) {
+                            //    //show_dialog(self.main_window(), error, false);
+                            //}
                         }
                     }
                 }
@@ -659,8 +663,7 @@ impl AppUI {
 
             Ok(())
         } else if cfg!(target_os = "linux") {
-
-            Ok(())
+            Err(anyhow!("Unsupported OS."))
         } else {
             Err(anyhow!("Unsupported OS."))
         }
@@ -924,6 +927,150 @@ impl AppUI {
             Ok(Some(string_text_edit.to_plain_text().to_std_string()))
         } else {
             Ok(None)
+        }
+    }
+
+    pub unsafe fn load_order_from_shareable_mod_list(&self, shareable_mod_list: &[ShareableMod]) -> Result<()> {
+        if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
+            let mut missing = vec![];
+            let mut wrong_hash = vec![];
+            for modd in shareable_mod_list {
+                match game_config.mods_mut().get_mut(modd.id()) {
+                    Some(modd_local) => {
+                        let current_hash = try_digest(modd_local.paths()[0].as_path())?;
+                        if &current_hash != modd.hash() {
+                            wrong_hash.push(modd.clone());
+                        }
+
+                        modd_local.set_enabled(true);
+                    },
+                    None => missing.push(modd.clone()),
+                }
+            }
+
+            // Report any missing mods.
+            if !missing.is_empty() || !wrong_hash.is_empty() {
+                let mut message = String::new();
+
+                if !missing.is_empty() {
+                    message.push_str(&format!("<p>The following mods have not been found in the mod list:<p> <ul>{}</ul>",
+                        missing.iter().map(|modd| match modd.steam_id() {
+                            Some(steam_id) => format!("<li>{}: <a src=\"https://steamcommunity.com/sharedfiles/filedetails/?id={}\">{}</a></li>", modd.id(), steam_id, modd.name()),
+                            None => format!("<li>{}</li>", modd.id())
+                        }).collect::<Vec<_>>().join("\n")
+                    ));
+                }
+
+                if !wrong_hash.is_empty() {
+                    message.push_str(&format!("<p>The following mods have been found, but their packs are different from the ones expected:<p> <ul>{}</ul>",
+                        wrong_hash.iter().map(|modd| match modd.steam_id() {
+                            Some(steam_id) => format!("<li>{}: <a src=\"https://steamcommunity.com/sharedfiles/filedetails/?id={}\">{}</a></li>", modd.id(), steam_id, modd.name()),
+                            None => format!("<li>{}</li>", modd.id())
+                        }).collect::<Vec<_>>().join("\n")
+                    ));
+                }
+                show_dialog(self.main_window(), message, false);
+            }
+
+            let game = self.game_selected().read().unwrap();
+            let game_path = setting_path(game.game_key_name());
+            self.mod_list_ui().load(game_config)?;
+            self.pack_list_ui().load(game_config, &game, &game_path)?;
+
+            game_config.save(&game)?;
+        }
+
+        Ok(())
+    }
+
+    pub unsafe fn delete_category(&self) -> Result<()> {
+        let mut selection = self.mod_list_selection();
+        selection.sort_by_key(|b| Reverse(b.row()));
+
+        if selection.iter().any(|index| index.data_1a(2).to_string().to_std_string() == "Unassigned") {
+            return Err(anyhow!("Dude, did you just tried to delete the Unassigned category?!! You monster!!!"));
+        }
+
+        for cat_to_delete in &selection {
+            let mods_to_reassign = (0..self.mod_list_ui().model().row_count_1a(cat_to_delete))
+                .map(|index| cat_to_delete.child(index, 0).data_1a(VALUE_MOD_ID).to_string().to_std_string())
+                .collect::<Vec<_>>();
+
+            if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
+                game_config.mods_mut()
+                    .iter_mut()
+                    .for_each(|(id, modd)| if mods_to_reassign.contains(id) {
+                        modd.set_category(None);
+                    });
+            }
+
+            // Find the unassigned category.
+            let mut unassigned_item = None;
+            let unassigned = QString::from_std_str("Unassigned");
+            for index in 0..self.mod_list_ui().model().row_count_0a() {
+                let item = self.mod_list_ui().model().item_1a(index);
+                if !item.is_null() && item.text().compare_q_string(&unassigned) == 0 {
+                    unassigned_item = Some(item);
+                    break;
+                }
+            }
+
+            if let Some(unassigned_item) = unassigned_item {
+                let cat_item = self.mod_list_ui().model().item_from_index(cat_to_delete);
+                for index in (0..self.mod_list_ui().model().row_count_1a(cat_to_delete)).rev() {
+                    let taken = cat_item.take_row(index).into_ptr();
+                    unassigned_item.append_row_q_list_of_q_standard_item(taken.as_ref().unwrap());
+                }
+            }
+
+            self.mod_list_ui().model().remove_row_1a(cat_to_delete.row());
+        }
+
+        let game_info = self.game_selected().read().unwrap();
+        if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
+            game_config.save(&game_info)?;
+        }
+
+        Ok(())
+    }
+
+    pub unsafe fn generate_move_to_category_submenu(app_ui: &Arc<AppUI>) {
+        app_ui.mod_list_ui().categories_send_to_menu().clear();
+
+        let categories = app_ui.mod_list_ui().categories();
+        for category in &categories {
+
+            let item = app_ui.mod_list_ui().category_item(category);
+            if let Some(item) = item {
+                let action = app_ui.mod_list_ui().categories_send_to_menu().add_action_q_string(&QString::from_std_str(category));
+                let slot = SlotNoArgs::new(app_ui.mod_list_ui().categories_send_to_menu(), clone!(
+                    category,
+                    app_ui => move || {
+                        let mut selection = app_ui.mod_list_selection();
+                        selection.sort_by_key(|b| Reverse(b.row()));
+
+                        for mod_item in &selection {
+                            let current_cat = mod_item.parent();
+                            let mod_id = mod_item.data_1a(VALUE_MOD_ID).to_string().to_std_string();
+                            let taken = app_ui.mod_list_ui().model().item_from_index(&current_cat).take_row(mod_item.row()).into_ptr();
+                            item.append_row_q_list_of_q_standard_item(taken.as_ref().unwrap());
+
+                            if let Some(ref mut game_config) = *app_ui.game_config().write().unwrap() {
+                                if let Some(ref mut modd) = game_config.mods_mut().get_mut(&mod_id) {
+                                    modd.set_category(Some(category.to_string()));
+                                }
+
+                                let game_info = app_ui.game_selected().read().unwrap();
+                                if let Err(error) = game_config.save(&game_info) {
+                                    show_dialog(app_ui.main_window(), error, false);
+                                }
+                            }
+                        }
+                    }
+                ));
+
+                action.triggered().connect(&slot);
+            }
         }
     }
 }

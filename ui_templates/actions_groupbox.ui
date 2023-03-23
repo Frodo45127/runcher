@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>558</width>
+    <width>528</width>
     <height>46</height>
    </rect>
   </property>
@@ -100,7 +100,16 @@
    <item row="0" column="4">
     <widget class="QToolButton" name="paste_load_order_button">
      <property name="text">
-      <string>...</string>
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="cloud-download"/>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
      </property>
     </widget>
    </item>
@@ -160,7 +169,10 @@
    <item row="0" column="3">
     <widget class="QToolButton" name="copy_load_order_button">
      <property name="text">
-      <string>...</string>
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="cloud-upload"/>
      </property>
      <property name="iconSize">
       <size>

@@ -12,7 +12,7 @@
 use anyhow::Result;
 use regex::Regex;
 use steam_workshop_api::client::Workshop;
-use steam_workshop_api::interfaces::{*, i_steam_remote_storage::*, i_steam_user::*};
+use steam_workshop_api::interfaces::{i_steam_remote_storage::*, i_steam_user::*};
 
 use std::collections::HashMap;
 
@@ -32,7 +32,7 @@ lazy_static::lazy_static! {
 //-------------------------------------------------------------------------------//
 //                             Implementations
 //-------------------------------------------------------------------------------//
-
+/*
 pub fn info_for_mod(mod_id: &str) -> Result<Vec<WorkshopItem>> {
     let client = Workshop::new(None);
     get_published_file_details(&client, &[mod_id.to_string()]).map_err(From::from)
@@ -41,7 +41,7 @@ pub fn info_for_mod(mod_id: &str) -> Result<Vec<WorkshopItem>> {
 pub fn info_for_mods(mod_ids: &[String]) -> Result<Vec<WorkshopItem>> {
     let client = Workshop::new(None);
     get_published_file_details(&client, mod_ids).map_err(From::from)
-}
+}*/
 
 pub fn populate_mods(mods: &mut HashMap<String, Mod>, mod_ids: &[String]) -> Result<()> {
     let client = Workshop::new(None);
@@ -89,6 +89,7 @@ pub fn populate_user_names(mods: &mut HashMap<String, Mod>, user_ids: &[String])
     Ok(())
 }
 
+/*
 pub fn parse_to_html(string: &str) -> String {
     let mut new_string = "<html>".to_owned();
 
@@ -119,4 +120,4 @@ pub fn parse_to_html(string: &str) -> String {
     // Replace urls before the rest, as they require regexes.
     new_string = REGEX_URL.replace_all(&new_string, r"<url src='\2>\4</url>").to_string();
     new_string
-}
+}*/

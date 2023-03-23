@@ -9,14 +9,12 @@
 //---------------------------------------------------------------------------//
 
 use qt_widgets::QMainWindow;
-use qt_widgets::QWidget;
 
 use qt_core::QBox;
 use qt_core::QObject;
 use qt_core::QPtr;
 use qt_core::QRegExp;
 use qt_core::QSortFilterProxyModel;
-use qt_core::Signal;
 
 use cpp_core::Ptr;
 
@@ -40,17 +38,6 @@ pub fn mod_list_trigger_filter_safe(filter: &QSortFilterProxyModel, pattern: &Pt
 extern "C" { fn launcher_window() -> *mut QMainWindow; }
 pub fn launcher_window_safe() -> QBox<QMainWindow> {
     unsafe { QBox::from_raw(launcher_window()) }
-}
-
-pub fn main_window_drop_pack_signal(widget: QPtr<QWidget>) -> Signal<(*const ::qt_core::QStringList,)> {
-    unsafe {
-        Signal::new(
-            ::cpp_core::Ref::from_raw(widget.as_raw_ptr()).expect("attempted to construct a null Ref"),
-            ::std::ffi::CStr::from_bytes_with_nul_unchecked(
-                b"2openPack(QStringList const &)\0",
-            ),
-        )
-    }
 }
 
 extern "C" { fn html_item_delegate(view: *mut QObject, column: i32); }

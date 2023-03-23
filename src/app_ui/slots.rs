@@ -15,9 +15,6 @@ use qt_gui::SlotOfQStandardItem;
 use qt_core::QBox;
 use qt_core::SlotNoArgs;
 
-use sha256::try_digest;
-
-use std::cmp::Reverse;
 use std::sync::Arc;
 
 use rpfm_ui_common::clone;
@@ -37,6 +34,7 @@ use super::*;
 pub struct AppUISlots {
     launch_game: QBox<SlotNoArgs>,
     open_settings: QBox<SlotNoArgs>,
+    open_folders_submenu: QBox<SlotNoArgs>,
     open_game_root_folder: QBox<SlotNoArgs>,
     open_game_data_folder: QBox<SlotNoArgs>,
     open_game_content_folder: QBox<SlotNoArgs>,
@@ -78,6 +76,11 @@ impl AppUISlots {
         let open_settings = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
             view.open_settings();
+        }));
+
+        let open_folders_submenu = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+            view.actions_ui().folders_button().show_menu();
         }));
 
         let open_game_root_folder = SlotNoArgs::new(&view.main_window, clone!(
@@ -131,7 +134,7 @@ impl AppUISlots {
 
         let change_game_selected = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
-                if let Err(error) = view.change_game_selected() {
+                if let Err(error) = view.change_game_selected(false) {
                     show_dialog(view.main_window(), error, false);
                 }
             }
@@ -239,55 +242,8 @@ impl AppUISlots {
                         let response = CENTRAL_COMMAND.recv_try(&receiver);
                         match response {
                             Response::VecShareableMods(response) => {
-                                if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
-                                    let mut missing = vec![];
-                                    let mut wrong_hash = vec![];
-                                    for modd in &response {
-                                        match game_config.mods_mut().get_mut(modd.id()) {
-                                            Some(modd_local) => {
-                                                let current_hash = try_digest(modd_local.paths()[0].as_path()).unwrap();
-                                                if &current_hash != modd.hash() {
-                                                    wrong_hash.push(modd.clone());
-                                                }
-
-                                                modd_local.set_enabled(true);
-                                            },
-                                            None => missing.push(modd.clone()),
-                                        }
-                                    }
-
-                                    // Report any missing mods.
-                                    if !missing.is_empty() || !wrong_hash.is_empty() {
-                                        let mut message = String::new();
-
-                                        if !missing.is_empty() {
-                                            message.push_str(&format!("<p>The following mods have not been found in the mod list:<p> <ul>{}</ul>",
-                                                missing.iter().map(|modd| match modd.steam_id() {
-                                                    Some(steam_id) => format!("<li>{}: <a src=\"https://steamcommunity.com/sharedfiles/filedetails/?id={}\">{}</a></li>", modd.id(), steam_id, modd.name()),
-                                                    None => format!("<li>{}</li>", modd.id())
-                                                }).collect::<Vec<_>>().join("\n")
-                                            ));
-                                        }
-
-                                        if !wrong_hash.is_empty() {
-                                            message.push_str(&format!("<p>The following mods have been found, but their packs are different from the ones expected:<p> <ul>{}</ul>",
-                                                wrong_hash.iter().map(|modd| match modd.steam_id() {
-                                                    Some(steam_id) => format!("<li>{}: <a src=\"https://steamcommunity.com/sharedfiles/filedetails/?id={}\">{}</a></li>", modd.id(), steam_id, modd.name()),
-                                                    None => format!("<li>{}</li>", modd.id())
-                                                }).collect::<Vec<_>>().join("\n")
-                                            ));
-                                        }
-                                        show_dialog(view.main_window(), message, false);
-                                    }
-
-                                    let game = view.game_selected().read().unwrap();
-                                    let game_path = setting_path(game.game_key_name());
-                                    view.mod_list_ui().load(game_config).unwrap();
-                                    view.pack_list_ui().load(game_config, &game, &game_path).unwrap();
-
-                                    if let Err(error) = game_config.save(&game) {
-                                        show_dialog(view.main_window(), error, false);
-                                    }
+                                if let Err(error) = view.load_order_from_shareable_mod_list(&response) {
+                                    show_dialog(view.main_window(), error, false);
                                 }
                             }
                             _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
@@ -304,7 +260,7 @@ impl AppUISlots {
             view => move || {
 
                 // We just re-use the game selected logic
-                if let Err(error) = view.change_game_selected() {
+                if let Err(error) = view.change_game_selected(true) {
                     show_dialog(view.main_window(), error, false);
                 }
             }
@@ -328,101 +284,22 @@ impl AppUISlots {
 
         let category_delete = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
-                let mut selection = view.mod_list_selection();
-                selection.sort_by_key(|b| Reverse(b.row()));
-
-                if selection.iter().any(|index| index.data_1a(2).to_string().to_std_string() == "Unassigned") {
-                    return;
-                }
-
-                for cat_to_delete in &selection {
-                    let mods_to_reassign = (0..view.mod_list_ui().model().row_count_1a(cat_to_delete))
-                        .map(|index| cat_to_delete.child(index, 0).data_1a(VALUE_MOD_ID).to_string().to_std_string())
-                        .collect::<Vec<_>>();
-
-                    if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
-                        game_config.mods_mut()
-                            .iter_mut()
-                            .for_each(|(id, modd)| if mods_to_reassign.contains(id) {
-                                modd.set_category(None);
-                            });
-                    }
-
-                    // Find the unassigned category.
-                    let mut unassigned_item = None;
-                    let unassigned = QString::from_std_str("Unassigned");
-                    for index in 0..view.mod_list_ui().model().row_count_0a() {
-                        let item = view.mod_list_ui().model().item_1a(index);
-                        if !item.is_null() && item.text().compare_q_string(&unassigned) == 0 {
-                            unassigned_item = Some(item);
-                            break;
-                        }
-                    }
-
-                    if let Some(unassigned_item) = unassigned_item {
-                        let cat_item = view.mod_list_ui().model().item_from_index(cat_to_delete);
-                        for index in (0..view.mod_list_ui().model().row_count_1a(cat_to_delete)).rev() {
-                            let taken = cat_item.take_row(index).into_ptr();
-                            unassigned_item.append_row_q_list_of_q_standard_item(taken.as_ref().unwrap());
-                        }
-                    }
-
-                    view.mod_list_ui().model().remove_row_1a(cat_to_delete.row());
-                }
-
-                let game_info = view.game_selected().read().unwrap();
-                if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
-                    if let Err(error) = game_config.save(&game_info) {
-                        show_dialog(view.main_window(), error, false);
-                    }
+                if let Err(error) = view.delete_category() {
+                    show_dialog(view.main_window(), error, false);
                 }
             }
         ));
 
         let mod_list_context_menu_open = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
-                view.mod_list_ui().categories_send_to_menu().clear();
-                let categories = view.mod_list_ui().categories();
-                for category in &categories {
-
-                    let item = view.mod_list_ui().category_item(category);
-                    if let Some(item) = item {
-                        let action = view.mod_list_ui().categories_send_to_menu().add_action_q_string(&QString::from_std_str(category));
-                        let slot = SlotNoArgs::new(view.mod_list_ui().categories_send_to_menu(), clone!(
-                            category,
-                            view => move || {
-                                let mut selection = view.mod_list_selection();
-                                selection.sort_by_key(|b| Reverse(b.row()));
-
-                                for mod_item in &selection {
-                                    let current_cat = mod_item.parent();
-                                    let mod_id = mod_item.data_1a(VALUE_MOD_ID).to_string().to_std_string();
-                                    let taken = view.mod_list_ui().model().item_from_index(&current_cat).take_row(mod_item.row()).into_ptr();
-                                    item.append_row_q_list_of_q_standard_item(taken.as_ref().unwrap());
-
-                                    if let Some(ref mut game_config) = *view.game_config().write().unwrap() {
-                                        if let Some(ref mut modd) = game_config.mods_mut().get_mut(&mod_id) {
-                                            modd.set_category(Some(category.to_string()));
-                                        }
-
-                                        let game_info = view.game_selected().read().unwrap();
-                                        if let Err(error) = game_config.save(&game_info) {
-                                            show_dialog(view.main_window(), error, false);
-                                        }
-                                    }
-                                }
-                            }
-                        ));
-
-                        action.triggered().connect(&slot);
-                    }
-                }
+                AppUI::generate_move_to_category_submenu(&view);
             }
         ));
 
         Self {
             launch_game,
             open_settings,
+            open_folders_submenu,
             open_game_root_folder,
             open_game_data_folder,
             open_game_content_folder,

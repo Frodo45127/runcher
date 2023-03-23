@@ -7,6 +7,9 @@
 # Game Configs folder.
 /game_config/
 
+# Linux built Qt extensions lib.
+/3rdparty/builds/libqt_runcher_extensions.a
+
 # Compilation folder for Rust & Company.
 /target/
 
