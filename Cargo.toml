@@ -30,7 +30,7 @@ base64 = "^0.21"
 sha256 = "^1.1"
 
 # Config dependencies.
-directories = "^4.0"
+directories = "^5.0"
 lazy_static = "^1.4"
 
 # Error managing.
