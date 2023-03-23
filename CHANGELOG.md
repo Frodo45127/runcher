@@ -6,6 +6,19 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.3.0]
+### Added
+- Implemented "Check Updates on Start" setting.
+- Implemented "Copy/Paste Load Order" features.
+- Implemented "Rename Category" feature.
+
+### Fixed
+- Fixed Tree Views not getting reloaded correctly.
+- Fixed folder Tool Button not showing its menu when pressed. 
+- Fixed "Check Updates" hanging the main thread.
+- Fixed weird resizing issues.
+- Fixed incorrect visual pack order.
+
 ## [0.2.0]
 ### Added
 - Implemented "Open Folder" actions for commonly used folders.
@@ -43,7 +56,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Frodo45127/runcher/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Frodo45127/runcher/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Frodo45127/runcher/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Frodo45127/runcher/compare/...v0.1.0
