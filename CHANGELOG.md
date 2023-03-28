@@ -6,6 +6,10 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.3.1]
+### Fixed
+- Fixed weird issues due to incorrect logic when generating mod list file.
+
 ## [0.3.0]
 ### Added
 - Implemented "Check Updates on Start" setting.
@@ -56,7 +60,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/Frodo45127/runcher/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Frodo45127/runcher/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Frodo45127/runcher/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Frodo45127/runcher/compare/v0.1.0...v0.1.1
