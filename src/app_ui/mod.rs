@@ -633,7 +633,12 @@ impl AppUI {
                 if item_location.text().to_std_string().starts_with("Content") && !steam_id.is_empty() {
                     let mut path = PathBuf::from(item_path.text().to_std_string());
                     path.pop();
-                    folder_list.push_str(&format!("add_working_directory \"{}\";\n", path.to_string_lossy()));
+
+                    let mut path_str = path.to_string_lossy().to_string();
+                    if path_str.starts_with("\\\\?\\") {
+                        path_str = path_str[4..].to_string();
+                    }
+                    folder_list.push_str(&format!("add_working_directory \"{}\";\n", path_str));
                 }
                 string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
                 string
