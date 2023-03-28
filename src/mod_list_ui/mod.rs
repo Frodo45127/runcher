@@ -224,10 +224,10 @@ impl ModListUI {
 
                     // TODO: show discrepancies between steam's reported data and real data.
                     let mod_size = if *modd.file_size() != 0 {
-                        format!("{:.2} MB", *modd.file_size() as f64 / 8.0 / 1024.0 / 1024.0)
+                        format!("{:.2} MB", *modd.file_size() as f64 / 1024.0 / 1024.0)
                     } else {
                         let size = modd.paths()[0].metadata().unwrap().len();
-                        format!("{:.2} MB", size as f64 / 8.0 / 1024.0 / 1024.0)
+                        format!("{:.2} MB", size as f64 / 1024.0 / 1024.0)
                     };
 
                     let time_created = if *modd.time_created() != 0 {
