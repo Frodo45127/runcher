@@ -620,6 +620,7 @@ impl AppUI {
     }
 
     pub unsafe fn launch_game(&self) -> Result<()> {
+        let mut folder_list = String::new();
         let pack_list = (0..self.pack_list_ui().model().row_count_0a())
             .map(|index| {
                 let mut string = String::new();
@@ -632,7 +633,7 @@ impl AppUI {
                 if item_location.text().to_std_string().starts_with("Content") && !steam_id.is_empty() {
                     let mut path = PathBuf::from(item_path.text().to_std_string());
                     path.pop();
-                    string.push_str(&format!("add_working_directory \"{}\";\n", path.to_string_lossy()));
+                    folder_list.push_str(&format!("add_working_directory \"{}\";\n", path.to_string_lossy()));
                 }
                 string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
                 string
@@ -645,6 +646,7 @@ impl AppUI {
         let file_path = game_path.join("mod_list.txt");
 
         let mut file = BufWriter::new(File::create(file_path)?);
+        file.write_all(folder_list.as_bytes())?;
         file.write_all(pack_list.as_bytes())?;
         file.flush()?;
 
