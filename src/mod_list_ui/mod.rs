@@ -405,7 +405,10 @@ impl ModListUI {
 
     pub unsafe fn mod_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
         let indexes_visual = self.tree_view().selection_model().selection().indexes();
-        let indexes_visual = (0..indexes_visual.count_0a()).rev().map(|x| indexes_visual.at(x)).collect::<Vec<_>>();
+        let indexes_visual = (0..indexes_visual.count_0a()).rev()
+            .filter(|x| indexes_visual.at(*x).column() == 0)
+            .map(|x| indexes_visual.at(x))
+            .collect::<Vec<_>>();
         indexes_visual.iter().map(|x| self.filter().map_to_source(*x)).collect::<Vec<_>>()
     }
 

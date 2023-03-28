@@ -15,7 +15,7 @@ HtmlItemDelegate::HtmlItemDelegate(QObject *parent): QStyledItemDelegate(parent)
 
 // Function for the delegate to showup properly.
 void HtmlItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const {
-    QStyleOptionViewItem opt(option);
+    QStyleOptionViewItem opt = option;
     QTreeView* view = dynamic_cast<QTreeView*>(parent());
 
     // Remove indentation for category items.
@@ -31,7 +31,7 @@ void HtmlItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opti
     doc.setHtml(opt.text);
 
     opt.text = "";
-    opt.widget->style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter);
+    opt.widget->style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter, opt.widget);
     opt.rect.adjust(view->indentation(), 0, 0, 0);
 
     painter->translate(opt.rect.left(), opt.rect.top());
@@ -41,8 +41,7 @@ void HtmlItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opti
     painter->restore();
 }
 
-QSize HtmlItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index ) const
-{
+QSize HtmlItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index ) const {
     QStyleOptionViewItem opt = option;
     initStyleOption(&opt, index);
 
