@@ -15,33 +15,36 @@ HtmlItemDelegate::HtmlItemDelegate(QObject *parent): QStyledItemDelegate(parent)
 
 // Function for the delegate to showup properly.
 void HtmlItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const {
+    //return QStyledItemDelegate::paint(painter, option, index);
     QStyleOptionViewItem opt = option;
     QTreeView* view = dynamic_cast<QTreeView*>(parent());
 
     // Remove indentation for category items.
     if (index.column() == 0 && index.data(40).toBool()) {
-        opt.rect.adjust(-view->indentation(), 0, 0, 0);
+        opt.rect.adjust(-5, 0, 0, 0);
+        QStyledItemDelegate::paint(painter, opt, index);
+    } else {
+        initStyleOption(&opt, index);
+
+        painter->save();
+
+        QTextDocument doc;
+        doc.setHtml(opt.text);
+
+        opt.text = "";
+        opt.widget->style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter, opt.widget);
+        opt.rect.adjust(view->indentation(), 0, 0, 0);
+
+        painter->translate(opt.rect.left(), opt.rect.top());
+        QRect clip(0, 0, opt.rect.width(), opt.rect.height());
+        doc.drawContents(painter, clip);
+
+        painter->restore();
     }
-
-    initStyleOption(&opt, index);
-
-    painter->save();
-
-    QTextDocument doc;
-    doc.setHtml(opt.text);
-
-    opt.text = "";
-    opt.widget->style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter, opt.widget);
-    opt.rect.adjust(view->indentation(), 0, 0, 0);
-
-    painter->translate(opt.rect.left(), opt.rect.top());
-    QRect clip(0, 0, opt.rect.width(), opt.rect.height());
-    doc.drawContents(painter, clip);
-
-    painter->restore();
 }
 
 QSize HtmlItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index ) const {
+    //return QStyledItemDelegate::sizeHint(option, index);
     QStyleOptionViewItem opt = option;
     initStyleOption(&opt, index);
 
