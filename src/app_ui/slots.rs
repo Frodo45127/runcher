@@ -14,6 +14,7 @@ use qt_gui::SlotOfQStandardItem;
 
 use qt_core::QBox;
 use qt_core::SlotNoArgs;
+use qt_core::SlotOfBool;
 
 use std::sync::Arc;
 
@@ -33,6 +34,8 @@ use super::*;
 #[getset(get = "pub")]
 pub struct AppUISlots {
     launch_game: QBox<SlotNoArgs>,
+    toggle_logging: QBox<SlotOfBool>,
+    toggle_skip_intros: QBox<SlotOfBool>,
     open_settings: QBox<SlotNoArgs>,
     open_folders_submenu: QBox<SlotNoArgs>,
     open_game_root_folder: QBox<SlotNoArgs>,
@@ -71,6 +74,22 @@ impl AppUISlots {
                 if let Err(error) = view.launch_game() {
                     show_dialog(view.main_window(), error, false);
                 }
+            }
+        ));
+
+        let toggle_logging = SlotOfBool::new(view.main_window(), clone!(
+            view => move |state| {
+                let game = view.game_selected().read().unwrap();
+                let setting = format!("enable_logging_{}", game.game_key_name());
+                set_setting_bool(&setting, state);
+            }
+        ));
+
+        let toggle_skip_intros = SlotOfBool::new(view.main_window(), clone!(
+            view => move |state| {
+                let game = view.game_selected().read().unwrap();
+                let setting = format!("enable_skip_intros_{}", game.game_key_name());
+                set_setting_bool(&setting, state);
             }
         ));
 
@@ -307,6 +326,8 @@ impl AppUISlots {
 
         Self {
             launch_game,
+            toggle_logging,
+            toggle_skip_intros,
             open_settings,
             open_folders_submenu,
             open_game_root_folder,

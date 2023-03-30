@@ -25,6 +25,8 @@ use qt_core::QString;
 use anyhow::Result;
 use getset::*;
 
+use std::sync::Arc;
+
 use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::utils::*;
 
@@ -40,6 +42,9 @@ const VIEW_RELEASE: &str = "ui/actions_groupbox.ui";
 #[getset(get = "pub")]
 pub struct ActionsUI {
     play_button: QPtr<QToolButton>,
+    enable_logging: QPtr<QAction>,
+    enable_skip_intro: QPtr<QAction>,
+
     settings_button: QPtr<QToolButton>,
     folders_button: QPtr<QToolButton>,
     open_game_root_folder: QPtr<QAction>,
@@ -65,7 +70,7 @@ pub struct ActionsUI {
 
 impl ActionsUI {
 
-    pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Self> {
+    pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Arc<Self>> {
         let layout: QPtr<QGridLayout> = parent.layout().static_downcast();
 
         // Load the UI Template.
@@ -73,6 +78,14 @@ impl ActionsUI {
         let main_widget = load_template(parent, template_path)?;
 
         let play_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "play_button")?;
+        let play_menu = QMenu::from_q_widget(&play_button);
+        let enable_logging = play_menu.add_action_q_string(&qtr("enable_logging"));
+        let enable_skip_intro = play_menu.add_action_q_string(&qtr("enable_skip_intro"));
+        enable_logging.set_checkable(true);
+        enable_skip_intro.set_checkable(true);
+        play_button.set_menu(play_menu.into_raw_ptr());
+        play_button.set_popup_mode(ToolButtonPopupMode::MenuButtonPopup);
+
         let settings_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "settings_button")?;
         let folders_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "folders_button")?;
         play_button.set_tool_tip(&qtr("launch_game"));
@@ -106,8 +119,11 @@ impl ActionsUI {
 
         layout.add_widget_5a(&main_widget, 0, 0, 1, 1);
 
-        Ok(Self {
+        let ui = Arc::new(Self {
             play_button,
+            enable_logging,
+            enable_skip_intro,
+
             settings_button,
             folders_button,
             open_game_root_folder,
@@ -124,7 +140,8 @@ impl ActionsUI {
             profile_save_button,
             profile_combobox,
             profile_model,
+        });
 
-        })
+        Ok(ui)
     }
 }

@@ -335,6 +335,13 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_bool(&q_settings, "check_updates_on_start", true);
     set_setting_if_new_bool(&q_settings, "dark_mode", false);
 
+    for game in &SUPPORTED_GAMES.games_sorted() {
+        if game.game_key_name() != KEY_ARENA {
+            set_setting_if_new_bool(&q_settings, &format!("enable_logging_{}", game.game_key_name()), false);
+            set_setting_if_new_bool(&q_settings, &format!("enable_skip_intros_{}", game.game_key_name()), false);
+        }
+    }
+
     q_settings.sync();
 }
 
