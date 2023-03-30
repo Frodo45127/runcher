@@ -386,6 +386,7 @@ impl ModListUI {
             }
         }
 
+        categories.sort();
         categories
     }
 
