@@ -12,8 +12,9 @@
 //!
 //!Here it goes all linking/cross-language compilation/platform-specific stuff that's needed in order to compile the Runcher.
 
-use std::process::{Command, exit};
+use std::fs::{copy, DirBuilder};
 use std::io::{stderr, stdout, Write};
+use std::process::{Command, exit};
 
 /// Windows Build Script.
 #[cfg(target_os = "windows")]
@@ -39,6 +40,10 @@ fn main() {
     res.set("LegalCopyright","Copyright (c) - Ismael Gutiérrez González");
     res.set("ProductName","Runcher");
     if let Err(error) = res.compile() { println!("Error: {}", error); }
+
+    // Copy the icon theme so it can be accessed by debug builds.
+    DirBuilder::new().recursive(true).create("./target/debug/data/icons/breeze/").unwrap();
+    copy("./icons/breeze-icons.rcc", "./target/debug/data/icons/breeze/breeze-icons.rcc").unwrap();
 }
 
 /// Linux Build Script.
