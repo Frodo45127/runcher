@@ -6,6 +6,19 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.4.0]
+### Added
+- Implemented "Skip Intros" for Warhammer 3.
+- Implemented "Enable Logging" for Warhammer 3.
+### Changed
+- Reduced release size.
+
+### Fixed
+- Fixed missing icons on debug builds.
+- Fixed vanishing expander on mod list.
+- Fixed incorrect size calculation for Size column.
+- Fixed unsorted categories on "Send to Category" list.
+
 ## [0.3.1]
 ### Fixed
 - Fixed weird issues due to incorrect logic when generating mod list file.
@@ -60,7 +73,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Frodo45127/runcher/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Frodo45127/runcher/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Frodo45127/runcher/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Frodo45127/runcher/compare/v0.1.1...v0.2.0
