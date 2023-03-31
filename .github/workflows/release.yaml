@@ -156,33 +156,33 @@ jobs:
           cp ${{ matrix.DDISK }}:\Craft\bin\jpeg62.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
 
           cp ${{ matrix.DDISK }}:\Craft\bin\KF5Archive.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5Codecs.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5Completion.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5ConfigCore.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5ConfigGui.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5Codecs.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5Completion.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5ConfigCore.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5ConfigGui.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\KF5ConfigWidgets.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\KF5CoreAddons.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5Crash.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5DBusAddons.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5GuiAddons.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5Crash.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5DBusAddons.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5GuiAddons.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\KF5I18n.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\KF5IconThemes.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5ItemViews.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5JobWidgets.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5KIOCore.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5KIOGui.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5KIOWidgets.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5Parts.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5Service.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5Solid.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5SonnetCore.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5SonnetUi.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5SyntaxHighlighting.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5TextEditor.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5TextWidgets.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5ItemViews.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5JobWidgets.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5KIOCore.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5KIOGui.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5KIOWidgets.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5Parts.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5Service.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5Solid.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5SonnetCore.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5SonnetUi.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5SyntaxHighlighting.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5TextEditor.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5TextWidgets.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\KF5WidgetsAddons.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5WindowSystem.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\KF5XmlGui.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5WindowSystem.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5XmlGui.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
 
           cp ${{ matrix.DDISK }}:\Craft\bin\libbzip2.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\libcrypto*.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
@@ -201,16 +201,16 @@ jobs:
           cp ${{ matrix.DDISK }}:\Craft\bin\pcre2-8.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\pcre2-16.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
 
-          cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Core.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Core.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\Qt5DBus.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Gui.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Network.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\Qt5PrintSupport.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Qml.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Gui.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Network.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\Qt5PrintSupport.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Qml.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Svg.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\Qt5TextToSpeech.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Widgets.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Xml.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\Qt5TextToSpeech.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Widgets.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          #cp ${{ matrix.DDISK }}:\Craft\bin\Qt5Xml.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
 
           # Same as before. Still neccesary?
           cp ${{ matrix.DDISK }}:\Craft\bin\vcruntime140.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
@@ -239,6 +239,11 @@ jobs:
           ${{ matrix.DDISK }}:\Craft\craft\craftenv.ps1
           cd ${{ matrix.DDISK }}:\deploy\runcher-release-assets
           windeployqt runcher.exe
+
+          # Remove extra files that are not really needed for execution.
+          rm -fo ${{ matrix.DDISK }}:\deploy\runcher-release-assets\vc_redist.x64.exe
+          rm -fo ${{ matrix.DDISK }}:\deploy\runcher-release-assets\icons\breeze-icons.rcc
+          rm -fo ${{ matrix.DDISK }}:\deploy\runcher-release-assets\icons\breeze-icons-dark.rcc
 
           7z a runcher-${{ steps.get_version.outputs.version }}-${{ matrix.TARGET }}.${{ matrix.EXTENSION }} .\**
 
