@@ -796,7 +796,7 @@ impl AppUI {
                         let category = self.mod_list_ui().model().item_1a(cat);
                         for row in 0..category.row_count() {
                             let item = category.child_1a(row);
-                            if !item.is_null() && item.text().compare_q_string(&mod_id) == 0 {
+                            if !item.is_null() && item.data_1a(VALUE_MOD_ID).to_string().compare_q_string(&mod_id) == 0 {
                                 item.set_check_state(CheckState::Checked);
                             }
                         }
