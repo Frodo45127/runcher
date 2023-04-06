@@ -35,9 +35,9 @@ pub fn mod_list_trigger_filter_safe(filter: &QSortFilterProxyModel, pattern: &Pt
 }
 
 // This function allow us to create a custom window.
-extern "C" { fn launcher_window() -> *mut QMainWindow; }
-pub fn launcher_window_safe() -> QBox<QMainWindow> {
-    unsafe { QBox::from_raw(launcher_window()) }
+extern "C" { fn launcher_window(use_dark_theme: bool) -> *mut QMainWindow; }
+pub fn launcher_window_safe(use_dark_theme: bool) -> QBox<QMainWindow> {
+    unsafe { QBox::from_raw(launcher_window(use_dark_theme)) }
 }
 
 extern "C" { fn html_item_delegate(view: *mut QObject, column: i32); }

@@ -215,7 +215,7 @@ impl AppUI {
     pub unsafe fn new() -> Result<Arc<Self>> {
 
         // Initialize and configure the main window.
-        let main_window = launcher_window_safe();
+        let main_window = launcher_window_safe(setting_bool("dark_mode"));
         let widget = QWidget::new_1a(&main_window);
         let central_layout = create_grid_layout(widget.static_upcast());
         main_window.set_central_widget(&widget);
