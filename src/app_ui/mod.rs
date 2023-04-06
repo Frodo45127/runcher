@@ -471,6 +471,8 @@ impl AppUI {
 
         self.mod_list_ui().model().item_changed().connect(slots.update_pack_list());
         self.mod_list_ui().context_menu().about_to_show().connect(slots.mod_list_context_menu_open());
+        self.mod_list_ui().enable_selected().triggered().connect(slots.enable_selected());
+        self.mod_list_ui().disable_selected().triggered().connect(slots.disable_selected());
         self.mod_list_ui().category_delete().triggered().connect(slots.category_delete());
         self.mod_list_ui().category_rename().triggered().connect(slots.category_rename());
     }

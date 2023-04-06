@@ -34,6 +34,8 @@ category_new_placeholder = Category Name
 category_delete = Delete Category
 category_rename = Rename Category
 categories_send_to_menu = Send to Category...
+enable_selected = Enable Selected
+disable_selected = Disable Selected
 
 title_success = Success!
 title_error = Error!

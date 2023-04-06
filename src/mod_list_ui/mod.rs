@@ -91,6 +91,8 @@ pub struct ModListUI {
     category_delete: QPtr<QAction>,
     category_rename: QPtr<QAction>,
     categories_send_to_menu: QBox<QMenu>,
+    enable_selected: QPtr<QAction>,
+    disable_selected: QPtr<QAction>,
 
     open_in_explorer: QPtr<QAction>,
     open_in_steam: QPtr<QAction>,
@@ -126,6 +128,9 @@ impl ModListUI {
 
         // Context menu.
         let context_menu = QMenu::from_q_widget(&main_widget);
+        let enable_selected = context_menu.add_action_q_string(&qtr("enable_selected"));
+        let disable_selected = context_menu.add_action_q_string(&qtr("disable_selected"));
+
         let category_new = context_menu.add_action_q_string(&qtr("category_new"));
         let category_delete = context_menu.add_action_q_string(&qtr("category_delete"));
         let category_rename = context_menu.add_action_q_string(&qtr("category_rename"));
@@ -134,6 +139,7 @@ impl ModListUI {
 
         let open_in_explorer = context_menu.add_action_q_string(&qtr("open_in_explorer"));
         let open_in_steam = context_menu.add_action_q_string(&qtr("open_in_steam"));
+        context_menu.insert_separator(&category_new);
         context_menu.insert_separator(&open_in_explorer);
 
         let list = Arc::new(Self {
@@ -149,6 +155,9 @@ impl ModListUI {
             category_delete,
             category_rename,
             categories_send_to_menu,
+            enable_selected,
+            disable_selected,
+
             open_in_explorer,
             open_in_steam
         });

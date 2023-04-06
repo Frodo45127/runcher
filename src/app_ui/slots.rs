@@ -57,6 +57,8 @@ pub struct AppUISlots {
     load_profile: QBox<SlotNoArgs>,
     save_profile: QBox<SlotNoArgs>,
 
+    enable_selected: QBox<SlotNoArgs>,
+    disable_selected: QBox<SlotNoArgs>,
     category_delete: QBox<SlotNoArgs>,
     category_rename: QBox<SlotNoArgs>,
     mod_list_context_menu_open: QBox<SlotNoArgs>,
@@ -302,6 +304,34 @@ impl AppUISlots {
             }
         ));
 
+        let enable_selected = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                let selection = view.mod_list_selection();
+                for selection in &selection {
+                    if !selection.data_1a(VALUE_IS_CATEGORY).to_bool() {
+                        let item = view.mod_list_ui().model().item_from_index(selection);
+                        if !item.is_null() && item.is_checkable() {
+                            item.set_check_state(CheckState::Checked);
+                        }
+                    }
+                }
+            }
+        ));
+
+        let disable_selected = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                let selection = view.mod_list_selection();
+                for selection in &selection {
+                    if !selection.data_1a(VALUE_IS_CATEGORY).to_bool() {
+                        let item = view.mod_list_ui().model().item_from_index(selection);
+                        if !item.is_null() && item.is_checkable() {
+                            item.set_check_state(CheckState::Unchecked);
+                        }
+                    }
+                }
+            }
+        ));
+
         let category_delete = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 if let Err(error) = view.delete_category() {
@@ -350,6 +380,8 @@ impl AppUISlots {
             load_profile,
             save_profile,
 
+            enable_selected,
+            disable_selected,
             category_delete,
             category_rename,
             mod_list_context_menu_open,
