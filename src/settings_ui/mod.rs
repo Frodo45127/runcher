@@ -339,6 +339,20 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
         if game.game_key_name() != KEY_ARENA {
             set_setting_if_new_bool(&q_settings, &format!("enable_logging_{}", game.game_key_name()), false);
             set_setting_if_new_bool(&q_settings, &format!("enable_skip_intros_{}", game.game_key_name()), false);
+
+            let game_path = if let Ok(Some(game_path)) = game.find_game_install_location() {
+                game_path.to_string_lossy().to_string()
+            } else {
+                String::new()
+            };
+
+            // If we got a path and we don't have it saved yet, save it automatically.
+            let current_path = setting_string_from_q_setting(&q_settings, game.game_key_name());
+            if current_path.is_empty() && !game_path.is_empty() {
+                set_setting_string_to_q_setting(&q_settings, game.game_key_name(), &game_path);
+            } else {
+                set_setting_if_new_string(&q_settings, game.game_key_name(), &game_path);
+            }
         }
     }
 
