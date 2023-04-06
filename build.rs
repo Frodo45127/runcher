@@ -12,7 +12,7 @@
 //!
 //!Here it goes all linking/cross-language compilation/platform-specific stuff that's needed in order to compile the Runcher.
 
-use std::fs::{copy, DirBuilder};
+#[cfg(target_os = "windows")] use std::fs::{copy, DirBuilder};
 use std::io::{stderr, stdout, Write};
 use std::process::{Command, exit};
 
@@ -43,7 +43,9 @@ fn main() {
 
     // Copy the icon theme so it can be accessed by debug builds.
     DirBuilder::new().recursive(true).create("./target/debug/data/icons/breeze/").unwrap();
+    DirBuilder::new().recursive(true).create("./target/debug/data/icons/breeze-dark/").unwrap();
     copy("./icons/breeze-icons.rcc", "./target/debug/data/icons/breeze/breeze-icons.rcc").unwrap();
+    copy("./icons/breeze-icons-dark.rcc", "./target/debug/data/icons/breeze-dark/breeze-icons-dark.rcc").unwrap();
 }
 
 /// Linux Build Script.
