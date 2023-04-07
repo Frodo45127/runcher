@@ -6,10 +6,22 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.4.1]
+### Added
+- Implemented autodetection for steam-installed games.
+- Implemented "Enable/Disable selection" feature.
+
+### Changed
+- Improved dark theme.
+
+### Fixed
+- Fixed profiles not loading properly.
+
 ## [0.4.0]
 ### Added
 - Implemented "Skip Intros" for Warhammer 3.
 - Implemented "Enable Logging" for Warhammer 3.
+
 ### Changed
 - Reduced release size.
 
@@ -73,7 +85,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/Frodo45127/runcher/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Frodo45127/runcher/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Frodo45127/runcher/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Frodo45127/runcher/compare/v0.2.0...v0.3.0
