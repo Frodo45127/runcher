@@ -446,7 +446,27 @@ version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74be3be809c18e089de43bdc504652bb2bc473fca8756131f8689db8cf079ba9"
 dependencies = [
- "dirs-sys",
+ "dirs-sys 0.4.0",
+]
+
+[[package]]
+name = "dirs"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30baa043103c9d0c2a57cf537cc2f35623889dc0d405e6c3cccfadbc81c71309"
+dependencies = [
+ "dirs-sys 0.3.7",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
+dependencies = [
+ "libc",
+ "redox_users",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -757,9 +777,9 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.2.8"
+version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c05aeb6a22b8f62540c194aac980f2115af067bfe15a0734d7277a768d396b31"
+checksum = "c85e1d9ab2eadba7e5040d4e09cbd6d072b76a557ad64e797c2cb9d4da21d7e4"
 dependencies = [
  "cfg-if",
  "libc",
@@ -1992,7 +2012,7 @@ dependencies = [
 [[package]]
 name = "rpfm_extensions"
 version = "4.0.12"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#41d2d457ea209d084b763da4759e7c51cbe59767"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#75f50da6d6f5e8d968fb8fa397cce7dab1049178"
 dependencies = [
  "bincode",
  "caseless",
@@ -2012,7 +2032,7 @@ dependencies = [
 [[package]]
 name = "rpfm_lib"
 version = "4.0.12"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#41d2d457ea209d084b763da4759e7c51cbe59767"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#75f50da6d6f5e8d968fb8fa397cce7dab1049178"
 dependencies = [
  "backtrace",
  "bincode",
@@ -2021,14 +2041,12 @@ dependencies = [
  "caseless",
  "content_inspector",
  "csv",
- "directories",
  "encoding_rs",
  "float_eq",
  "fraction",
  "getset",
  "git2",
  "itertools 0.10.5",
- "keyvalues-serde",
  "lazy_static",
  "log",
  "memchr",
@@ -2047,6 +2065,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "simplelog",
+ "steamlocate",
  "thiserror",
  "toml 0.7.3",
  "uuid",
@@ -2056,7 +2075,7 @@ dependencies = [
 [[package]]
 name = "rpfm_ui_common"
 version = "4.0.12"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#41d2d457ea209d084b763da4759e7c51cbe59767"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#75f50da6d6f5e8d968fb8fa397cce7dab1049178"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -2529,6 +2548,19 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "steamlocate"
+version = "2.0.0-alpha.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b1568c4a70a26c4373fe1131ffa4eff055459631b6e40c6bc118615f2d870c3"
+dependencies = [
+ "dirs",
+ "keyvalues-parser",
+ "keyvalues-serde",
+ "serde",
+ "winreg",
 ]
 
 [[package]]
