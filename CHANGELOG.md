@@ -6,6 +6,11 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.4.2]
+### Fixed
+- Fixed incorrect icons on dark theme.
+- Fixed CTD when opening Runcher on a computer with no Steam installation.
+
 ## [0.4.1]
 ### Added
 - Implemented autodetection for steam-installed games.
