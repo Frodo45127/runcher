@@ -24,12 +24,12 @@ LauncherWindow::LauncherWindow(QWidget *parent, bool use_dark_theme) : QMainWind
 
             // Only load the dark theme resources if needed.
             bool load_dark = false;
-            if (dark_theme_enabled) {
+            if (use_dark_theme) {
                 load_dark = QResource::registerResource(iconThemeRccDark, iconSubdir);
             }
 
             // If nothing failed, set the themes.
-            if (load_fallback && (load_dark || !dark_theme_enabled)) {
+            if (load_fallback && (load_dark || !use_dark_theme)) {
                 if (QFileInfo::exists(QLatin1Char(':') + iconSubdir + QStringLiteral("/index.theme"))) {
                     QIcon::setThemeName(iconThemeName);
                     QIcon::setFallbackThemeName(QStringLiteral("breeze"));

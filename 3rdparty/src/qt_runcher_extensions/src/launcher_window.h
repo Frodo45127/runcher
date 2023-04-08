@@ -13,7 +13,7 @@ extern "C" QMainWindow* launcher_window(bool use_dark_theme);
 class LauncherWindow: public QMainWindow {
     Q_OBJECT
 public:
-    explicit LauncherWindow(QWidget *parent = nullptr, bool use_dark_theme);
+    explicit LauncherWindow(QWidget *parent = nullptr, bool use_dark_theme = false);
 };
 
 #endif // LAUNCHERWINDOW_H
