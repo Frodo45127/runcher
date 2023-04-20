@@ -536,6 +536,9 @@ impl AppUI {
             Some(game) => {
                 *self.game_selected().write().unwrap() = game.clone();
 
+                // Trigger an update of all game configs, just in case one needs update.
+                let _ = GameConfig::update(game.game_key_name());
+
                 // Load the game's config.
                 *self.game_config().write().unwrap() = Some(GameConfig::load(game, true)?);
 

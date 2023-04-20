@@ -25,6 +25,7 @@ use rpfm_lib::utils::*;
 use crate::settings_ui::*;
 
 pub mod steam;
+mod versions;
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -125,6 +126,13 @@ impl GameConfig {
         file.write_all(to_string_pretty(&self)?.as_bytes())?;
         Ok(())
     }
+
+    pub fn update(game_name: &str) -> Result<()> {
+        let _ = versions::v0::GameConfigV0::update(game_name);
+
+        Ok(())
+    }
+
 }
 
 impl Profile {
