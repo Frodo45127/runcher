@@ -122,15 +122,28 @@ const EMPTY_MOVIE: [u8; 595] = [
     0x01,
 ];
 
-const INTRO_MOVIE_PATHS_BY_GAME: [(&str, [&str; 6]); 1] = [
+const INTRO_MOVIE_PATHS_BY_GAME: [(&str, [&str; 19]); 1] = [
     ("warhammer_3",
         [
+            "movies/epilepsy_warning/epilepsy_warning_br.ca_vp8",
+            "movies/epilepsy_warning/epilepsy_warning_cn.ca_vp8",
+            "movies/epilepsy_warning/epilepsy_warning_cz.ca_vp8",
+            "movies/epilepsy_warning/epilepsy_warning_de.ca_vp8",
             "movies/epilepsy_warning/epilepsy_warning_en.ca_vp8",
+            "movies/epilepsy_warning/epilepsy_warning_es.ca_vp8",
+            "movies/epilepsy_warning/epilepsy_warning_fr.ca_vp8",
+            "movies/epilepsy_warning/epilepsy_warning_it.ca_vp8",
+            "movies/epilepsy_warning/epilepsy_warning_kr.ca_vp8",
+            "movies/epilepsy_warning/epilepsy_warning_pl.ca_vp8",
+            "movies/epilepsy_warning/epilepsy_warning_ru.ca_vp8",
+            "movies/epilepsy_warning/epilepsy_warning_tr.ca_vp8",
+            "movies/epilepsy_warning/epilepsy_warning_zh.ca_vp8",
             "movies/gam_int.ca_vp8",
             "movies/startup_movie_01.ca_vp8",
             "movies/startup_movie_02.ca_vp8",
             "movies/startup_movie_03.ca_vp8",
             "movies/startup_movie_04.ca_vp8",
+            "movies/startup_movie_05.ca_vp8",
         ]
     )
 ];
