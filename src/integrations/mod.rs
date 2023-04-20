@@ -19,7 +19,7 @@ use std::fs::{DirBuilder, File};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 
-use rpfm_lib::games::GameInfo;
+use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
 use rpfm_lib::utils::*;
 
 use crate::settings_ui::*;
@@ -56,6 +56,9 @@ pub struct Mod {
 
     // Category of the mod.
     category: Option<String>,
+
+    // Pack Type of the mod. If there are multiple ones, this corresponds to the first path.
+    pack_type: PFHFileType,
 
     // Multiple paths in case it's both in data and in a secondary folder. /data always takes priority.
     paths: Vec<PathBuf>,

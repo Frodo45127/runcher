@@ -79,3 +79,5 @@ load_order_string_title_paste = Paste Load Order
 
 enable_logging = Enable Logging
 enable_skip_intro = Skip Intro Videos
+pack_type = Pack Type
+steam_id = Steam ID

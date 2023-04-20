@@ -32,11 +32,12 @@ use qt_core::SortOrder;
 use anyhow::Result;
 use getset::*;
 
+use std::cmp::Ordering;
 use std::sync::Arc;
 use std::path::Path;
 
 use rpfm_lib::files::pack::Pack;
-use rpfm_lib::games::GameInfo;
+use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
 
 use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::utils::*;
@@ -121,10 +122,16 @@ impl PackListUI {
         // Pre-sort the mods.
         let mut mods = game_config.mods()
             .values()
-            .filter(|modd| *modd.enabled() && !modd.paths().is_empty())
+            .filter(|modd| (*modd.enabled() || *modd.pack_type() == PFHFileType::Movie) && !modd.paths().is_empty())
             .collect::<Vec<_>>();
 
-        mods.sort_by_key(|a| a.id());
+        mods.sort_by(|a, b|
+            match a.pack_type().cmp(b.pack_type()) {
+                Ordering::Greater => Ordering::Greater,
+                Ordering::Equal => a.id().cmp(b.id()),
+                Ordering::Less => Ordering::Less,
+            }
+        );
 
         if !game_path.to_string_lossy().is_empty() {
             let game_data_folder = game_info.data_path(game_path)?;
@@ -136,6 +143,7 @@ impl PackListUI {
                 let combined_name = format!("{}{}", pack.pfh_file_type() as u32, pack_name);
                 item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(combined_name)), 20);
 
+                let item_type = QStandardItem::from_q_string(&QString::from_std_str(&modd.pack_type().to_string()));
                 let item_path = QStandardItem::from_q_string(&QString::from_std_str(&modd.paths()[0].to_string_lossy()));
                 let load_order = QStandardItem::new();
                 let location = QStandardItem::from_q_string(&QString::from_std_str(
@@ -154,12 +162,14 @@ impl PackListUI {
                 load_order.set_data_2a(&QVariant::from_int(index as i32), 2);
 
                 item_name.set_editable(false);
+                item_type.set_editable(false);
                 item_path.set_editable(false);
                 load_order.set_editable(false);
                 location.set_editable(false);
                 steam_id.set_editable(false);
 
                 row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
+                row.append_q_standard_item(&item_type.into_ptr().as_mut_raw_ptr());
                 row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());
                 row.append_q_standard_item(&load_order.into_ptr().as_mut_raw_ptr());
                 row.append_q_standard_item(&location.into_ptr().as_mut_raw_ptr());
@@ -169,12 +179,11 @@ impl PackListUI {
             }
         }
 
-        // Sort first by pack type, then by ascii order.
-        self.tree_view().hide_column(1);
-        self.tree_view().hide_column(4);
+        self.tree_view().hide_column(2);
+        self.tree_view().hide_column(5);
 
         self.setup_columns();
-        self.tree_view().sort_by_column_2a(2, SortOrder::AscendingOrder);
+        self.tree_view().sort_by_column_2a(3, SortOrder::AscendingOrder);
         self.tree_view().header().resize_sections(ResizeMode::ResizeToContents);
 
         Ok(())
@@ -182,14 +191,18 @@ impl PackListUI {
 
     pub unsafe fn setup_columns(&self) {
         let pack_name = QStandardItem::from_q_string(&qtr("pack_name"));
+        let pack_type = QStandardItem::from_q_string(&qtr("pack_type"));
         let pack_path = QStandardItem::from_q_string(&qtr("pack_path"));
         let load_order = QStandardItem::from_q_string(&qtr("load_order"));
         let location = QStandardItem::from_q_string(&qtr("location"));
+        let steam_id = QStandardItem::from_q_string(&qtr("steam_id"));
 
         self.model.set_horizontal_header_item(0, pack_name.into_ptr());
-        self.model.set_horizontal_header_item(1, pack_path.into_ptr());
-        self.model.set_horizontal_header_item(2, load_order.into_ptr());
-        self.model.set_horizontal_header_item(3, location.into_ptr());
+        self.model.set_horizontal_header_item(1, pack_type.into_ptr());
+        self.model.set_horizontal_header_item(2, pack_path.into_ptr());
+        self.model.set_horizontal_header_item(3, load_order.into_ptr());
+        self.model.set_horizontal_header_item(4, location.into_ptr());
+        self.model.set_horizontal_header_item(5, steam_id.into_ptr());
     }
 
     pub unsafe fn filter_list(&self) {

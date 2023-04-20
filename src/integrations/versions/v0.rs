@@ -17,7 +17,8 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
 
-use rpfm_lib::games::{GameInfo, supported_games::SupportedGames};
+use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::SupportedGames};
+
 use crate::game_config_path;
 
 use super::GameConfigV1;
@@ -125,6 +126,7 @@ impl From<&ModV0> for ModV1 {
             time_created: value.time_created,
             time_updated: value.time_updated,
             last_check: value.last_check,
+            pack_type: PFHFileType::Mod,
         }
     }
 }

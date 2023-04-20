@@ -581,7 +581,7 @@ impl AppUI {
                                 for (path, pack) in packs {
                                     let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
                                     if let Ok(pack) = pack {
-                                        if pack.pfh_file_type() == PFHFileType::Mod {
+                                        if pack.pfh_file_type() == PFHFileType::Mod || pack.pfh_file_type() == PFHFileType::Movie {
                                             match mods.mods_mut().get_mut(&pack_name) {
                                                 Some(modd) => {
                                                     if !modd.paths().contains(path) {
@@ -593,6 +593,7 @@ impl AppUI {
                                                     modd.set_name(pack_name.to_owned());
                                                     modd.set_id(pack_name.to_owned());
                                                     modd.set_paths(vec![path.to_path_buf()]);
+                                                    modd.set_pack_type(pack.pfh_file_type());
                                                     mods.mods_mut().insert(pack_name, modd);
                                                 }
                                             }
@@ -609,7 +610,7 @@ impl AppUI {
                                 for (path, pack) in packs {
                                     let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
                                     if let Ok(pack) = pack {
-                                        if pack.pfh_file_type() == PFHFileType::Mod {
+                                        if pack.pfh_file_type() == PFHFileType::Mod || pack.pfh_file_type() == PFHFileType::Movie {
                                             match mods.mods_mut().get_mut(&pack_name) {
                                                 Some(modd) => {
                                                     if !modd.paths().contains(path) {
@@ -627,6 +628,7 @@ impl AppUI {
                                                     modd.set_name(pack_name.to_owned());
                                                     modd.set_id(pack_name.to_owned());
                                                     modd.set_paths(vec![path.to_path_buf()]);
+                                                    modd.set_pack_type(pack.pfh_file_type());
 
                                                     // Get the steam id from the path, if possible.
                                                     let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();

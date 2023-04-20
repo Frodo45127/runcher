@@ -49,6 +49,8 @@ use time::OffsetDateTime;
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
+use rpfm_lib::games::pfh_file_type::PFHFileType;
+
 use rpfm_ui_common::SLASH_DMY_DATE_FORMAT;
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
@@ -70,6 +72,7 @@ const CATEGORY_NEW_VIEW_RELEASE: &str = "ui/category_new_dialog.ui";
 pub const VALUE_MOD_ID: i32 = 21;
 pub const VALUE_PACK_PATH: i32 = 22;
 pub const VALUE_MOD_STEAM_ID: i32 = 23;
+pub const VALUE_PACK_TYPE: i32 = 24;
 pub const VALUE_IS_CATEGORY: i32 = 40;
 
 //-------------------------------------------------------------------------------//
@@ -217,6 +220,7 @@ impl ModListUI {
 
                     let item_mod_name = QStandardItem::new();
                     let item_creator = QStandardItem::new();
+                    let item_type = QStandardItem::new();
                     let item_file_size = QStandardItem::new();
                     let item_file_url = QStandardItem::new();
                     let item_preview_url = QStandardItem::new();
@@ -254,6 +258,7 @@ impl ModListUI {
 
                     item_mod_name.set_text(&QString::from_std_str(mod_name));
                     item_creator.set_text(&QString::from_std_str(modd.creator_name()));
+                    item_type.set_text(&QString::from_std_str(modd.pack_type().to_string()));
                     item_file_size.set_text(&QString::from_std_str(&mod_size));
                     item_file_url.set_text(&QString::from_std_str(modd.file_url()));
                     item_preview_url.set_text(&QString::from_std_str(modd.preview_url()));
@@ -269,10 +274,15 @@ impl ModListUI {
                     }
 
                     item_mod_name.set_data_2a(&QVariant::from_bool(false), VALUE_IS_CATEGORY);
-                    item_mod_name.set_checkable(true);
+                    item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.pack_type().to_string())), VALUE_PACK_TYPE);
+
+                    if *modd.pack_type() == PFHFileType::Mod {
+                        item_mod_name.set_checkable(true);
+                    }
 
                     item_mod_name.set_editable(false);
                     item_creator.set_editable(false);
+                    item_type.set_editable(false);
                     item_file_size.set_editable(false);
                     item_file_url.set_editable(false);
                     item_preview_url.set_editable(false);
@@ -282,7 +292,7 @@ impl ModListUI {
 
                     item_file_size.set_text_alignment(AlignmentFlag::AlignVCenter | AlignmentFlag::AlignRight);
 
-                    if *modd.enabled() {
+                    if *modd.enabled() && item_mod_name.is_checkable() {
                         item_mod_name.set_check_state(CheckState::Checked);
                     }
 
@@ -295,6 +305,7 @@ impl ModListUI {
 
                     row.append_q_standard_item(&item_mod_name.into_ptr().as_mut_raw_ptr());
                     row.append_q_standard_item(&item_creator.into_ptr().as_mut_raw_ptr());
+                    row.append_q_standard_item(&item_type.into_ptr().as_mut_raw_ptr());
                     row.append_q_standard_item(&item_file_size.into_ptr().as_mut_raw_ptr());
                     row.append_q_standard_item(&item_file_url.into_ptr().as_mut_raw_ptr());
                     row.append_q_standard_item(&item_preview_url.into_ptr().as_mut_raw_ptr());
@@ -309,9 +320,9 @@ impl ModListUI {
 
         self.setup_columns();
 
-        self.tree_view().hide_column(3);
         self.tree_view().hide_column(4);
-        self.tree_view().hide_column(7);
+        self.tree_view().hide_column(5);
+        self.tree_view().hide_column(8);
 
         // If we have no api key, don't show the author column, as we cannot get it without api key.
         if setting_string("steam_api_key").is_empty() {
@@ -328,6 +339,7 @@ impl ModListUI {
     pub unsafe fn setup_columns(&self) {
         let item_mod_name = QStandardItem::from_q_string(&qtr("mod_name"));
         let item_creator = QStandardItem::from_q_string(&qtr("creator"));
+        let item_pack_type = QStandardItem::from_q_string(&qtr("pack_type"));
         let item_file_size = QStandardItem::from_q_string(&qtr("file_size"));
         let item_file_url = QStandardItem::from_q_string(&qtr("file_url"));
         let item_preview_url = QStandardItem::from_q_string(&qtr("preview_url"));
@@ -337,12 +349,13 @@ impl ModListUI {
 
         self.model.set_horizontal_header_item(0, item_mod_name.into_ptr());
         self.model.set_horizontal_header_item(1, item_creator.into_ptr());
-        self.model.set_horizontal_header_item(2, item_file_size.into_ptr());
-        self.model.set_horizontal_header_item(3, item_file_url.into_ptr());
-        self.model.set_horizontal_header_item(4, item_preview_url.into_ptr());
-        self.model.set_horizontal_header_item(5, item_time_created.into_ptr());
-        self.model.set_horizontal_header_item(6, item_time_updated.into_ptr());
-        self.model.set_horizontal_header_item(7, item_last_check.into_ptr());
+        self.model.set_horizontal_header_item(2, item_pack_type.into_ptr());
+        self.model.set_horizontal_header_item(3, item_file_size.into_ptr());
+        self.model.set_horizontal_header_item(4, item_file_url.into_ptr());
+        self.model.set_horizontal_header_item(5, item_preview_url.into_ptr());
+        self.model.set_horizontal_header_item(6, item_time_created.into_ptr());
+        self.model.set_horizontal_header_item(7, item_time_updated.into_ptr());
+        self.model.set_horizontal_header_item(8, item_last_check.into_ptr());
 
         html_item_delegate_safe(&self.tree_view().static_upcast::<QObject>().as_ptr(), 0);
     }
