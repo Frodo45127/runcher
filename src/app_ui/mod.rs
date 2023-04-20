@@ -560,6 +560,7 @@ impl AppUI {
                 if !game_path_str.is_empty() {
                     let data_paths = game.data_packs_paths(&game_path);
                     let content_paths = game.content_packs_paths(&game_path);
+                    let vanilla_packs = game.ca_packs_paths(&game_path)?;
 
                     let mut steam_ids = vec![];
 
@@ -572,6 +573,7 @@ impl AppUI {
                             mods.mods_mut().values_mut().for_each(|modd| modd.paths_mut().clear());
 
                             if let Some(ref paths) = data_paths {
+                                let paths = paths.iter().filter(|path| !vanilla_packs.contains(path)).collect::<Vec<_>>();
                                 let packs = paths.par_iter()
                                     .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false)))
                                     .collect::<Vec<_>>();
