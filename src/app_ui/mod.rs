@@ -737,26 +737,31 @@ impl AppUI {
         }
 
         pack_list.push_str(&(0..self.pack_list_ui().model().row_count_0a())
-            .map(|index| {
+            .filter_map(|index| {
                 let mut string = String::new();
                 let item = self.pack_list_ui().model().item_1a(index);
-                let item_path = self.pack_list_ui().model().item_2a(index, 1);
-                let item_location = self.pack_list_ui().model().item_2a(index, 3);
-                let item_steam_id = self.pack_list_ui().model().item_2a(index, 4);
+                let item_type = self.pack_list_ui().model().item_2a(index, 1);
+                let item_path = self.pack_list_ui().model().item_2a(index, 2);
+                let item_location = self.pack_list_ui().model().item_2a(index, 4);
+                let item_steam_id = self.pack_list_ui().model().item_2a(index, 5);
 
-                let steam_id = item_steam_id.text().to_std_string();
-                if item_location.text().to_std_string().starts_with("Content") && !steam_id.is_empty() {
-                    let mut path = PathBuf::from(item_path.text().to_std_string());
-                    path.pop();
+                if item_type.text().to_std_string() == "Mod" {
+                    let steam_id = item_steam_id.text().to_std_string();
+                    if item_location.text().to_std_string().starts_with("Content") && !steam_id.is_empty() {
+                        let mut path = PathBuf::from(item_path.text().to_std_string());
+                        path.pop();
 
-                    let mut path_str = path.to_string_lossy().to_string();
-                    if path_str.starts_with("\\\\?\\") {
-                        path_str = path_str[4..].to_string();
+                        let mut path_str = path.to_string_lossy().to_string();
+                        if path_str.starts_with("\\\\?\\") {
+                            path_str = path_str[4..].to_string();
+                        }
+                        folder_list.push_str(&format!("add_working_directory \"{}\";\n", path_str));
                     }
-                    folder_list.push_str(&format!("add_working_directory \"{}\";\n", path_str));
+                    string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
+                    Some(string)
+                } else {
+                    None
                 }
-                string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
-                string
             })
             .collect::<Vec<_>>()
             .join("\n"));
