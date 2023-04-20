@@ -156,15 +156,15 @@ jobs:
           cp ${{ matrix.DDISK }}:\Craft\bin\jpeg62.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
 
           cp ${{ matrix.DDISK }}:\Craft\bin\KF5Archive.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5Codecs.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          cp ${{ matrix.DDISK }}:\Craft\bin\KF5Codecs.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           #cp ${{ matrix.DDISK }}:\Craft\bin\KF5Completion.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5ConfigCore.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5ConfigGui.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          cp ${{ matrix.DDISK }}:\Craft\bin\KF5ConfigCore.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          cp ${{ matrix.DDISK }}:\Craft\bin\KF5ConfigGui.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\KF5ConfigWidgets.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\KF5CoreAddons.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           #cp ${{ matrix.DDISK }}:\Craft\bin\KF5Crash.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           #cp ${{ matrix.DDISK }}:\Craft\bin\KF5DBusAddons.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
-          #cp ${{ matrix.DDISK }}:\Craft\bin\KF5GuiAddons.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
+          cp ${{ matrix.DDISK }}:\Craft\bin\KF5GuiAddons.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\KF5I18n.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp ${{ matrix.DDISK }}:\Craft\bin\KF5IconThemes.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           #cp ${{ matrix.DDISK }}:\Craft\bin\KF5ItemViews.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
