@@ -35,6 +35,7 @@ use cpp_core::CppBox;
 
 use anyhow::{anyhow, Result};
 use getset::Getters;
+use rayon::prelude::*;
 use sha256::try_digest;
 
 use std::env::{args, current_exe};
@@ -571,22 +572,27 @@ impl AppUI {
                             mods.mods_mut().values_mut().for_each(|modd| modd.paths_mut().clear());
 
                             if let Some(ref paths) = data_paths {
-                                for path in paths {
+                                let packs = paths.par_iter()
+                                    .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false)))
+                                    .collect::<Vec<_>>();
+
+                                for (path, pack) in packs {
                                     let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                                    let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
-                                    if pack.pfh_file_type() == PFHFileType::Mod {
-                                        match mods.mods_mut().get_mut(&pack_name) {
-                                            Some(modd) => {
-                                                if !modd.paths().contains(path) {
-                                                    modd.paths_mut().push(path.to_path_buf());
+                                    if let Ok(pack) = pack {
+                                        if pack.pfh_file_type() == PFHFileType::Mod {
+                                            match mods.mods_mut().get_mut(&pack_name) {
+                                                Some(modd) => {
+                                                    if !modd.paths().contains(path) {
+                                                        modd.paths_mut().push(path.to_path_buf());
+                                                    }
                                                 }
-                                            }
-                                            None => {
-                                                let mut modd = Mod::default();
-                                                modd.set_name(pack_name.to_owned());
-                                                modd.set_id(pack_name.to_owned());
-                                                modd.set_paths(vec![path.to_path_buf()]);
-                                                mods.mods_mut().insert(pack_name, modd);
+                                                None => {
+                                                    let mut modd = Mod::default();
+                                                    modd.set_name(pack_name.to_owned());
+                                                    modd.set_id(pack_name.to_owned());
+                                                    modd.set_paths(vec![path.to_path_buf()]);
+                                                    mods.mods_mut().insert(pack_name, modd);
+                                                }
                                             }
                                         }
                                     }
@@ -594,34 +600,39 @@ impl AppUI {
                             }
 
                             if let Some(ref paths) = content_paths {
-                                for path in paths {
+                                let packs = paths.par_iter()
+                                    .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false)))
+                                    .collect::<Vec<_>>();
+
+                                for (path, pack) in packs {
                                     let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                                    let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false)?;
-                                    if pack.pfh_file_type() == PFHFileType::Mod {
-                                        match mods.mods_mut().get_mut(&pack_name) {
-                                            Some(modd) => {
-                                                if !modd.paths().contains(path) {
-                                                    modd.paths_mut().push(path.to_path_buf());
+                                    if let Ok(pack) = pack {
+                                        if pack.pfh_file_type() == PFHFileType::Mod {
+                                            match mods.mods_mut().get_mut(&pack_name) {
+                                                Some(modd) => {
+                                                    if !modd.paths().contains(path) {
+                                                        modd.paths_mut().push(path.to_path_buf());
+                                                    }
+
+                                                    // Get the steam id from the path, if possible.
+                                                    let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
+                                                    steam_ids.push(steam_id.to_owned());
+                                                    modd.set_steam_id(Some(steam_id));
+
                                                 }
+                                                None => {
+                                                    let mut modd = Mod::default();
+                                                    modd.set_name(pack_name.to_owned());
+                                                    modd.set_id(pack_name.to_owned());
+                                                    modd.set_paths(vec![path.to_path_buf()]);
 
-                                                // Get the steam id from the path, if possible.
-                                                let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
-                                                steam_ids.push(steam_id.to_owned());
-                                                modd.set_steam_id(Some(steam_id));
+                                                    // Get the steam id from the path, if possible.
+                                                    let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
+                                                    steam_ids.push(steam_id.to_owned());
+                                                    modd.set_steam_id(Some(steam_id));
 
-                                            }
-                                            None => {
-                                                let mut modd = Mod::default();
-                                                modd.set_name(pack_name.to_owned());
-                                                modd.set_id(pack_name.to_owned());
-                                                modd.set_paths(vec![path.to_path_buf()]);
-
-                                                // Get the steam id from the path, if possible.
-                                                let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
-                                                steam_ids.push(steam_id.to_owned());
-                                                modd.set_steam_id(Some(steam_id));
-
-                                                mods.mods_mut().insert(pack_name, modd);
+                                                    mods.mods_mut().insert(pack_name, modd);
+                                                }
                                             }
                                         }
                                     }
