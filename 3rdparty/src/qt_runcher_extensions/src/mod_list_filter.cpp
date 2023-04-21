@@ -29,3 +29,13 @@ bool ModListFilter::filterAcceptsRow(int source_row, const QModelIndex &source_p
 
     return result;
 }
+
+void ModListFilter::sort(int column, Qt::SortOrder order) {
+    if (column == 6 || column == 7 || column == 8) {
+        setSortRole(30);
+        QSortFilterProxyModel::sort(column, order);
+    } else {
+        setSortRole(2);
+        QSortFilterProxyModel::sort(column, order);
+    }
+}

@@ -12,6 +12,7 @@ class ModListFilter : public QSortFilterProxyModel {
 public:
     explicit ModListFilter(QObject *parent = nullptr);
     bool filterAcceptsRow(int source_row, const QModelIndex & source_parent) const;
+    void sort(int column, Qt::SortOrder order);
 };
 
 #endif // MOD_LIST_FILTER_H

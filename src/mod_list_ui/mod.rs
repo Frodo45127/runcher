@@ -73,6 +73,7 @@ pub const VALUE_MOD_ID: i32 = 21;
 pub const VALUE_PACK_PATH: i32 = 22;
 pub const VALUE_MOD_STEAM_ID: i32 = 23;
 pub const VALUE_PACK_TYPE: i32 = 24;
+pub const VALUE_TIMESTAMP: i32 = 30;
 pub const VALUE_IS_CATEGORY: i32 = 40;
 
 //-------------------------------------------------------------------------------//
@@ -255,6 +256,10 @@ impl ModListUI {
                     } else {
                         "-".to_string()
                     };
+
+                    item_time_created.set_data_2a(&QVariant::from_i64(*modd.time_created() as i64), VALUE_TIMESTAMP);
+                    item_time_updated.set_data_2a(&QVariant::from_i64(*modd.time_updated() as i64), VALUE_TIMESTAMP);
+                    item_last_check.set_data_2a(&QVariant::from_i64(*modd.last_check() as i64), VALUE_TIMESTAMP);
 
                     item_mod_name.set_text(&QString::from_std_str(mod_name));
                     item_creator.set_text(&QString::from_std_str(modd.creator_name()));
