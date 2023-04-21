@@ -600,6 +600,7 @@ impl AppUI {
                                                     if !modd.paths().contains(path) {
                                                         modd.paths_mut().push(path.to_path_buf());
                                                     }
+                                                    modd.set_pack_type(pack.pfh_file_type());
                                                 }
                                                 None => {
                                                     let mut modd = Mod::default();
@@ -634,6 +635,7 @@ impl AppUI {
                                                     let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
                                                     steam_ids.push(steam_id.to_owned());
                                                     modd.set_steam_id(Some(steam_id));
+                                                    modd.set_pack_type(pack.pfh_file_type());
 
                                                 }
                                                 None => {
