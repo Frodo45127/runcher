@@ -129,6 +129,7 @@ impl SettingsUI {
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(STABLE));
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(BETA));
 
+        paths_groupbox.set_title(&qtr("game_paths"));
         language_label.set_text(&qtr("language"));
         default_game_label.set_text(&qtr("default_game"));
         update_chanel_label.set_text(&qtr("update_channel"));

@@ -81,3 +81,4 @@ enable_logging = Enable Logging
 enable_skip_intro = Skip Intro Videos
 pack_type = Pack Type
 steam_id = Steam ID
+game_paths = Game Paths

@@ -17,7 +17,7 @@
    <item row="0" column="0">
     <widget class="QGroupBox" name="paths_groupbox">
      <property name="title">
-      <string>GroupBox</string>
+      <string/>
      </property>
      <layout class="QGridLayout" name="gridLayout_2"/>
     </widget>
@@ -25,7 +25,7 @@
    <item row="1" column="0">
     <widget class="QGroupBox" name="tweaks_groupbox">
      <property name="title">
-      <string>GroupBox</string>
+      <string/>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
       <item row="4" column="0">
