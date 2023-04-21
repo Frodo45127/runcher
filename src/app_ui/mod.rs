@@ -744,7 +744,7 @@ impl AppUI {
 
             // Logging.
             if self.actions_ui().enable_logging().is_checked() {
-                let file = RFile::new_from_vec(&[], FileType::Unknown, 0, SCRIPT_DEBUG_ACTIVATOR_PATH);
+                let file = RFile::new_from_vec("why not working?!!".as_bytes(), FileType::Text, 0, SCRIPT_DEBUG_ACTIVATOR_PATH);
                 reserved_pack.files_mut().insert(SCRIPT_DEBUG_ACTIVATOR_PATH.to_string(), file);
             }
 
