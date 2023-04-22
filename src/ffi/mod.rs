@@ -44,3 +44,8 @@ extern "C" { fn html_item_delegate(view: *mut QObject, column: i32); }
 pub fn html_item_delegate_safe(view: &Ptr<QObject>, column: i32) {
     unsafe { html_item_delegate(view.as_mut_raw_ptr(), column) }
 }
+
+extern "C" { fn flags_item_delegate(view: *mut QObject, column: i32); }
+pub fn flags_item_delegate_safe(view: &Ptr<QObject>, column: i32) {
+    unsafe { flags_item_delegate(view.as_mut_raw_ptr(), column) }
+}

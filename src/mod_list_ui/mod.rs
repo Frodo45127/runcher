@@ -76,6 +76,8 @@ pub const VALUE_PACK_TYPE: i32 = 24;
 pub const VALUE_TIMESTAMP: i32 = 30;
 pub const VALUE_IS_CATEGORY: i32 = 40;
 
+pub const FLAG_MOD_IS_OUTDATED: i32 = 31;
+
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
 //-------------------------------------------------------------------------------//
@@ -220,6 +222,7 @@ impl ModListUI {
                     //let pack = Pack::read_and_merge(&[modd.pack().to_path_buf()], true, false)?;
 
                     let item_mod_name = QStandardItem::new();
+                    let item_flags = QStandardItem::new();
                     let item_creator = QStandardItem::new();
                     let item_type = QStandardItem::new();
                     let item_file_size = QStandardItem::new();
@@ -240,22 +243,33 @@ impl ModListUI {
                     let mod_size = if *modd.file_size() != 0 {
                         format!("{:.2} MB", *modd.file_size() as f64 / 1024.0 / 1024.0)
                     } else {
-                        let size = modd.paths()[0].metadata().unwrap().len();
+                        let size = modd.paths()[0].metadata()?.len();
                         format!("{:.2} MB", size as f64 / 1024.0 / 1024.0)
                     };
 
                     let time_created = if *modd.time_created() != 0 {
-                        OffsetDateTime::from_unix_timestamp(*modd.time_created() as i64).unwrap().format(&SLASH_DMY_DATE_FORMAT).unwrap()
+                        OffsetDateTime::from_unix_timestamp(*modd.time_created() as i64)?.format(&SLASH_DMY_DATE_FORMAT)?
                     } else {
-                        let date = modd.paths()[0].metadata().unwrap().created().unwrap().duration_since(UNIX_EPOCH).unwrap();
-                        OffsetDateTime::from_unix_timestamp(date.as_secs() as i64).unwrap().format(&SLASH_DMY_DATE_FORMAT).unwrap()
+                        let date = modd.paths()[0].metadata()?.created()?.duration_since(UNIX_EPOCH)?;
+                        OffsetDateTime::from_unix_timestamp(date.as_secs() as i64)?.format(&SLASH_DMY_DATE_FORMAT)?
                     };
 
                     let time_updated = if *modd.time_updated() != 0 {
-                        OffsetDateTime::from_unix_timestamp(*modd.time_updated() as i64).unwrap().format(&SLASH_DMY_DATE_FORMAT).unwrap().to_string()
+                        OffsetDateTime::from_unix_timestamp(*modd.time_updated() as i64)?.format(&SLASH_DMY_DATE_FORMAT)?.to_string()
                     } else {
                         "-".to_string()
                     };
+
+                    let mut flags_description = String::new();
+                    if *modd.outdated() {
+                        flags_description.push_str(&tr("mod_outdated_description"));
+                        item_flags.set_data_2a(&QVariant::from_bool(true), FLAG_MOD_IS_OUTDATED);
+                    }
+
+                    if !flags_description.is_empty() {
+                        flags_description = tr("mod_flags_description") + "<ul>" + &flags_description + "<ul/>";
+                        item_flags.set_tool_tip(&QString::from_std_str(&flags_description));
+                    }
 
                     item_time_created.set_data_2a(&QVariant::from_i64(*modd.time_created() as i64), VALUE_TIMESTAMP);
                     item_time_updated.set_data_2a(&QVariant::from_i64(*modd.time_updated() as i64), VALUE_TIMESTAMP);
@@ -286,6 +300,7 @@ impl ModListUI {
                     }
 
                     item_mod_name.set_editable(false);
+                    item_flags.set_editable(false);
                     item_creator.set_editable(false);
                     item_type.set_editable(false);
                     item_file_size.set_editable(false);
@@ -309,6 +324,7 @@ impl ModListUI {
                     //}
 
                     row.append_q_standard_item(&item_mod_name.into_ptr().as_mut_raw_ptr());
+                    row.append_q_standard_item(&item_flags.into_ptr().as_mut_raw_ptr());
                     row.append_q_standard_item(&item_creator.into_ptr().as_mut_raw_ptr());
                     row.append_q_standard_item(&item_type.into_ptr().as_mut_raw_ptr());
                     row.append_q_standard_item(&item_file_size.into_ptr().as_mut_raw_ptr());
@@ -325,13 +341,13 @@ impl ModListUI {
 
         self.setup_columns();
 
-        self.tree_view().hide_column(4);
         self.tree_view().hide_column(5);
-        self.tree_view().hide_column(8);
+        self.tree_view().hide_column(6);
+        self.tree_view().hide_column(9);
 
         // If we have no api key, don't show the author column, as we cannot get it without api key.
         if setting_string("steam_api_key").is_empty() {
-            self.tree_view().hide_column(1);
+            self.tree_view().hide_column(2);
         }
 
         self.tree_view().expand_all();
@@ -343,6 +359,7 @@ impl ModListUI {
 
     pub unsafe fn setup_columns(&self) {
         let item_mod_name = QStandardItem::from_q_string(&qtr("mod_name"));
+        let item_flags = QStandardItem::from_q_string(&qtr("flags"));
         let item_creator = QStandardItem::from_q_string(&qtr("creator"));
         let item_pack_type = QStandardItem::from_q_string(&qtr("pack_type"));
         let item_file_size = QStandardItem::from_q_string(&qtr("file_size"));
@@ -353,16 +370,20 @@ impl ModListUI {
         let item_last_check = QStandardItem::from_q_string(&qtr("last_check"));
 
         self.model.set_horizontal_header_item(0, item_mod_name.into_ptr());
-        self.model.set_horizontal_header_item(1, item_creator.into_ptr());
-        self.model.set_horizontal_header_item(2, item_pack_type.into_ptr());
-        self.model.set_horizontal_header_item(3, item_file_size.into_ptr());
-        self.model.set_horizontal_header_item(4, item_file_url.into_ptr());
-        self.model.set_horizontal_header_item(5, item_preview_url.into_ptr());
-        self.model.set_horizontal_header_item(6, item_time_created.into_ptr());
-        self.model.set_horizontal_header_item(7, item_time_updated.into_ptr());
-        self.model.set_horizontal_header_item(8, item_last_check.into_ptr());
+        self.model.set_horizontal_header_item(1, item_flags.into_ptr());
+        self.model.set_horizontal_header_item(2, item_creator.into_ptr());
+        self.model.set_horizontal_header_item(3, item_pack_type.into_ptr());
+        self.model.set_horizontal_header_item(4, item_file_size.into_ptr());
+        self.model.set_horizontal_header_item(5, item_file_url.into_ptr());
+        self.model.set_horizontal_header_item(6, item_preview_url.into_ptr());
+        self.model.set_horizontal_header_item(7, item_time_created.into_ptr());
+        self.model.set_horizontal_header_item(8, item_time_updated.into_ptr());
+        self.model.set_horizontal_header_item(9, item_last_check.into_ptr());
 
         html_item_delegate_safe(&self.tree_view().static_upcast::<QObject>().as_ptr(), 0);
+        flags_item_delegate_safe(&self.tree_view().static_upcast::<QObject>().as_ptr(), 1);
+
+        self.tree_view.header().set_minimum_section_size(24 * 4);
     }
 
     pub unsafe fn category_new_dialog(&self, rename: bool) -> Result<Option<String>> {

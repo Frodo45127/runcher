@@ -11,69 +11,54 @@
 use getset::*;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use serde_json::to_string_pretty;
 
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufReader, Read};
+use std::fs::{DirBuilder, File};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::SupportedGames};
 
 use crate::game_config_path;
 
-use super::v1::GameConfigV1;
-use super::v1::ModV1;
+use super::GameConfigV2;
+use super::ModV2;
 
 #[derive(Clone, Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
 #[getset(get = "pub", get_mut = "pub", set = "pub")]
-pub struct GameConfigV0 {
-    game_key: String,
-    mods: HashMap<String, ModV0>,
+pub struct GameConfigV1 {
+    pub game_key: String,
+    pub mods: HashMap<String, ModV1>,
 }
 
 #[derive(Clone, Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
-#[getset(get = "pub", get_mut = "pub", set = "pub")]
-pub struct ModV0 {
-
-    // Visual name of the mod. Title if the mod is from the workshop.
-    name: String,
-
-    // Pack name of the mod.
-    id: String,
-
-    // Steam Workshop's id of this mod.
-    steam_id: Option<String>,
-
-    // If the mod is enabled or not.
-    enabled: bool,
-
-    // Category of the mod.
-    category: Option<String>,
-
-    // Multiple paths in case it's both in data and in a secondary folder. /data always takes priority.
-    paths: Vec<PathBuf>,
-
-    // Creator of the mod.
-    creator: String,
-    creator_name: String,
-    file_size: u64,
-    file_url: String,
-    preview_url: String,
-    description: String,
-    time_created: usize,
-    time_updated: usize,
-
-    // Time stamp of the last time we checked. So we don't spam steam.
-    last_check: u64,
+pub struct ModV1 {
+    pub name: String,
+    pub id: String,
+    pub steam_id: Option<String>,
+    pub enabled: bool,
+    pub category: Option<String>,
+    pub pack_type: PFHFileType,
+    pub paths: Vec<PathBuf>,
+    pub creator: String,
+    pub creator_name: String,
+    pub file_size: u64,
+    pub file_url: String,
+    pub preview_url: String,
+    pub description: String,
+    pub time_created: usize,
+    pub time_updated: usize,
+    pub last_check: u64,
 }
 
-impl GameConfigV0 {
+impl GameConfigV1 {
     pub fn update(game_name: &str) -> Result<()> {
         let games = SupportedGames::default();
         if let Some(game_info) = games.game(game_name) {
             let config = Self::load(game_info, false)?;
 
-            let mut config_new = GameConfigV1::from(&config);
+            let mut config_new = GameConfigV2::from(&config);
             config_new.save(game_info)?;
         }
 
@@ -97,19 +82,32 @@ impl GameConfigV0 {
 
         Ok(profile)
     }
+
+    pub fn save(&mut self, game: &GameInfo) -> Result<()> {
+        let path = game_config_path()?.join(format!("game_config_{}.json", game.game_key_name()));
+
+        // Make sure the path exists to avoid problems with updating schemas.
+        if let Some(parent_folder) = path.parent() {
+            DirBuilder::new().recursive(true).create(parent_folder)?;
+        }
+
+        let mut file = BufWriter::new(File::create(path)?);
+        file.write_all(to_string_pretty(&self)?.as_bytes())?;
+        Ok(())
+    }
 }
 
-impl From<&GameConfigV0> for GameConfigV1 {
-    fn from(value: &GameConfigV0) -> Self {
+impl From<&GameConfigV1> for GameConfigV2 {
+    fn from(value: &GameConfigV1) -> Self {
         Self {
             game_key: value.game_key.to_owned(),
-            mods: value.mods.iter().map(|(key, value)| (key.to_owned(), ModV1::from(value))).collect::<HashMap<_, _>>(),
+            mods: value.mods.iter().map(|(key, value)| (key.to_owned(), ModV2::from(value))).collect::<HashMap<_, _>>(),
         }
     }
 }
 
-impl From<&ModV0> for ModV1 {
-    fn from(value: &ModV0) -> Self {
+impl From<&ModV1> for ModV2 {
+    fn from(value: &ModV1) -> Self {
         Self {
             name: value.name.to_owned(),
             id: value.id.to_owned(),
@@ -126,6 +124,7 @@ impl From<&ModV0> for ModV1 {
             time_created: value.time_created,
             time_updated: value.time_updated,
             last_check: value.last_check,
+            outdated: false,
             pack_type: PFHFileType::Mod,
         }
     }

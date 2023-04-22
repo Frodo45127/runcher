@@ -82,3 +82,14 @@ enable_skip_intro = Skip Intro Videos
 pack_type = Pack Type
 steam_id = Steam ID
 game_paths = Game Paths
+flags = Flags
+
+mod_flags_description = Possible problems detected:
+mod_outdated_description = <li>
+        <p><b>Outdated Mod</b>: This mod is for a previous version of the game and may need updating to work properly on the current version of the game.<p/>
+        <p>Some examples of mods that usually do not need updates to keep working are:
+            <ul>
+                <li>Custom Maps</li>
+            <ul/>
+        <p/>
+    </li>

@@ -43,7 +43,7 @@ pub fn info_for_mods(mod_ids: &[String]) -> Result<Vec<WorkshopItem>> {
     get_published_file_details(&client, mod_ids).map_err(From::from)
 }*/
 
-pub fn populate_mods(mods: &mut HashMap<String, Mod>, mod_ids: &[String]) -> Result<()> {
+pub fn populate_mods(mods: &mut HashMap<String, Mod>, mod_ids: &[String], last_update_date: u64) -> Result<()> {
     let client = Workshop::new(None);
     let workshop_items = get_published_file_details(&client, mod_ids)?;
     for workshop_item in workshop_items {
@@ -57,6 +57,8 @@ pub fn populate_mods(mods: &mut HashMap<String, Mod>, mod_ids: &[String]) -> Res
                 modd.set_description(workshop_item.description().clone().unwrap());
                 modd.set_time_created(workshop_item.time_created().unwrap());
                 modd.set_time_updated(workshop_item.time_updated().unwrap());
+
+                modd.set_outdated(last_update_date > *modd.time_updated() as u64);
             }
         }
     }

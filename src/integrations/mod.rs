@@ -72,6 +72,7 @@ pub struct Mod {
     description: String,
     time_created: usize,
     time_updated: usize,
+    outdated: bool,
 
     // Time stamp of the last time we checked. So we don't spam steam.
     last_check: u64,
@@ -132,10 +133,10 @@ impl GameConfig {
 
     pub fn update(game_name: &str) -> Result<()> {
         let _ = versions::v0::GameConfigV0::update(game_name);
+        let _ = versions::v1::GameConfigV1::update(game_name);
 
         Ok(())
     }
-
 }
 
 impl Profile {

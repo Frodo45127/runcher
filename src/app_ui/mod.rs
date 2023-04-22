@@ -48,6 +48,7 @@ use std::path::PathBuf;
 use std::process::{Command as SystemCommand, exit};
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
+use std::time::UNIX_EPOCH;
 
 use rpfm_lib::files::{RFile, FileType, pack::Pack};
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
@@ -568,8 +569,19 @@ impl AppUI {
                 let game_path_str = setting_string(game.game_key_name());
                 self.actions_ui().play_button().set_enabled(!game_path_str.is_empty());
 
-                // If we have a path, load all the mods to the UI.
+                // Get the modified date of the game's exe, to check if a mod is outdated or not.
                 let game_path = PathBuf::from(&game_path_str);
+                let last_update_date = if let Some(exe_path) = game.executable_path(&game_path) {
+                    if let Ok(exe) = File::open(exe_path) {
+                        exe.metadata()?.created()?.duration_since(UNIX_EPOCH)?.as_secs()
+                    } else {
+                        0
+                    }
+                } else {
+                    0
+                };
+
+                // If we have a path, load all the mods to the UI.
                 if !game_path_str.is_empty() {
                     let data_paths = game.data_packs_paths(&game_path);
                     let content_paths = game.content_packs_paths(&game_path);
@@ -601,6 +613,11 @@ impl AppUI {
                                                         modd.paths_mut().push(path.to_path_buf());
                                                     }
                                                     modd.set_pack_type(pack.pfh_file_type());
+
+                                                    let metadata = modd.paths()[0].metadata()?;
+                                                    modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                    modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                    modd.set_outdated(last_update_date > *modd.time_updated() as u64);
                                                 }
                                                 None => {
                                                     let mut modd = Mod::default();
@@ -608,6 +625,11 @@ impl AppUI {
                                                     modd.set_id(pack_name.to_owned());
                                                     modd.set_paths(vec![path.to_path_buf()]);
                                                     modd.set_pack_type(pack.pfh_file_type());
+
+                                                    let metadata = modd.paths()[0].metadata()?;
+                                                    modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                    modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                    modd.set_outdated(last_update_date > *modd.time_updated() as u64);
                                                     mods.mods_mut().insert(pack_name, modd);
                                                 }
                                             }
@@ -637,6 +659,11 @@ impl AppUI {
                                                     modd.set_steam_id(Some(steam_id));
                                                     modd.set_pack_type(pack.pfh_file_type());
 
+                                                    let metadata = modd.paths()[0].metadata()?;
+                                                    modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                    modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                    modd.set_outdated(last_update_date > *modd.time_updated() as u64);
+
                                                 }
                                                 None => {
                                                     let mut modd = Mod::default();
@@ -644,6 +671,11 @@ impl AppUI {
                                                     modd.set_id(pack_name.to_owned());
                                                     modd.set_paths(vec![path.to_path_buf()]);
                                                     modd.set_pack_type(pack.pfh_file_type());
+
+                                                    let metadata = modd.paths()[0].metadata()?;
+                                                    modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                    modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                    modd.set_outdated(last_update_date > *modd.time_updated() as u64);
 
                                                     // Get the steam id from the path, if possible.
                                                     let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
@@ -658,7 +690,7 @@ impl AppUI {
                                 }
                             }
 
-                            let _ = populate_mods(mods.mods_mut(), &steam_ids);
+                            let _ = populate_mods(mods.mods_mut(), &steam_ids, last_update_date);
                             //if let Err(error) = populate_mods(mods.mods_mut(), &steam_ids) {
                             //    //show_dialog(self.main_window(), error, false);
                             //}

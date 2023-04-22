@@ -8,7 +8,8 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
-use crate::integrations::GameConfig as GameConfigV1;
-use crate::integrations::Mod as ModV1;
+use crate::integrations::GameConfig as GameConfigV2;
+use crate::integrations::Mod as ModV2;
 
 pub mod v0;
+pub mod v1;
