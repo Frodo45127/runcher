@@ -37,7 +37,7 @@ void FlagsItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
     painter->translate(option.rect.topLeft());
 
     if (index.data(FLAG_MOD_IS_OUTDATED).toBool()) {
-        paintIcon(painter, option, index, "icons/flag_outdated.png", iconWidth, pos_x, margin);
+        paintIcon(painter, option, index, "outdated", iconWidth, pos_x, margin);
     }
 
     painter->restore();
@@ -58,6 +58,11 @@ void FlagsItemDelegate::paintIcon(QPainter *painter, const QStyleOptionViewItem 
 
         if (icon.isNull()) {
             qWarning() << "Failed to load icon file id: " << iconId;
+            icon = QIcon::fromTheme(iconId).pixmap(iconWidth, iconWidth);
+        }
+
+        if (icon.isNull()) {
+            qWarning() << "Failed to load icon from theme with id: " << iconId;
         }
 
         QPixmapCache::insert(fullIconId, icon);
