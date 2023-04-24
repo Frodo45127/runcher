@@ -6,6 +6,21 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.4.3]
+### Added
+- Implemented movie pack detection support.
+- Implemented outdated mod detection.
+- Performance improvements when starting/refreshing.
+- Updated `Skip Intro Movies` support for WH3 3.0.
+
+### Fixed
+- Fixed incorrect icons on dark theme.
+- Fixed CTD when opening Runcher on a computer with no Steam installation.
+- Fixed incorrect icons on dark theme due to missing dlls.
+- Fixed incorrect sorting on date columns.
+- Fixed incorrect text on settings.
+- Fixed script logger not working.
+
 ## [0.4.2]
 ### Fixed
 - Fixed incorrect icons on dark theme.
@@ -90,7 +105,9 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/Frodo45127/runcher/compare/v0.4.2...v0.4.3
+[0.4.2]: https://github.com/Frodo45127/runcher/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/Frodo45127/runcher/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Frodo45127/runcher/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Frodo45127/runcher/compare/v0.3.0...v0.3.1
