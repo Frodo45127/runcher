@@ -95,6 +95,8 @@ mod_outdated_description = <li>
         <p/>
     </li>
 
+unit_multiplier = Unit Multiplier
+
 update_schema_checker = Update Schema Checker
 update_no_local_schema = <p>No local schemas found. Do you want to download the latest ones?</p><p><b>NOTE:</b> Schemas are needed for certain advanced features.</p>
 schema_no_update = <h4>No new schema updates available</h4> <p>More luck next time :)</p>

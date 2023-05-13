@@ -10,10 +10,13 @@
 
 use qt_widgets::QAction;
 use qt_widgets::QComboBox;
+use qt_widgets::QDoubleSpinBox;
 use qt_widgets::QGridLayout;
+use qt_widgets::QLabel;
 use qt_widgets::QMenu;
 use qt_widgets::{QToolButton, q_tool_button::ToolButtonPopupMode};
 use qt_widgets::QWidget;
+use qt_widgets::QWidgetAction;
 
 use qt_gui::QIcon;
 use qt_gui::QStandardItemModel;
@@ -44,6 +47,8 @@ pub struct ActionsUI {
     play_button: QPtr<QToolButton>,
     enable_logging: QPtr<QAction>,
     enable_skip_intro: QPtr<QAction>,
+    _unit_multiplier: QBox<QWidgetAction>,
+    unit_multiplier_spinbox: QBox<QDoubleSpinBox>,
 
     settings_button: QPtr<QToolButton>,
     folders_button: QPtr<QToolButton>,
@@ -83,8 +88,19 @@ impl ActionsUI {
         let enable_skip_intro = play_menu.add_action_q_string(&qtr("enable_skip_intro"));
         enable_logging.set_checkable(true);
         enable_skip_intro.set_checkable(true);
-        play_button.set_menu(play_menu.into_raw_ptr());
         play_button.set_popup_mode(ToolButtonPopupMode::MenuButtonPopup);
+
+        let unit_multiplier = QWidgetAction::new(&play_menu);
+        let unit_multiplier_widget = QWidget::new_1a(&play_menu);
+        let unit_multiplier_label = QLabel::from_q_string_q_widget(&qtr("unit_multiplier"), &unit_multiplier_widget);
+        let unit_multiplier_spinbox = QDoubleSpinBox::new_1a(&unit_multiplier_widget);
+        let unit_multiplier_layout = create_grid_layout(unit_multiplier_widget.static_upcast());
+        unit_multiplier_layout.add_widget_5a(&unit_multiplier_label, 0, 0, 1, 1);
+        unit_multiplier_layout.add_widget_5a(&unit_multiplier_spinbox, 0, 1, 1, 1);
+        unit_multiplier_spinbox.set_value(1.00);
+        unit_multiplier.set_default_widget(&unit_multiplier_widget);
+        play_menu.add_action(&unit_multiplier);
+        play_button.set_menu(play_menu.into_raw_ptr());
 
         let settings_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "settings_button")?;
         let folders_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "folders_button")?;
@@ -123,6 +139,8 @@ impl ActionsUI {
             play_button,
             enable_logging,
             enable_skip_intro,
+            _unit_multiplier: unit_multiplier,
+            unit_multiplier_spinbox,
 
             settings_button,
             folders_button,

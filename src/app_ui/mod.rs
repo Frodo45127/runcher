@@ -38,19 +38,19 @@ use getset::Getters;
 use rayon::prelude::*;
 use sha256::try_digest;
 
-use std::env::{args, current_exe};
 use std::cmp::Reverse;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::env::{args, current_exe};
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};
 #[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command as SystemCommand, exit};
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::time::UNIX_EPOCH;
 
-use rpfm_lib::files::{RFile, FileType, pack::Pack};
+use rpfm_lib::files::{Container, ContainerPath, DecodeableExtraData, EncodeableExtraData, FileType, pack::Pack, RFile, RFileDecoded, table::DecodedData};
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::{git::*, log::*};
 use rpfm_lib::schema::Schema;
@@ -761,8 +761,9 @@ impl AppUI {
         let mut folder_list = String::new();
         let mut pack_list = String::new();
         let game = self.game_selected().read().unwrap();
+        let game_path = setting_path(game.game_key_name());
 
-        if self.actions_ui().enable_logging().is_checked() || self.actions_ui().enable_skip_intro().is_checked() {
+        if self.actions_ui().enable_logging().is_checked() || self.actions_ui().enable_skip_intro().is_checked() || self.actions_ui().unit_multiplier_spinbox().value() != 1.00 {
             let temp_path_folder = tempfile::tempdir()?.into_path();
             let temp_path_file_name = format!("{}_{}.pack", RESERVED_PACK_NAME, self.game_selected().read().unwrap().game_key_name());
             let temp_path = temp_path_folder.join(&temp_path_file_name);
@@ -790,6 +791,14 @@ impl AppUI {
             if self.actions_ui().enable_logging().is_checked() {
                 let file = RFile::new_from_vec("why not working?!!".as_bytes(), FileType::Text, 0, SCRIPT_DEBUG_ACTIVATOR_PATH);
                 reserved_pack.files_mut().insert(SCRIPT_DEBUG_ACTIVATOR_PATH.to_string(), file);
+            }
+
+            // Unit multiplier.
+            //
+            // As this one requires specific edits on tables, it's only enabled for warhammer 3 for now.
+            let schema = SCHEMA.read().unwrap();
+            if schema.is_some() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00 && game.game_key_name() == "warhammer_3" {
+                self.prepare_unit_multiplier(&game, &game_path, &mut reserved_pack)?;
             }
 
             reserved_pack.save(Some(&temp_path), &game, &None)?;
@@ -825,7 +834,6 @@ impl AppUI {
             .collect::<Vec<_>>()
             .join("\n"));
 
-        let game_path = setting_path(game.game_key_name());
         let file_path = game_path.join("mod_list.txt");
 
         let mut file = BufWriter::new(File::create(file_path)?);
@@ -1366,5 +1374,415 @@ impl AppUI {
                 action.triggered().connect(&slot);
             }
         }
+    }
+
+    pub unsafe fn prepare_unit_multiplier(&self, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack) -> Result<()> {
+
+        let schema = SCHEMA.read().unwrap();
+        if schema.is_some() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00 && game.game_key_name() == "warhammer_3" {
+            let vanilla_pack = Pack::read_and_merge_ca_packs(&game, &game_path)?;
+            let mut kv_rules = vanilla_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
+                .into_iter()
+                .map(|file| file.clone())
+                .collect::<Vec<_>>();
+
+            let mut kv_unit_ability_scaling_rules = vanilla_pack.files_by_path(&ContainerPath::Folder("db/_kv_unit_ability_scaling_rules_tables/".to_string()), true)
+                .into_iter()
+                .map(|file| file.clone())
+                .collect::<Vec<_>>();
+
+            let mut land_units = vanilla_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
+                .into_iter()
+                .map(|file| file.clone())
+                .collect::<Vec<_>>();
+
+            let mut main_units = vanilla_pack.files_by_path(&ContainerPath::Folder("db/main_units_tables/".to_string()), true)
+                .into_iter()
+                .map(|file| file.clone())
+                .collect::<Vec<_>>();
+
+            let mut unit_size_global_scalings = vanilla_pack.files_by_path(&ContainerPath::Folder("db/unit_size_global_scalings_tables/".to_string()), true)
+                .into_iter()
+                .map(|file| file.clone())
+                .collect::<Vec<_>>();
+
+            let mut unit_stat_to_size_scaling_values = vanilla_pack.files_by_path(&ContainerPath::Folder("db/unit_stat_to_size_scaling_values_tables/".to_string()), true)
+                .into_iter()
+                .map(|file| file.clone())
+                .collect::<Vec<_>>();
+
+            let paths = (0..self.pack_list_ui().model().row_count_0a())
+                .map(|index| PathBuf::from(self.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
+                .collect::<Vec<_>>();
+
+            let modded_pack = Pack::read_and_merge(&paths, true, false)?;
+            kv_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
+                .into_iter()
+                .map(|file| file.clone())
+                .collect::<Vec<_>>());
+
+            kv_unit_ability_scaling_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_unit_ability_scaling_rules_tables/".to_string()), true)
+                .into_iter()
+                .map(|file| file.clone())
+                .collect::<Vec<_>>());
+
+            land_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
+                .into_iter()
+                .map(|file| file.clone())
+                .collect::<Vec<_>>());
+
+            main_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/main_units_tables/".to_string()), true)
+                .into_iter()
+                .map(|file| file.clone())
+                .collect::<Vec<_>>());
+
+            unit_size_global_scalings.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/unit_size_global_scalings_tables/".to_string()), true)
+                .into_iter()
+                .map(|file| file.clone())
+                .collect::<Vec<_>>());
+
+            unit_stat_to_size_scaling_values.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/unit_stat_to_size_scaling_values_tables/".to_string()), true)
+                .into_iter()
+                .map(|file| file.clone())
+                .collect::<Vec<_>>());
+
+            // Decode each table, modify it, then re-encode it and add it.
+            let enc_extra_data = Some(EncodeableExtraData::new_from_game_info(&game));
+            let mut dec_extra_data = DecodeableExtraData::default();
+            dec_extra_data.set_schema(schema.as_ref().clone());
+            let dec_extra_data = Some(dec_extra_data);
+
+            for table in &mut kv_rules {
+                if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
+                    for row in data.data_mut()? {
+
+                        if let Some(DecodedData::StringU8(key)) = row.get(0).cloned() {
+
+                            // Battle width change.
+                            if key == "unit_max_drag_width" {
+                                if let Some(DecodedData::F32(value)) = row.get_mut(1) {
+                                    *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                                }
+                            }
+
+                            // Tomb kings campaign mechanic.
+                            if key == "realm_of_souls_tier_1_death_threshold" || key == "realm_of_souls_tier_2_death_threshold" || key == "realm_of_souls_tier_3_death_threshold" {
+                                if let Some(DecodedData::F32(value)) = row.get_mut(1) {
+                                    *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                                }
+                            }
+
+                            // Tomb kings campaign mechanic.
+                            if key == "realm_of_souls_tier_1_death_threshold" || key == "realm_of_souls_tier_2_death_threshold" || key == "realm_of_souls_tier_3_death_threshold" {
+                                if let Some(DecodedData::F32(value)) = row.get_mut(1) {
+                                    *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                                }
+                            }
+
+                            // Not sure what this do, but it seems to affect a few abilities.
+                            if key == "unit_tier1_kills" || key == "unit_tier2_kills" || key == "unit_tier3_kills" {
+                                if let Some(DecodedData::F32(value)) = row.get_mut(1) {
+                                    *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                                }
+                            }
+
+                            // Waaagh minimum threshold? Need to test this.
+                            if key == "waaagh_base_threshold" {
+                                if let Some(DecodedData::F32(value)) = row.get_mut(1) {
+                                    *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                                }
+                            }
+                        }
+                    }
+
+                    table.set_decoded(RFileDecoded::DB(data))?;
+                    table.encode(&enc_extra_data, false, true, false)?;
+                    reserved_pack.insert(table.clone())?;
+                }
+            }
+
+            // Damage scaling.
+            for table in &mut kv_unit_ability_scaling_rules {
+                if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
+                    for row in data.data_mut()? {
+                        if let Some(DecodedData::StringU8(key)) = row.get(0).cloned() {
+                            if key == "direct_damage_large" || key == "direct_damage_medium" || key == "direct_damage_small" || key == "direct_damage_ultra" {
+                                if let Some(DecodedData::F32(value)) = row.get_mut(1) {
+                                    *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                                }
+                            }
+                        }
+                    }
+
+                    table.set_decoded(RFileDecoded::DB(data))?;
+                    table.encode(&enc_extra_data, false, true, false)?;
+                    reserved_pack.insert(table.clone())?;
+                }
+            }
+
+            // Note: we need to process this before land_units to get the single entity units.
+            let mut single_entity_units = HashSet::new();
+            for table in &mut main_units {
+                if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
+                    let num_men_column = data.definition().column_position_by_name("num_men");
+                    let land_unit_column = data.definition().column_position_by_name("land_unit");
+
+                    for row in data.data_mut()? {
+
+                        // General unit size.
+                        if let Some(num_men_column) = num_men_column {
+
+                            // Store single entity units to increase their health later.
+                            if let Some(land_unit_column) = land_unit_column {
+                                if let Some(DecodedData::StringU8(land_unit_value)) = row.get(land_unit_column).cloned() {
+                                    if let Some(DecodedData::I32(num_men_value)) = row.get_mut(num_men_column) {
+
+                                        // There are some exceptions for this that need to be manually marked as single entities.
+                                        if *num_men_value == 1 || land_unit_value == "wh2_dlc09_tmb_cha_settra_2" {
+                                            single_entity_units.insert(land_unit_value.to_owned());
+                                        }
+
+                                        // If it's not a single entity, apply the multiplier.
+                                        else if *num_men_value != 1 {
+                                            *num_men_value = *num_men_value * self.actions_ui().unit_multiplier_spinbox().value().round() as i32;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    table.set_decoded(RFileDecoded::DB(data))?;
+                    table.encode(&enc_extra_data, false, true, false)?;
+                    reserved_pack.insert(table.clone())?;
+                }
+            }
+
+            for table in &mut land_units {
+                if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
+                    let key_column = data.definition().column_position_by_name("key");
+                    let num_mounts_column = data.definition().column_position_by_name("num_mounts");
+                    let rank_depth_column = data.definition().column_position_by_name("rank_depth");
+                    let bonus_hit_points_column = data.definition().column_position_by_name("bonus_hit_points");
+
+                    for row in data.data_mut()? {
+
+                        // For single entities, multiply their health, not their number too.
+                        if let Some(key_column) = key_column {
+                            if let Some(DecodedData::StringU8(key_value)) = row.get(key_column).cloned() {
+                                let is_single_entity = single_entity_units.get(&key_value).is_some();
+
+                                // Cavalry unit size (mounts).
+                                if let Some(column) = num_mounts_column {
+                                    if let Some(DecodedData::I32(value)) = row.get_mut(column) {
+                                        if *value > 1 && !is_single_entity {
+                                            *value = *value * self.actions_ui().unit_multiplier_spinbox().value().round() as i32;
+                                        }
+                                    }
+                                }
+
+                                // Need to find out what the fuck is this.
+                                if let Some(column) = rank_depth_column {
+                                    if let Some(DecodedData::I32(value)) = row.get_mut(column) {
+                                        if *value > 1 && !is_single_entity {
+                                            *value = *value * self.actions_ui().unit_multiplier_spinbox().value().round() as i32;
+                                        }
+                                    }
+                                }
+
+                                if is_single_entity {
+                                    if let Some(bonus_hit_points) = bonus_hit_points_column {
+                                        if let Some(DecodedData::I32(value)) = row.get_mut(bonus_hit_points) {
+                                            *value = *value * self.actions_ui().unit_multiplier_spinbox().value().round() as i32;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+
+                    table.set_decoded(RFileDecoded::DB(data))?;
+                    table.encode(&enc_extra_data, false, true, false)?;
+                    reserved_pack.insert(table.clone())?;
+                }
+            }
+
+            // Generic stat scaling by battle and size.
+            for table in &mut unit_size_global_scalings {
+                if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
+                    let hit_points_building_small = data.definition().column_position_by_name("hit_points_building_small");
+                    let hit_points_building_medium = data.definition().column_position_by_name("hit_points_building_medium");
+                    let hit_points_building_large = data.definition().column_position_by_name("hit_points_building_large");
+                    let hit_points_building_ultra = data.definition().column_position_by_name("hit_points_building_ultra");
+                    let hit_points_siege_vehicle_small = data.definition().column_position_by_name("hit_points_siege_vehicle_small");
+                    let hit_points_siege_vehicle_medium = data.definition().column_position_by_name("hit_points_siege_vehicle_medium");
+                    let hit_points_siege_vehicle_large = data.definition().column_position_by_name("hit_points_siege_vehicle_large");
+                    let hit_points_siege_vehicle_ultra = data.definition().column_position_by_name("hit_points_siege_vehicle_ultra");
+                    let building_projectile_damage_small = data.definition().column_position_by_name("building_projectile_damage_small");
+                    let building_projectile_damage_medium = data.definition().column_position_by_name("building_projectile_damage_medium");
+                    let building_projectile_damage_large = data.definition().column_position_by_name("building_projectile_damage_large");
+                    let building_projectile_damage_ultra = data.definition().column_position_by_name("building_projectile_damage_ultra");
+                    let building_projectile_detonation_damage_small = data.definition().column_position_by_name("building_projectile_detonation_damage_small");
+                    let building_projectile_detonation_damage_medium = data.definition().column_position_by_name("building_projectile_detonation_damage_medium");
+                    let building_projectile_detonation_damage_large = data.definition().column_position_by_name("building_projectile_detonation_damage_large");
+                    let building_projectile_detonation_damage_ultra = data.definition().column_position_by_name("building_projectile_detonation_damage_ultra");
+                    let fort_tower_fire_frequency_small = data.definition().column_position_by_name("fort_tower_fire_frequency_small");
+                    let fort_tower_fire_frequency_medium = data.definition().column_position_by_name("fort_tower_fire_frequency_medium");
+                    let fort_tower_fire_frequency_large = data.definition().column_position_by_name("fort_tower_fire_frequency_large");
+                    let fort_tower_fire_frequency_ultra = data.definition().column_position_by_name("fort_tower_fire_frequency_ultra");
+
+                    for row in data.data_mut()? {
+
+                        if let Some(column) = hit_points_building_small {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = hit_points_building_medium {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = hit_points_building_large {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = hit_points_building_ultra {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = hit_points_siege_vehicle_small {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = hit_points_siege_vehicle_medium {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = hit_points_siege_vehicle_large {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = hit_points_siege_vehicle_ultra {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = building_projectile_damage_small {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = building_projectile_damage_medium {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = building_projectile_damage_large {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = building_projectile_damage_ultra {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = building_projectile_detonation_damage_small {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = building_projectile_detonation_damage_medium {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = building_projectile_detonation_damage_large {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = building_projectile_detonation_damage_ultra {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = fort_tower_fire_frequency_small {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = fort_tower_fire_frequency_medium {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = fort_tower_fire_frequency_large {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+
+                        if let Some(column) = fort_tower_fire_frequency_ultra {
+                            if let Some(DecodedData::F32(value)) = row.get_mut(column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            }
+                        }
+                    }
+
+                    table.set_decoded(RFileDecoded::DB(data))?;
+                    table.encode(&enc_extra_data, false, true, false)?;
+                    reserved_pack.insert(table.clone())?;
+                }
+            }
+
+            // Generic stat scaling by size.
+            for table in &mut unit_stat_to_size_scaling_values {
+                if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
+                    let single_entity_value = data.definition().column_position_by_name("single_entity_value");
+                    for row in data.data_mut()? {
+                        if let Some(single_entity_value_column) = single_entity_value {
+                            if let Some(DecodedData::F64(value)) = row.get_mut(single_entity_value_column) {
+                                *value = *value * self.actions_ui().unit_multiplier_spinbox().value();
+                            }
+                        }
+                    }
+
+                    table.set_decoded(RFileDecoded::DB(data))?;
+                    table.encode(&enc_extra_data, false, true, false)?;
+                    reserved_pack.insert(table.clone())?;
+                }
+            }
+
+            let pack_names = paths.iter().map(|path| path.file_name().unwrap().to_string_lossy().to_string()).collect::<Vec<_>>();
+            reserved_pack.set_dependencies(pack_names);
+        }
+
+        Ok(())
     }
 }
