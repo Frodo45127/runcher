@@ -41,6 +41,7 @@ use std::thread;
 
 use rpfm_lib::games::supported_games::SupportedGames;
 use rpfm_lib::integrations::log::*;
+use rpfm_lib::schema::Schema;
 
 use rpfm_ui_common::locale::FALLBACK_LOCALE;
 use rpfm_ui_common::settings::*;
@@ -68,6 +69,9 @@ lazy_static! {
     /// List of supported games and their configuration.
     #[derive(Debug)]
     static ref SUPPORTED_GAMES: SupportedGames = SupportedGames::default();
+
+    /// Currently loaded schema.
+    static ref SCHEMA: Arc<RwLock<Option<Schema>>> = Arc::new(RwLock::new(None));
 
     /// Sentry client guard, so we can reuse it later on and keep it in scope for the entire duration of the program.
     static ref SENTRY_GUARD: Arc<RwLock<ClientInitGuard>> = Arc::new(RwLock::new(Logger::init(&{

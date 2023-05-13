@@ -14,6 +14,7 @@ menu_bar_about = About
 about_qt = About QT
 about_runcher = About Runcher
 check_updates = Check Updates
+check_schema_updates = Check Schema Updates
 
 settings_game_line_ph = This is the folder where you have {"{"}{"}"} installed, where the .exe is.
 default_game = Default Game
@@ -93,3 +94,10 @@ mod_outdated_description = <li>
             <ul/>
         <p/>
     </li>
+
+update_schema_checker = Update Schema Checker
+update_no_local_schema = <p>No local schemas found. Do you want to download the latest ones?</p><p><b>NOTE:</b> Schemas are needed for certain advanced features.</p>
+schema_no_update = <h4>No new schema updates available</h4> <p>More luck next time :)</p>
+schema_new_update = <h4>New schema update available</h4> <p>Do you want to update the schemas?</p>
+schema_update_success = <h4>Schemas updated and reloaded</h4><p>You can continue using Runcher now.</p>
+check_schema_updates_on_start = Check Schema Updates on Start

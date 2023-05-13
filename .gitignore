@@ -7,6 +7,9 @@
 # Game Configs folder.
 /game_config/
 
+# Schemas folder.
+/schemas/
+
 # Linux built Qt extensions lib.
 /3rdparty/builds/libqt_runcher_extensions.a
 

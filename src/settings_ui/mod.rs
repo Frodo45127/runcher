@@ -74,6 +74,7 @@ pub struct SettingsUI {
     default_game_combobox: QPtr<QComboBox>,
     update_chanel_combobox: QPtr<QComboBox>,
     check_updates_on_start_checkbox: QPtr<QCheckBox>,
+    check_schema_updates_on_start_checkbox: QPtr<QCheckBox>,
     dark_mode_checkbox: QPtr<QCheckBox>,
 
     restore_default_button: QPtr<QPushButton>,
@@ -118,12 +119,14 @@ impl SettingsUI {
         let update_chanel_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "update_chanel_label")?;
         let steam_api_key_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "steam_api_key_label")?;
         let check_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_updates_on_start_label")?;
+        let check_schema_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_schema_updates_on_start_label")?;
         let dark_mode_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "dark_mode_label")?;
         let language_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "language_combobox")?;
         let default_game_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "default_game_combobox")?;
         let update_chanel_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "update_chanel_combobox")?;
         let steam_api_key_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "steam_api_key_line_edit")?;
         let check_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_updates_on_start_checkbox")?;
+        let check_schema_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_schema_updates_on_start_checkbox")?;
         let dark_mode_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "dark_mode_checkbox")?;
         let paths_layout: QPtr<QGridLayout> = paths_groupbox.layout().static_downcast();
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(STABLE));
@@ -135,6 +138,7 @@ impl SettingsUI {
         update_chanel_label.set_text(&qtr("update_channel"));
         steam_api_key_label.set_text(&qtr("steam_api_key"));
         check_updates_on_start_label.set_text(&qtr("check_updates_on_start"));
+        check_schema_updates_on_start_label.set_text(&qtr("check_schema_updates_on_start"));
         dark_mode_label.set_text(&qtr("dark_mode"));
 
         // We automatically add a Label/LineEdit/Button for each game we support.
@@ -183,6 +187,7 @@ impl SettingsUI {
             default_game_combobox,
             update_chanel_combobox,
             check_updates_on_start_checkbox,
+            check_schema_updates_on_start_checkbox,
             dark_mode_checkbox,
 
             restore_default_button,
@@ -232,6 +237,7 @@ impl SettingsUI {
         self.steam_api_key_line_edit().set_text(&QString::from_std_str(setting_string_from_q_setting(&q_settings, "steam_api_key")));
         self.dark_mode_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "dark_mode"));
         self.check_updates_on_start_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "check_updates_on_start"));
+        self.check_schema_updates_on_start_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "check_schema_updates_on_start"));
 
         Ok(())
     }
@@ -262,6 +268,7 @@ impl SettingsUI {
         set_setting_string_to_q_setting(&q_settings, "steam_api_key", &self.steam_api_key_line_edit().text().to_std_string());
         set_setting_bool_to_q_setting(&q_settings, "dark_mode", self.dark_mode_checkbox().is_checked());
         set_setting_bool_to_q_setting(&q_settings, "check_updates_on_start", self.check_updates_on_start_checkbox().is_checked());
+        set_setting_bool_to_q_setting(&q_settings, "check_schema_updates_on_start", self.check_schema_updates_on_start_checkbox().is_checked());
 
         // Save the settings.
         q_settings.sync();
@@ -334,6 +341,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_string(&q_settings, "update_channel", "stable");
     set_setting_if_new_string(&q_settings, "language", "English_en");
     set_setting_if_new_bool(&q_settings, "check_updates_on_start", true);
+    set_setting_if_new_bool(&q_settings, "check_schema_updates_on_start", true);
     set_setting_if_new_bool(&q_settings, "dark_mode", false);
 
     for game in &SUPPORTED_GAMES.games_sorted() {
@@ -374,8 +382,13 @@ pub fn init_config_path() -> Result<()> {
     DirBuilder::new().recursive(true).create(error_path()?)?;
     DirBuilder::new().recursive(true).create(game_config_path()?)?;
     DirBuilder::new().recursive(true).create(profiles_path()?)?;
+    DirBuilder::new().recursive(true).create(schemas_path()?)?;
 
     Ok(())
+}
+
+pub fn schemas_path() -> Result<PathBuf> {
+    Ok(config_path()?.join("schemas"))
 }
 
 pub fn game_config_path() -> Result<PathBuf> {

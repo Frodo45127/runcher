@@ -16,7 +16,7 @@ use crossbeam::channel::{Receiver, Sender, unbounded};
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use rpfm_lib::integrations::log::info;
+use rpfm_lib::integrations::{log::info, git::GitResponse};
 
 use crate::integrations::*;
 use crate::updater::APIResponse;
@@ -51,6 +51,8 @@ pub enum Command {
     Exit,
     CheckUpdates,
     UpdateMainProgram,
+    UpdateSchemas(String),
+    CheckSchemaUpdates,
     GetStringFromLoadOrder(GameConfig),
     GetLoadOrderFromString(String),
 }
@@ -64,6 +66,7 @@ pub enum Response {
     Error(Error),
     String(String),
     APIResponse(APIResponse),
+    APIResponseGit(GitResponse),
     VecShareableMods(Vec<ShareableMod>),
 }
 

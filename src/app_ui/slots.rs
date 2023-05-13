@@ -50,6 +50,7 @@ pub struct AppUISlots {
     about_qt: QBox<SlotNoArgs>,
     about_runcher: QBox<SlotNoArgs>,
     check_updates: QBox<SlotNoArgs>,
+    check_schema_updates: QBox<SlotNoArgs>,
 
     copy_load_order: QBox<SlotNoArgs>,
     paste_load_order: QBox<SlotNoArgs>,
@@ -233,6 +234,12 @@ impl AppUISlots {
             }
         ));
 
+        let check_schema_updates = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                view.check_schema_updates(true);
+            }
+        ));
+
         let copy_load_order = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 if let Some(ref game_config) = *view.game_config().read().unwrap() {
@@ -372,6 +379,7 @@ impl AppUISlots {
             about_qt,
             about_runcher,
             check_updates,
+            check_schema_updates,
 
             copy_load_order,
             paste_load_order,

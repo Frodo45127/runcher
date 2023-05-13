@@ -52,7 +52,8 @@ use std::time::UNIX_EPOCH;
 
 use rpfm_lib::files::{RFile, FileType, pack::Pack};
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
-use rpfm_lib::integrations::log::*;
+use rpfm_lib::integrations::{git::*, log::*};
+use rpfm_lib::schema::Schema;
 
 use rpfm_ui_common::ASSETS_PATH;
 use rpfm_ui_common::clone;
@@ -71,8 +72,8 @@ use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::*;
 use crate::pack_list_ui::PackListUI;
-use crate::settings_ui::SettingsUI;
-use crate::settings_ui::init_settings;
+use crate::SCHEMA;
+use crate::settings_ui::*;
 use crate::SUPPORTED_GAMES;
 use crate::updater::*;
 
@@ -191,6 +192,7 @@ pub struct AppUI {
     about_about_qt: QPtr<QAction>,
     about_about_runcher: QPtr<QAction>,
     about_check_updates: QPtr<QAction>,
+    about_check_schema_updates: QPtr<QAction>,
 
     //-------------------------------------------------------------------------------//
     // `Actions` section.
@@ -314,6 +316,7 @@ impl AppUI {
         let about_about_qt = menu_bar_about.add_action_q_string(&qtr("about_qt"));
         let about_about_runcher = menu_bar_about.add_action_q_string(&qtr("about_runcher"));
         let about_check_updates = menu_bar_about.add_action_q_string(&qtr("check_updates"));
+        let about_check_schema_updates = menu_bar_about.add_action_q_string(&qtr("check_schema_updates"));
 
         //-------------------------------------------------------------------------------//
         // `Actions` section.
@@ -360,6 +363,7 @@ impl AppUI {
             about_about_qt,
             about_about_runcher,
             about_check_updates,
+            about_check_schema_updates,
 
             //-------------------------------------------------------------------------------//
             // `Actions` section.
@@ -405,11 +409,6 @@ impl AppUI {
         app_ui.main_window().show();
         log_to_status_bar(app_ui.main_window().status_bar(), "Initializing, please wait...");
 
-        // If we have it enabled in the prefs, check if there are updates.
-        if setting_bool("check_updates_on_start") {
-            app_ui.check_updates(false);
-        }
-
         // Set the game selected based on the default game. If we passed a game through an argument, use that one.
         //
         // Note: set_checked does *NOT* trigger the slot for changing game selected. We need to trigger that one manually.
@@ -448,6 +447,16 @@ impl AppUI {
         }
         app_ui.load_data(&default_game)?;
 
+        // If we have it enabled in the prefs, check if there are updates.
+        if setting_bool("check_updates_on_start") {
+            app_ui.check_updates(false);
+        }
+
+        // If we have it enabled in the prefs, check if there are schema updates.
+        if setting_bool("check_schema_updates_on_start") {
+            app_ui.check_schema_updates(false);
+        };
+
         Ok(app_ui)
     }
 
@@ -483,6 +492,7 @@ impl AppUI {
         self.about_about_qt().triggered().connect(slots.about_qt());
         self.about_about_runcher().triggered().connect(slots.about_runcher());
         self.about_check_updates().triggered().connect(slots.check_updates());
+        self.about_check_schema_updates().triggered().connect(slots.check_schema_updates());
 
         self.mod_list_ui().model().item_changed().connect(slots.update_pack_list());
         self.mod_list_ui().context_menu().about_to_show().connect(slots.mod_list_context_menu_open());
@@ -549,6 +559,8 @@ impl AppUI {
         // We may receive invalid games here, so rule out the invalid ones.
         match SUPPORTED_GAMES.game(game) {
             Some(game) => {
+                let schema_path = schemas_path().unwrap().join(game.schema_file_name());
+                *SCHEMA.write().unwrap() = Schema::load(&schema_path).ok();
                 *self.game_selected().write().unwrap() = game.clone();
 
                 // Trigger an update of all game configs, just in case one needs update.
@@ -1003,6 +1015,83 @@ impl AppUI {
                         SystemCommand::new(rpfm_exe_path).spawn().unwrap();
                         exit(10);
                     }
+                },
+                Response::Error(error) => {
+                    dialog.set_text(&QString::from_std_str(error.to_string()));
+                    close_button.set_enabled(true);
+                }
+                _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
+            }
+        }
+    }
+
+    /// This function checks if there is any newer version of RPFM's schemas released.
+    ///
+    /// If the `use_dialog` is false, we only show a dialog in case of update available. Useful for checks at start.
+    pub unsafe fn check_schema_updates(&self, use_dialog: bool) {
+        let receiver = CENTRAL_COMMAND.send_network(Command::CheckSchemaUpdates);
+
+        // Create the dialog to show the response and configure it.
+        let dialog = QMessageBox::from_icon2_q_string_q_flags_standard_button_q_widget(
+            q_message_box::Icon::Information,
+            &qtr("update_schema_checker"),
+            &qtr("update_searching"),
+            QFlags::from(q_message_box::StandardButton::Close),
+            self.main_window(),
+        );
+
+        let close_button = dialog.button(q_message_box::StandardButton::Close);
+        let update_button = dialog.add_button_q_string_button_role(&qtr("update_button"), q_message_box::ButtonRole::AcceptRole);
+        update_button.set_enabled(false);
+
+        dialog.set_modal(true);
+        if use_dialog {
+            dialog.show();
+        }
+
+        // When we get a response, act depending on the kind of response we got.
+        let response_thread = CENTRAL_COMMAND.recv_try(&receiver);
+        let message = match response_thread {
+            Response::APIResponseGit(ref response) => {
+                match response {
+                    GitResponse::NewUpdate |
+                    GitResponse::Diverged => {
+                        update_button.set_enabled(true);
+                        qtr("schema_new_update")
+                    }
+                    GitResponse::NoUpdate => {
+                        if !use_dialog { return; }
+                        qtr("schema_no_update")
+                    }
+                    GitResponse::NoLocalFiles => {
+                        update_button.set_enabled(true);
+                        qtr("update_no_local_schema")
+                    }
+                }
+            }
+
+            Response::Error(error) => {
+                if !use_dialog { return; }
+                qtre("api_response_error", &[&error.to_string()])
+            }
+            _ => panic!("{THREADS_COMMUNICATION_ERROR}{response_thread:?}"),
+        };
+
+        // If we hit "Update", try to update the schemas.
+        dialog.set_text(&message);
+        if dialog.exec() == 0 {
+            let receiver = CENTRAL_COMMAND.send_background(Command::UpdateSchemas(self.game_selected().read().unwrap().schema_file_name().to_owned()));
+
+            dialog.show();
+            dialog.set_text(&qtr("update_in_prog"));
+            update_button.set_enabled(false);
+            close_button.set_enabled(false);
+
+            let response = CENTRAL_COMMAND.recv_try(&receiver);
+            match response {
+                Response::Success => {
+                    dialog.set_text(&qtr("schema_update_success"));
+                    close_button.set_enabled(true);
                 },
                 Response::Error(error) => {
                     dialog.set_text(&QString::from_std_str(error.to_string()));
