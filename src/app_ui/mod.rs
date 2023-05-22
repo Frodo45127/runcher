@@ -1524,6 +1524,7 @@ impl AppUI {
             let mut single_entity_units = HashSet::new();
             for table in &mut main_units {
                 if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
+                    let caste_column = data.definition().column_position_by_name("caste");
                     let num_men_column = data.definition().column_position_by_name("num_men");
                     let land_unit_column = data.definition().column_position_by_name("land_unit");
 
@@ -1531,20 +1532,27 @@ impl AppUI {
 
                         // General unit size.
                         if let Some(num_men_column) = num_men_column {
+                            if let Some(caste_column) = caste_column {
 
-                            // Store single entity units to increase their health later.
-                            if let Some(land_unit_column) = land_unit_column {
-                                if let Some(DecodedData::StringU8(land_unit_value)) = row.get(land_unit_column).cloned() {
-                                    if let Some(DecodedData::I32(num_men_value)) = row.get_mut(num_men_column) {
+                                // Store single entity units to increase their health later.
+                                if let Some(land_unit_column) = land_unit_column {
+                                    if let Some(DecodedData::StringU8(land_unit_value)) = row.get(land_unit_column).cloned() {
+                                        if let Some(DecodedData::StringU8(caste_value)) = row.get(caste_column).cloned() {
+                                            if let Some(DecodedData::I32(num_men_value)) = row.get_mut(num_men_column) {
 
-                                        // There are some exceptions for this that need to be manually marked as single entities.
-                                        if *num_men_value == 1 || land_unit_value == "wh2_dlc09_tmb_cha_settra_2" {
-                                            single_entity_units.insert(land_unit_value.to_owned());
-                                        }
+                                                // There are some exceptions for this that need to be manually marked as single entities. Mainly:
+                                                // - Lords & heroes.
+                                                // - Certain warmachines.
+                                                // - Certain multimount monsters.
+                                                if caste_value == "lord" || caste_value == "hero" || *num_men_value < 10 || land_unit_value.contains("hellcannon") {
+                                                    single_entity_units.insert(land_unit_value.to_owned());
+                                                }
 
-                                        // If it's not a single entity, apply the multiplier.
-                                        else if *num_men_value != 1 {
-                                            *num_men_value = *num_men_value * self.actions_ui().unit_multiplier_spinbox().value().round() as i32;
+                                                // If it's not a single entity, apply the multiplier.
+                                                else {
+                                                    *num_men_value = (*num_men_value as f64 * self.actions_ui().unit_multiplier_spinbox().value()).round() as i32;
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1564,6 +1572,7 @@ impl AppUI {
                     let num_mounts_column = data.definition().column_position_by_name("num_mounts");
                     let rank_depth_column = data.definition().column_position_by_name("rank_depth");
                     let bonus_hit_points_column = data.definition().column_position_by_name("bonus_hit_points");
+                    let num_engines_column = data.definition().column_position_by_name("num_engines");
 
                     for row in data.data_mut()? {
 
@@ -1572,11 +1581,20 @@ impl AppUI {
                             if let Some(DecodedData::StringU8(key_value)) = row.get(key_column).cloned() {
                                 let is_single_entity = single_entity_units.get(&key_value).is_some();
 
+                                // Artillery pieces.
+                                if let Some(column) = num_engines_column {
+                                    if let Some(DecodedData::I32(value)) = row.get_mut(column) {
+                                        if !is_single_entity {
+                                            *value = (*value as f64 * self.actions_ui().unit_multiplier_spinbox().value()).round() as i32;
+                                        }
+                                    }
+                                }
+
                                 // Cavalry unit size (mounts).
                                 if let Some(column) = num_mounts_column {
                                     if let Some(DecodedData::I32(value)) = row.get_mut(column) {
-                                        if *value > 1 && !is_single_entity {
-                                            *value = *value * self.actions_ui().unit_multiplier_spinbox().value().round() as i32;
+                                        if !is_single_entity {
+                                            *value = (*value as f64 * self.actions_ui().unit_multiplier_spinbox().value()).round() as i32;
                                         }
                                     }
                                 }
@@ -1584,8 +1602,8 @@ impl AppUI {
                                 // Need to find out what the fuck is this.
                                 if let Some(column) = rank_depth_column {
                                     if let Some(DecodedData::I32(value)) = row.get_mut(column) {
-                                        if *value > 1 && !is_single_entity {
-                                            *value = *value * self.actions_ui().unit_multiplier_spinbox().value().round() as i32;
+                                        if !is_single_entity {
+                                            *value = (*value as f64 * self.actions_ui().unit_multiplier_spinbox().value()).round() as i32;
                                         }
                                     }
                                 }
@@ -1593,7 +1611,7 @@ impl AppUI {
                                 if is_single_entity {
                                     if let Some(bonus_hit_points) = bonus_hit_points_column {
                                         if let Some(DecodedData::I32(value)) = row.get_mut(bonus_hit_points) {
-                                            *value = *value * self.actions_ui().unit_multiplier_spinbox().value().round() as i32;
+                                            *value = (*value as f64 * self.actions_ui().unit_multiplier_spinbox().value()).round() as i32;
                                         }
                                     }
                                 }
