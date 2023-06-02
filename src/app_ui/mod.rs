@@ -464,6 +464,7 @@ impl AppUI {
         self.actions_ui().play_button().released().connect(slots.launch_game());
         self.actions_ui().enable_logging().toggled().connect(slots.toggle_logging());
         self.actions_ui().enable_skip_intro().toggled().connect(slots.toggle_skip_intros());
+        self.actions_ui().unit_multiplier_spinbox().value_changed().connect(slots.change_unit_multiplier());
         self.actions_ui().settings_button().released().connect(slots.open_settings());
         self.actions_ui().folders_button().released().connect(slots.open_folders_submenu());
         self.actions_ui().open_game_root_folder().triggered().connect(slots.open_game_root_folder());
@@ -719,6 +720,14 @@ impl AppUI {
                 // Update the launch options for the new game.
                 self.actions_ui().enable_logging().set_checked(setting_bool(&format!("enable_logging_{}", game.game_key_name())));
                 self.actions_ui().enable_skip_intro().set_checked(setting_bool(&format!("enable_skip_intros_{}", game.game_key_name())));
+                self.actions_ui().unit_multiplier_spinbox().set_value({
+                    let value = setting_f32(&format!("unit_multiplier_{}", game.game_key_name()));
+                    if value == 0.00 {
+                        1.00
+                    } else {
+                        value
+                    }
+                } as f64);
 
                 Ok(())
             },
