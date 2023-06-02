@@ -40,7 +40,6 @@ const VIEW_RELEASE: &str = "ui/actions_groupbox.ui";
 //                              Enums & Structs
 //-------------------------------------------------------------------------------//
 
-
 #[derive(Debug, Getters)]
 #[getset(get = "pub")]
 pub struct ActionsUI {
@@ -66,7 +65,6 @@ pub struct ActionsUI {
     profile_save_button: QPtr<QToolButton>,
     profile_combobox: QPtr<QComboBox>,
     profile_model: QBox<QStandardItemModel>,
-
 }
 
 //-------------------------------------------------------------------------------//

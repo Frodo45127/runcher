@@ -578,6 +578,66 @@ impl AppUI {
                     self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
                 }
 
+                // Only set enabled the launch options that work for the current game.
+                match game.game_key_name() {
+                    "warhammer_3" => {
+                        self.actions_ui().enable_logging().set_enabled(true);
+                        self.actions_ui().enable_skip_intro().set_enabled(true);
+                        self.actions_ui().unit_multiplier_spinbox().set_enabled(true);
+                    },
+                    "troy" => {
+                        self.actions_ui().enable_logging().set_enabled(false);
+                        self.actions_ui().enable_skip_intro().set_enabled(false);
+                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+                    },
+                    "three_kingdoms" => {
+                        self.actions_ui().enable_logging().set_enabled(false);
+                        self.actions_ui().enable_skip_intro().set_enabled(false);
+                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+                    },
+                    "warhammer_2" => {
+                        self.actions_ui().enable_logging().set_enabled(false);
+                        self.actions_ui().enable_skip_intro().set_enabled(false);
+                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+                    },
+                    "warhammer" => {
+                        self.actions_ui().enable_logging().set_enabled(false);
+                        self.actions_ui().enable_skip_intro().set_enabled(false);
+                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+                    },
+                    "thrones_of_britannia" => {
+                        self.actions_ui().enable_logging().set_enabled(false);
+                        self.actions_ui().enable_skip_intro().set_enabled(false);
+                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+                    },
+                    "attila" => {
+                        self.actions_ui().enable_logging().set_enabled(false);
+                        self.actions_ui().enable_skip_intro().set_enabled(false);
+                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+                    },
+                    "rome_2" => {
+                        self.actions_ui().enable_logging().set_enabled(false);
+                        self.actions_ui().enable_skip_intro().set_enabled(false);
+                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+                    },
+                    "shogun_2" => {
+                        self.actions_ui().enable_logging().set_enabled(false);
+                        self.actions_ui().enable_skip_intro().set_enabled(false);
+                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+                    },
+                    "napoleon" => {
+                        self.actions_ui().enable_logging().set_enabled(false);
+                        self.actions_ui().enable_skip_intro().set_enabled(false);
+                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+                    },
+                    "empire" => {
+                        self.actions_ui().enable_logging().set_enabled(false);
+                        self.actions_ui().enable_skip_intro().set_enabled(false);
+                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+                    }
+                    &_ => {},
+                }
+
                 // If we don't have a path in the settings for the game, disable the play button.
                 let game_path_str = setting_string(game.game_key_name());
                 self.actions_ui().play_button().set_enabled(!game_path_str.is_empty());
@@ -772,7 +832,10 @@ impl AppUI {
         let game = self.game_selected().read().unwrap();
         let game_path = setting_path(game.game_key_name());
 
-        if self.actions_ui().enable_logging().is_checked() || self.actions_ui().enable_skip_intro().is_checked() || self.actions_ui().unit_multiplier_spinbox().value() != 1.00 {
+        if (self.actions_ui().enable_logging().is_enabled() && self.actions_ui().enable_logging().is_checked()) ||
+            (self.actions_ui().enable_skip_intro().is_enabled() && self.actions_ui().enable_skip_intro().is_checked()) ||
+            (self.actions_ui().unit_multiplier_spinbox().is_enabled() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00) {
+
             let temp_path_folder = tempfile::tempdir()?.into_path();
             let temp_path_file_name = format!("{}_{}.pack", RESERVED_PACK_NAME, self.game_selected().read().unwrap().game_key_name());
             let temp_path = temp_path_folder.join(&temp_path_file_name);
@@ -784,7 +847,7 @@ impl AppUI {
             let mut reserved_pack = Pack::new_with_version(pack_version);
 
             // Skip videos.
-            if self.actions_ui().enable_skip_intro().is_checked() {
+            if self.actions_ui().enable_skip_intro().is_enabled() && self.actions_ui().enable_skip_intro().is_checked() {
                 for (game_key, paths) in INTRO_MOVIE_PATHS_BY_GAME {
                     if game.game_key_name() == game_key {
                         for path in paths {
@@ -797,7 +860,7 @@ impl AppUI {
             }
 
             // Logging.
-            if self.actions_ui().enable_logging().is_checked() {
+            if self.actions_ui().enable_logging().is_enabled() && self.actions_ui().enable_logging().is_checked() {
                 let file = RFile::new_from_vec("why not working?!!".as_bytes(), FileType::Text, 0, SCRIPT_DEBUG_ACTIVATOR_PATH);
                 reserved_pack.files_mut().insert(SCRIPT_DEBUG_ACTIVATOR_PATH.to_string(), file);
             }
@@ -806,7 +869,7 @@ impl AppUI {
             //
             // As this one requires specific edits on tables, it's only enabled for warhammer 3 for now.
             let schema = SCHEMA.read().unwrap();
-            if schema.is_some() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00 && game.game_key_name() == "warhammer_3" {
+            if schema.is_some() && self.actions_ui().unit_multiplier_spinbox().is_enabled() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00 {
                 self.prepare_unit_multiplier(&game, &game_path, &mut reserved_pack)?;
             }
 
