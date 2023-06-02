@@ -891,13 +891,23 @@ impl AppUI {
                         let mut path = PathBuf::from(item_path.text().to_std_string());
                         path.pop();
 
-                        let mut path_str = path.to_string_lossy().to_string();
-                        if path_str.starts_with("\\\\?\\") {
-                            path_str = path_str[4..].to_string();
+                        // Canonicalization is required due to some issues with the game not loading not properly formatted paths.
+                        if let Ok(path) = std::fs::canonicalize(path) {
+                            let mut path_str = path.to_string_lossy().to_string();
+                            if path_str.starts_with("\\\\?\\") {
+                                path_str = path_str[4..].to_string();
+                            }
+
+                            folder_list.push_str(&format!("add_working_directory \"{}\";\n", path_str));
+                        } else {
+                            return None;
                         }
-                        folder_list.push_str(&format!("add_working_directory \"{}\";\n", path_str));
                     }
-                    string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
+                    if game.raw_db_version() > 1 {
+                        string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
+                    } else {
+                        string.push_str(&format!("mod {};", item.text().to_std_string()));
+                    }
                     Some(string)
                 } else {
                     None
@@ -906,7 +916,13 @@ impl AppUI {
             .collect::<Vec<_>>()
             .join("\n"));
 
-        let file_path = game_path.join("mod_list.txt");
+        // NOTE: On Shogun 2 and older we need to use the user_script, not the custom file, as it doesn't seem to work.
+        let file_path = if game.raw_db_version() > 1 {
+            game_path.join("mod_list.txt")
+        } else {
+            let config_path = game.config_path(&game_path).ok_or(anyhow!("Error getting the game's config path."))?;
+            config_path.join("scripts/user.script.txt")
+        };
 
         let mut file = BufWriter::new(File::create(file_path)?);
         file.write_all(folder_list.as_bytes())?;
@@ -916,13 +932,20 @@ impl AppUI {
         let exec_game = game.executable_path(&game_path).unwrap();
 
         if cfg!(target_os = "windows") {
-            let mut command = SystemCommand::new("cmd");
-            command.arg("/C");
-            command.arg("start");
-            command.arg("/d");
-            command.arg(game_path.to_string_lossy().replace('\\', "/"));
-            command.arg(exec_game.file_name().unwrap().to_string_lossy().to_string());
-            command.arg("mod_list.txt;");
+            let mut command = if game.raw_db_version() > 1 {
+                let mut command = SystemCommand::new("cmd");
+                command.arg("/C");
+                command.arg("start");
+                command.arg("/d");
+                command.arg(game_path.to_string_lossy().replace('\\', "/"));
+                command.arg(exec_game.file_name().unwrap().to_string_lossy().to_string());
+                command.arg("mod_list.txt;");
+                command
+            } else {
+                let mut command = SystemCommand::new(exec_game.to_string_lossy().to_string());
+                command.current_dir(game_path.to_string_lossy().replace('\\', "/"));
+                command
+            };
 
             // This disables the terminal when executing the command.
             #[cfg(target_os = "windows")]command.creation_flags(CREATE_NO_WINDOW);
