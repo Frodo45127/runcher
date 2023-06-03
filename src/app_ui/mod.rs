@@ -670,47 +670,6 @@ impl AppUI {
                             // Clear the previous paths.
                             mods.mods_mut().values_mut().for_each(|modd| modd.paths_mut().clear());
 
-                            if let Some(ref paths) = data_paths {
-                                let paths = paths.iter().filter(|path| !vanilla_packs.contains(path)).collect::<Vec<_>>();
-                                let packs = paths.par_iter()
-                                    .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false)))
-                                    .collect::<Vec<_>>();
-
-                                for (path, pack) in packs {
-                                    let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                                    if let Ok(pack) = pack {
-                                        if pack.pfh_file_type() == PFHFileType::Mod || pack.pfh_file_type() == PFHFileType::Movie {
-                                            match mods.mods_mut().get_mut(&pack_name) {
-                                                Some(modd) => {
-                                                    if !modd.paths().contains(path) {
-                                                        modd.paths_mut().push(path.to_path_buf());
-                                                    }
-                                                    modd.set_pack_type(pack.pfh_file_type());
-
-                                                    let metadata = modd.paths()[0].metadata()?;
-                                                    modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                                    modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                                    modd.set_outdated(last_update_date > *modd.time_updated() as u64);
-                                                }
-                                                None => {
-                                                    let mut modd = Mod::default();
-                                                    modd.set_name(pack_name.to_owned());
-                                                    modd.set_id(pack_name.to_owned());
-                                                    modd.set_paths(vec![path.to_path_buf()]);
-                                                    modd.set_pack_type(pack.pfh_file_type());
-
-                                                    let metadata = modd.paths()[0].metadata()?;
-                                                    modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                                    modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                                    modd.set_outdated(last_update_date > *modd.time_updated() as u64);
-                                                    mods.mods_mut().insert(pack_name, modd);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
                             if let Some(ref paths) = content_paths {
                                 let packs = paths.par_iter()
                                     .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false)))
@@ -732,11 +691,10 @@ impl AppUI {
                                                     modd.set_steam_id(Some(steam_id));
                                                     modd.set_pack_type(pack.pfh_file_type());
 
-                                                    let metadata = modd.paths()[0].metadata()?;
+                                                    let metadata = modd.paths().last().unwrap().metadata()?;
                                                     modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                                     modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                                     modd.set_outdated(last_update_date > *modd.time_updated() as u64);
-
                                                 }
                                                 None => {
                                                     let mut modd = Mod::default();
@@ -764,9 +722,91 @@ impl AppUI {
                             }
 
                             let _ = populate_mods(mods.mods_mut(), &steam_ids, last_update_date);
-                            //if let Err(error) = populate_mods(mods.mods_mut(), &steam_ids) {
-                            //    //show_dialog(self.main_window(), error, false);
-                            //}
+
+                            // If any of the mods has a .bin file, we need to copy it to /data and turn it into a Pack.
+                            // All the if lets are because we only want to do all this if nothing files and ignore failures.
+                            let steam_user_id = setting_string("steam_user_id");
+                            for (_, modd) in mods.mods_mut() {
+                                if let Some(last_path) = modd.paths().last() {
+                                    if let Some(extension) = last_path.extension() {
+
+                                        // Only copy bins which are not yet in the data folder and which are not made by the steam user.
+                                        if extension.to_string_lossy() == "bin" && !modd.file_name().is_empty() {
+                                            if let Ok(mut pack) = Pack::read_and_merge(&[last_path.to_path_buf()], true, false) {
+                                                if let Ok(new_path) = game.data_path(&game_path) {
+                                                    if let Some(name) = modd.file_name().split('/').last() {
+                                                        let new_path = new_path.join(name);
+
+                                                        // Copy the files unless it exists and its ours.
+                                                        if !new_path.is_file() || (new_path.is_file() && &steam_user_id != modd.creator()) {
+                                                            if pack.save(Some(&new_path), game, &None).is_ok() {
+                                                                modd.paths_mut().insert(0, new_path);
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if let Some(ref paths) = data_paths {
+                                let paths = paths.iter().filter(|path| !vanilla_packs.contains(path)).collect::<Vec<_>>();
+                                let packs = paths.par_iter()
+                                    .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false)))
+                                    .collect::<Vec<_>>();
+
+                                for (path, pack) in packs {
+                                    let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
+                                    if let Ok(pack) = pack {
+                                        if pack.pfh_file_type() == PFHFileType::Mod || pack.pfh_file_type() == PFHFileType::Movie {
+
+                                            // Check if the pack corresponds to a bin.
+                                            if let Some((_, modd)) = mods.mods_mut().iter_mut().find(|(_, modd)| !modd.file_name().is_empty() && modd.file_name().split('/').last().unwrap() == pack_name) {
+                                                if !modd.paths().contains(path) {
+                                                    modd.paths_mut().insert(0, path.to_path_buf());
+                                                }
+
+                                                let metadata = modd.paths()[0].metadata()?;
+                                                modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                modd.set_outdated(last_update_date > *modd.time_updated() as u64);
+                                            } else {
+                                                match mods.mods_mut().get_mut(&pack_name) {
+                                                    Some(modd) => {
+                                                        if !modd.paths().contains(path) {
+                                                            modd.paths_mut().insert(0, path.to_path_buf());
+                                                        }
+                                                        modd.set_pack_type(pack.pfh_file_type());
+
+                                                        let metadata = modd.paths()[0].metadata()?;
+                                                        modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                        modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                        modd.set_outdated(last_update_date > *modd.time_updated() as u64);
+                                                    }
+                                                    None => {
+                                                        let mut modd = Mod::default();
+                                                        modd.set_name(pack_name.to_owned());
+                                                        modd.set_id(pack_name.to_owned());
+                                                        modd.set_paths(vec![path.to_path_buf()]);
+                                                        modd.set_pack_type(pack.pfh_file_type());
+
+                                                        let metadata = modd.paths()[0].metadata()?;
+                                                        modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                        modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                        modd.set_outdated(last_update_date > *modd.time_updated() as u64);
+                                                        mods.mods_mut().insert(pack_name, modd);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Save the GameConfig or we may lost the population.
+                            let _ = mods.save(game);
                         }
                     }
                 }

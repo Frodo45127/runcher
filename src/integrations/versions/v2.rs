@@ -22,18 +22,18 @@ use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::Sup
 
 use crate::game_config_path;
 
-use super::v2::GameConfigV2;
-use super::v2::ModV2;
+use super::GameConfigV3;
+use super::ModV3;
 
 #[derive(Clone, Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
 #[getset(get = "pub", get_mut = "pub", set = "pub")]
-pub struct GameConfigV1 {
+pub struct GameConfigV2 {
     pub game_key: String,
-    pub mods: HashMap<String, ModV1>,
+    pub mods: HashMap<String, ModV2>,
 }
 
 #[derive(Clone, Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
-pub struct ModV1 {
+pub struct ModV2 {
     pub name: String,
     pub id: String,
     pub steam_id: Option<String>,
@@ -49,16 +49,17 @@ pub struct ModV1 {
     pub description: String,
     pub time_created: usize,
     pub time_updated: usize,
+    pub outdated: bool,
     pub last_check: u64,
 }
 
-impl GameConfigV1 {
+impl GameConfigV2 {
     pub fn update(game_name: &str) -> Result<()> {
         let games = SupportedGames::default();
         if let Some(game_info) = games.game(game_name) {
             let config = Self::load(game_info, false)?;
 
-            let mut config_new = GameConfigV2::from(&config);
+            let mut config_new = GameConfigV3::from(&config);
             config_new.save(game_info)?;
         }
 
@@ -97,17 +98,17 @@ impl GameConfigV1 {
     }
 }
 
-impl From<&GameConfigV1> for GameConfigV2 {
-    fn from(value: &GameConfigV1) -> Self {
+impl From<&GameConfigV2> for GameConfigV3 {
+    fn from(value: &GameConfigV2) -> Self {
         Self {
             game_key: value.game_key.to_owned(),
-            mods: value.mods.iter().map(|(key, value)| (key.to_owned(), ModV2::from(value))).collect::<HashMap<_, _>>(),
+            mods: value.mods.iter().map(|(key, value)| (key.to_owned(), ModV3::from(value))).collect::<HashMap<_, _>>(),
         }
     }
 }
 
-impl From<&ModV1> for ModV2 {
-    fn from(value: &ModV1) -> Self {
+impl From<&ModV2> for ModV3 {
+    fn from(value: &ModV2) -> Self {
         Self {
             name: value.name.to_owned(),
             id: value.id.to_owned(),
@@ -117,6 +118,7 @@ impl From<&ModV1> for ModV2 {
             paths: value.paths.to_owned(),
             creator: value.creator.to_owned(),
             creator_name: value.creator_name.to_owned(),
+            file_name: String::new(),
             file_size: value.file_size,
             file_url: value.file_url.to_owned(),
             preview_url: value.preview_url.to_owned(),

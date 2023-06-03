@@ -234,7 +234,11 @@ impl ModListUI {
 
                     // TODO: make this use <b> and <i>
                     let mod_name = if modd.name() != modd.id() {
-                        format!("<b>{}</b> <i>({})</i>", modd.name(), modd.id())
+                        if !modd.file_name().is_empty() {
+                            format!("<b>{}</b> <i>({} - {})</i>", modd.name(), modd.file_name().split('/').last().unwrap(), modd.id())
+                        } else {
+                            format!("<b>{}</b> <i>({})</i>", modd.name(), modd.id())
+                        }
                     } else {
                         format!("<i>{}</i>", modd.name())
                     };

@@ -31,9 +31,11 @@ use qt_core::QString;
 
 use anyhow::Result;
 use getset::*;
+use regex::Regex;
 
 use std::collections::BTreeMap;
-use std::fs::DirBuilder;
+use std::fs::{DirBuilder, File};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -68,6 +70,7 @@ pub struct SettingsUI {
     paths_games_line_edits: BTreeMap<String, QBox<QLineEdit>>,
     paths_games_buttons: BTreeMap<String, QBox<QToolButton>>,
 
+    steam_user_id_line_edit: QPtr<QLineEdit>,
     steam_api_key_line_edit: QPtr<QLineEdit>,
 
     language_combobox: QPtr<QComboBox>,
@@ -117,6 +120,7 @@ impl SettingsUI {
         let language_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "language_label")?;
         let default_game_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "default_game_label")?;
         let update_chanel_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "update_chanel_label")?;
+        let steam_user_id_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "steam_user_id_label")?;
         let steam_api_key_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "steam_api_key_label")?;
         let check_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_updates_on_start_label")?;
         let check_schema_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_schema_updates_on_start_label")?;
@@ -124,6 +128,7 @@ impl SettingsUI {
         let language_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "language_combobox")?;
         let default_game_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "default_game_combobox")?;
         let update_chanel_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "update_chanel_combobox")?;
+        let steam_user_id_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "steam_user_id_line_edit")?;
         let steam_api_key_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "steam_api_key_line_edit")?;
         let check_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_updates_on_start_checkbox")?;
         let check_schema_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_schema_updates_on_start_checkbox")?;
@@ -136,6 +141,7 @@ impl SettingsUI {
         language_label.set_text(&qtr("language"));
         default_game_label.set_text(&qtr("default_game"));
         update_chanel_label.set_text(&qtr("update_channel"));
+        steam_user_id_label.set_text(&qtr("steam_user_id"));
         steam_api_key_label.set_text(&qtr("steam_api_key"));
         check_updates_on_start_label.set_text(&qtr("check_updates_on_start"));
         check_schema_updates_on_start_label.set_text(&qtr("check_schema_updates_on_start"));
@@ -182,6 +188,7 @@ impl SettingsUI {
             dialog,
             paths_games_line_edits,
             paths_games_buttons,
+            steam_user_id_line_edit,
             steam_api_key_line_edit,
             language_combobox,
             default_game_combobox,
@@ -234,6 +241,7 @@ impl SettingsUI {
             }
         }
 
+        self.steam_user_id_line_edit().set_text(&QString::from_std_str(setting_string_from_q_setting(&q_settings, "steam_user_id")));
         self.steam_api_key_line_edit().set_text(&QString::from_std_str(setting_string_from_q_setting(&q_settings, "steam_api_key")));
         self.dark_mode_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "dark_mode"));
         self.check_updates_on_start_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "check_updates_on_start"));
@@ -265,6 +273,7 @@ impl SettingsUI {
         }
 
         set_setting_string_to_q_setting(&q_settings, "update_channel", &self.update_chanel_combobox.current_text().to_std_string());
+        set_setting_string_to_q_setting(&q_settings, "steam_user_id", &self.steam_user_id_line_edit().text().to_std_string());
         set_setting_string_to_q_setting(&q_settings, "steam_api_key", &self.steam_api_key_line_edit().text().to_std_string());
         set_setting_bool_to_q_setting(&q_settings, "dark_mode", self.dark_mode_checkbox().is_checked());
         set_setting_bool_to_q_setting(&q_settings, "check_updates_on_start", self.check_updates_on_start_checkbox().is_checked());
@@ -336,6 +345,29 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_q_byte_array(&q_settings, "originalGeometry", main_window.save_geometry().as_ref());
     set_setting_if_new_q_byte_array(&q_settings, "originalWindowState", main_window.save_state_0a().as_ref());
 
+    let path = PathBuf::from("C:/Program Files (x86)/Steam/config/loginusers.vdf");
+    let steam_user_id = if path.is_file() {
+        match File::open(path) {
+            Ok(mut file) => {
+                let mut data = String::new();
+                let _ = file.read_to_string(&mut data);
+
+                let regex = Regex::new("(\\d+)").unwrap();
+                if let Some(captures) = regex.captures(&data) {
+                    if let Some(capture) = captures.get(0) {
+                        if capture.as_str().parse::<u64>().is_ok() {
+                            capture.as_str().to_owned()
+                        } else { String::new() }
+                    } else { String::new() }
+                } else { String::new() }
+            }
+            Err(_) => String::new(),
+        }
+    } else {
+        String::new()
+    };
+
+    set_setting_if_new_string(&q_settings, "steam_user_id", &steam_user_id);
     set_setting_if_new_string(&q_settings, "steam_api_key", "");
     set_setting_if_new_string(&q_settings, "default_game", "warhammer_3");
     set_setting_if_new_string(&q_settings, "update_channel", "stable");

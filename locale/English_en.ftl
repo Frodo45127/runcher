@@ -103,3 +103,5 @@ schema_no_update = <h4>No new schema updates available</h4> <p>More luck next ti
 schema_new_update = <h4>New schema update available</h4> <p>Do you want to update the schemas?</p>
 schema_update_success = <h4>Schemas updated and reloaded</h4><p>You can continue using Runcher now.</p>
 check_schema_updates_on_start = Check Schema Updates on Start
+
+steam_user_id = Steam User Id

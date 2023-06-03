@@ -51,6 +51,7 @@ pub fn populate_mods(mods: &mut HashMap<String, Mod>, mod_ids: &[String], last_u
             if let Some(modd) = mods.values_mut().filter(|modd| modd.steam_id().is_some()).find(|modd| &modd.steam_id().clone().unwrap() == workshop_item.publishedfileid()) {
                 modd.set_name(workshop_item.title().clone().unwrap());
                 modd.set_creator(workshop_item.creator().clone().unwrap());
+                modd.set_file_name(workshop_item.filename().clone().unwrap());
                 modd.set_file_size(workshop_item.file_size().unwrap());
                 modd.set_file_url(workshop_item.file_url().clone().unwrap());
                 modd.set_preview_url(workshop_item.preview_url().clone().unwrap());

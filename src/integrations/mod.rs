@@ -66,6 +66,9 @@ pub struct Mod {
     // Creator of the mod.
     creator: String,
     creator_name: String,
+
+    // File name. If present, it's the name we need to give to the file when converting from bin to pack.
+    file_name: String,
     file_size: u64,
     file_url: String,
     preview_url: String,
@@ -134,6 +137,7 @@ impl GameConfig {
     pub fn update(game_name: &str) -> Result<()> {
         let _ = versions::v0::GameConfigV0::update(game_name);
         let _ = versions::v1::GameConfigV1::update(game_name);
+        let _ = versions::v2::GameConfigV2::update(game_name);
 
         Ok(())
     }
