@@ -6,6 +6,15 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [Unreleased]
+### Added
+- Implemented unit multiplier for WH3.
+- Implemented schema downloader.
+
+### Fixed
+- Fixed support for .bin mods, shogun 2 content mods, and pre-rome 2 mods in general.
+- Fixed launch options being available for games where they don't work.
+
 ## [0.4.3]
 ### Added
 - Implemented movie pack detection support.

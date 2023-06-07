@@ -130,7 +130,7 @@ lazy_static! {
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const VERSION_SUBTITLE: &str = " -- The Sickest Patch";
+const VERSION_SUBTITLE: &str = " -- When I learned maths";
 
 const FALLBACK_LOCALE_EN: &str = include_str!("../locale/English_en.ftl");
 const SENTRY_DSN_KEY: &str = "https://4c058b715c304d55b928c3e44a63b4ff@o152833.ingest.sentry.io/4504851217711104";
