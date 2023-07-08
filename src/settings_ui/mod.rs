@@ -42,9 +42,6 @@ use std::sync::Arc;
 use rpfm_lib::games::supported_games::KEY_ARENA;
 
 use rpfm_ui_common::locale::*;
-use rpfm_ui_common::QUALIFIER;
-use rpfm_ui_common::ORGANISATION;
-use rpfm_ui_common::PROGRAM_NAME;
 use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
@@ -406,11 +403,6 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
 
 #[must_use = "Many things depend on this folder existing. So better check this worked."]
 pub fn init_config_path() -> Result<()> {
-
-    *QUALIFIER.write().unwrap() = "com".to_owned();
-    *ORGANISATION.write().unwrap() = "FrodoWazEre".to_owned();
-    *PROGRAM_NAME.write().unwrap() = "runcher".to_owned();
-
     DirBuilder::new().recursive(true).create(error_path()?)?;
     DirBuilder::new().recursive(true).create(game_config_path()?)?;
     DirBuilder::new().recursive(true).create(profiles_path()?)?;

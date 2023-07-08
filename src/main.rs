@@ -28,6 +28,7 @@
 use qt_widgets::QApplication;
 
 use qt_gui::QColor;
+use qt_gui::QGuiApplication;
 use qt_gui::{QPalette, q_palette::{ColorRole, ColorGroup}};
 
 use qt_core::QCoreApplication;
@@ -136,6 +137,18 @@ const FALLBACK_LOCALE_EN: &str = include_str!("../locale/English_en.ftl");
 const SENTRY_DSN_KEY: &str = "https://4c058b715c304d55b928c3e44a63b4ff@o152833.ingest.sentry.io/4504851217711104";
 
 fn main() {
+
+    // This needs to be initialised before anything else.
+    unsafe {
+
+        // Settings stuff.
+        QCoreApplication::set_organization_domain(&QString::from_std_str("com"));
+        QCoreApplication::set_organization_name(&QString::from_std_str("FrodoWazEre"));
+        QCoreApplication::set_application_name(&QString::from_std_str("runcher"));
+
+        // This fixes the app icon on wayland.
+        QGuiApplication::set_desktop_file_name(&QString::from_std_str("runcher"));
+    }
 
     // Setup the fallback locale before anything else.
     *FALLBACK_LOCALE.write().unwrap() = FALLBACK_LOCALE_EN.to_string();
