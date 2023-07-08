@@ -50,10 +50,11 @@ use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::time::UNIX_EPOCH;
 
-use rpfm_lib::files::{Container, ContainerPath, DecodeableExtraData, EncodeableExtraData, FileType, pack::Pack, RFile, RFileDecoded, table::DecodedData};
+use rpfm_lib::files::{Container, ContainerPath, DecodeableExtraData, EncodeableExtraData, esf::NodeType, FileType, pack::Pack, RFile, RFileDecoded, table::DecodedData};
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::{git::*, log::*};
 use rpfm_lib::schema::Schema;
+use rpfm_lib::utils::files_from_subdir;
 
 use rpfm_ui_common::ASSETS_PATH;
 use rpfm_ui_common::clone;
@@ -67,7 +68,7 @@ use crate::CENTRAL_COMMAND;
 use crate::communications::*;
 use crate::DARK_PALETTE;
 use crate::ffi::launcher_window_safe;
-use crate::integrations::{GameConfig, Mod, Profile, ShareableMod, steam::*};
+use crate::integrations::{GameConfig, Mod, Profile, Save, ShareableMod, steam::*};
 use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::*;
@@ -217,6 +218,7 @@ pub struct AppUI {
 
     game_config: Arc<RwLock<Option<GameConfig>>>,
     game_profiles: Arc<RwLock<HashMap<String, Profile>>>,
+    game_saves: Arc<RwLock<Vec<Save>>>,
 
     // Game selected. Unlike RPFM, here it's not a global.
     game_selected: Rc<RwLock<GameInfo>>,
@@ -387,6 +389,7 @@ impl AppUI {
             disabled_counter: Rc::new(RwLock::new(0)),
             game_config: Arc::new(RwLock::new(None)),
             game_profiles: Arc::new(RwLock::new(HashMap::new())),
+            game_saves: Arc::new(RwLock::new(vec![])),
 
             // NOTE: This loads arena on purpose, so ANY game selected triggers a game change properly.
             game_selected: Rc::new(RwLock::new(SUPPORTED_GAMES.game("arena").unwrap().clone())),
@@ -815,6 +818,62 @@ impl AppUI {
                 if let Some(ref mods) = *mods {
                     self.mod_list_ui().load(mods)?;
                     self.pack_list_ui().load(mods, &self.game_selected().read().unwrap(), &game_path)?;
+                }
+
+                // Read the saves to see if we can autolaunch any of them.
+                let config_path = self.game_selected.read().unwrap().config_path(&game_path);
+                if let Some(ref config_path) = config_path {
+                    let mut game_saves = self.game_saves.write().unwrap();
+
+                    let save_path = config_path.join("save_games");
+                    let mut saves_paths = files_from_subdir(&save_path, false)?;
+
+                    // Sort them by date, then reverse, so the most recent one is first.
+                    saves_paths.sort_by_key(|x| x.metadata().unwrap().modified().unwrap());
+                    saves_paths.reverse();
+
+                    for save_path in &saves_paths {
+                        let mut save = RFile::new_from_file_path(&save_path)?;
+                        save.guess_file_type()?;
+                        if let Some(RFileDecoded::ESF(file)) = save.decode(&None, false, true)? {
+                            let mut save = Save::default();
+                            save.set_path(save_path.to_path_buf());
+                            save.set_name(save_path.file_name().unwrap().to_string_lossy().to_string());
+                            let mut mods = vec![];
+
+                            let root_node = file.root_node();
+                            if let NodeType::Record(node) = root_node {
+                                if node.name() == "CAMPAIGN_SAVE_GAME" {
+                                    for children in node.children() {
+                                        for child in children {
+                                            if let NodeType::Record(node) = child {
+                                                if node.name() == "SAVE_GAME_HEADER" {
+                                                    for children in node.children() {
+                                                        for child in children {
+                                                            if let NodeType::Record(node) = child {
+                                                                if node.name() == "mod_history_block_name" {
+                                                                    for children in node.children() {
+                                                                        if let NodeType::Ascii(pack_name) = &children[0] {
+                                                                            //if let NodeType::Ascii(pack_folder) = &children[1] {
+                                                                                mods.push(pack_name.to_owned());
+                                                                            //}
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            save.set_mods(mods);
+                            game_saves.push(save);
+                        }
+                    }
                 }
 
                 // Update the launch options for the new game.

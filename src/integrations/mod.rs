@@ -97,6 +97,14 @@ pub struct Profile {
     mods: Vec<String>,
 }
 
+#[derive(Clone, Debug, Default, Getters, Setters, Serialize, Deserialize)]
+#[getset(get = "pub", get_mut = "pub", set = "pub")]
+pub struct Save {
+    path: PathBuf,
+    name: String,
+    mods: Vec<String>,
+}
+
 //-------------------------------------------------------------------------------//
 //                             Implementations
 //-------------------------------------------------------------------------------//
