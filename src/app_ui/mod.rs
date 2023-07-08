@@ -876,7 +876,7 @@ impl AppUI {
             (self.actions_ui().enable_skip_intro().is_enabled() && self.actions_ui().enable_skip_intro().is_checked()) ||
             (self.actions_ui().unit_multiplier_spinbox().is_enabled() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00) {
 
-            let temp_path_folder = tempfile::tempdir()?.into_path();
+            let temp_path_folder = config_path()?;
             let temp_path_file_name = format!("{}_{}.pack", RESERVED_PACK_NAME, self.game_selected().read().unwrap().game_key_name());
             let temp_path = temp_path_folder.join(&temp_path_file_name);
             folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_path_folder.to_string_lossy()));
@@ -913,7 +913,10 @@ impl AppUI {
                 self.prepare_unit_multiplier(&game, &game_path, &mut reserved_pack)?;
             }
 
-            reserved_pack.save(Some(&temp_path), &game, &None)?;
+            let mut encode_data = EncodeableExtraData::default();
+            encode_data.set_nullify_dates(true);
+
+            reserved_pack.save(Some(&temp_path), &game, &Some(encode_data))?;
         }
 
         pack_list.push_str(&(0..self.pack_list_ui().model().row_count_0a())
