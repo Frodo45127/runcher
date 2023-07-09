@@ -65,6 +65,9 @@ pub struct ActionsUI {
     profile_save_button: QPtr<QToolButton>,
     profile_combobox: QPtr<QComboBox>,
     profile_model: QBox<QStandardItemModel>,
+
+    save_combobox: QPtr<QComboBox>,
+    save_model: QBox<QStandardItemModel>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -131,6 +134,10 @@ impl ActionsUI {
         profile_load_button.set_tool_tip(&qtr("load_profile"));
         profile_save_button.set_tool_tip(&qtr("save_profile"));
 
+        let save_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "save_combobox")?;
+        let save_model: QBox<QStandardItemModel> = QStandardItemModel::new_1a(&save_combobox);
+        save_combobox.set_model(&save_model);
+
         layout.add_widget_5a(&main_widget, 0, 0, 1, 1);
 
         let ui = Arc::new(Self {
@@ -156,6 +163,9 @@ impl ActionsUI {
             profile_save_button,
             profile_combobox,
             profile_model,
+
+            save_combobox,
+            save_model
         });
 
         Ok(ui)

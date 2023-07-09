@@ -29,30 +29,13 @@
    <property name="spacing">
     <number>2</number>
    </property>
-   <item row="0" column="8">
-    <widget class="QToolButton" name="play_button">
+   <item row="0" column="4">
+    <widget class="QToolButton" name="paste_load_order_button">
      <property name="text">
       <string/>
      </property>
      <property name="icon">
-      <iconset theme="media-playback-start">
-       <normaloff>.</normaloff>.</iconset>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>22</width>
-       <height>22</height>
-      </size>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="1">
-    <widget class="QToolButton" name="profile_load_button">
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset theme="dialog-ok-apply">
+      <iconset theme="cloud-download">
        <normaloff>.</normaloff>.</iconset>
      </property>
      <property name="iconSize">
@@ -80,6 +63,40 @@
      </property>
     </widget>
    </item>
+   <item row="0" column="8">
+    <widget class="QToolButton" name="play_button">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="media-playback-start">
+       <normaloff>.</normaloff>.</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="7">
+    <widget class="QToolButton" name="settings_button">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="settings-configure">
+       <normaloff>.</normaloff>.</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
+     </property>
+    </widget>
+   </item>
    <item row="0" column="2">
     <widget class="QToolButton" name="profile_save_button">
      <property name="text">
@@ -97,29 +114,13 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="4">
-    <widget class="QToolButton" name="paste_load_order_button">
+   <item row="0" column="1">
+    <widget class="QToolButton" name="profile_load_button">
      <property name="text">
       <string/>
      </property>
      <property name="icon">
-      <iconset theme="cloud-download"/>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>22</width>
-       <height>22</height>
-      </size>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="7">
-    <widget class="QToolButton" name="settings_button">
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset theme="settings-configure">
+      <iconset theme="dialog-ok-apply">
        <normaloff>.</normaloff>.</iconset>
      </property>
      <property name="iconSize">
@@ -149,6 +150,23 @@
      </property>
     </widget>
    </item>
+   <item row="0" column="3">
+    <widget class="QToolButton" name="copy_load_order_button">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset theme="cloud-upload">
+       <normaloff>.</normaloff>.</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
+     </property>
+    </widget>
+   </item>
    <item row="0" column="6">
     <widget class="QToolButton" name="reload_button">
      <property name="text">
@@ -166,21 +184,8 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="3">
-    <widget class="QToolButton" name="copy_load_order_button">
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset theme="cloud-upload"/>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>22</width>
-       <height>22</height>
-      </size>
-     </property>
-    </widget>
+   <item row="1" column="1" colspan="8">
+    <widget class="KComboBox" name="save_combobox"/>
    </item>
   </layout>
  </widget>

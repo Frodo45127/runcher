@@ -20,6 +20,7 @@ use qt_widgets::{QMessageBox, q_message_box};
 use qt_widgets::QWidget;
 
 use qt_gui::QIcon;
+use qt_gui::QStandardItem;
 
 use qt_core::CheckState;
 use qt_core::QBox;
@@ -577,6 +578,11 @@ impl AppUI {
                 *self.game_profiles().write().unwrap() = Profile::profiles_for_game(game)?;
                 self.actions_ui().profile_model().clear();
 
+                // Load the save list.
+                self.actions_ui().save_model().clear();
+                let item = QStandardItem::from_q_string(&QString::from_std_str("No saves"));
+                self.actions_ui().save_model().append_row_q_standard_item(item.into_ptr());
+
                 for profile in self.game_profiles().read().unwrap().keys() {
                     self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
                 }
@@ -871,6 +877,10 @@ impl AppUI {
                             }
 
                             save.set_mods(mods);
+
+                            let item = QStandardItem::from_q_string(&QString::from_std_str(save.name()));
+                            self.actions_ui().save_model().append_row_q_standard_item(item.into_ptr());
+
                             game_saves.push(save);
                         }
                     }
@@ -1018,6 +1028,17 @@ impl AppUI {
             .collect::<Vec<_>>()
             .join("\n"));
 
+        // Check if we are loading a save. First option is no save load. Any index above that is a save.
+        let mut extra_args = vec![];
+        let save_index = self.actions_ui.save_combobox().current_index();
+        if self.actions_ui.save_combobox().current_index() > 0 {
+            if let Some(save) = self.game_saves.read().unwrap().get(save_index as usize - 1) {
+                extra_args.push("game_startup_mode".to_owned());
+                extra_args.push("campaign_load".to_owned());
+                extra_args.push(save.name().to_owned());
+            }
+        }
+
         // NOTE: On Shogun 2 and older we need to use the user_script, not the custom file, as it doesn't seem to work.
         let file_path = if game.raw_db_version() > 1 {
             game_path.join("mod_list.txt")
@@ -1042,10 +1063,20 @@ impl AppUI {
                 command.arg(game_path.to_string_lossy().replace('\\', "/"));
                 command.arg(exec_game.file_name().unwrap().to_string_lossy().to_string());
                 command.arg("mod_list.txt;");
+
+                for arg in &extra_args {
+                    command.arg(arg);
+                }
+
                 command
             } else {
                 let mut command = SystemCommand::new(exec_game.to_string_lossy().to_string());
                 command.current_dir(game_path.to_string_lossy().replace('\\', "/"));
+
+                for arg in &extra_args {
+                    command.arg(arg);
+                }
+
                 command
             };
 
