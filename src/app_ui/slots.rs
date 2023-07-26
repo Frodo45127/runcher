@@ -85,7 +85,7 @@ impl AppUISlots {
         let toggle_logging = SlotOfBool::new(view.main_window(), clone!(
             view => move |state| {
                 let game = view.game_selected().read().unwrap();
-                let setting = format!("enable_logging_{}", game.game_key_name());
+                let setting = format!("enable_logging_{}", game.key());
                 set_setting_bool(&setting, state);
             }
         ));
@@ -93,7 +93,7 @@ impl AppUISlots {
         let toggle_skip_intros = SlotOfBool::new(view.main_window(), clone!(
             view => move |state| {
                 let game = view.game_selected().read().unwrap();
-                let setting = format!("enable_skip_intros_{}", game.game_key_name());
+                let setting = format!("enable_skip_intros_{}", game.key());
                 set_setting_bool(&setting, state);
             }
         ));
@@ -101,7 +101,7 @@ impl AppUISlots {
         let change_unit_multiplier = SlotOfDouble::new(view.main_window(), clone!(
             view => move |value| {
                 let game = view.game_selected().read().unwrap();
-                let setting = format!("unit_multiplier_{}", game.game_key_name());
+                let setting = format!("unit_multiplier_{}", game.key());
                 set_setting_f32(&setting, value as f32);
             }
         ));
@@ -119,7 +119,7 @@ impl AppUISlots {
         let open_game_root_folder = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
             let game = view.game_selected().read().unwrap();
-            let game_path = setting_string(game.game_key_name());
+            let game_path = setting_string(game.key());
             if !game_path.is_empty() {
                 let _ = open::that(game_path);
             } else {
@@ -130,7 +130,7 @@ impl AppUISlots {
         let open_game_data_folder = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
             let game = view.game_selected().read().unwrap();
-            if let Ok(game_path) = game.data_path(&setting_path(game.game_key_name())) {
+            if let Ok(game_path) = game.data_path(&setting_path(game.key())) {
                 let _ = open::that(game_path);
             } else {
                 show_dialog(view.main_window(), "Runcher cannot open that folder (maybe it doesn't exists/is misconfigured?).", false);
@@ -140,7 +140,7 @@ impl AppUISlots {
         let open_game_content_folder = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
             let game = view.game_selected().read().unwrap();
-            if let Ok(game_path) = game.content_path(&setting_path(game.game_key_name())) {
+            if let Ok(game_path) = game.content_path(&setting_path(game.key())) {
                 let _ = open::that(game_path);
             } else {
                 show_dialog(view.main_window(), "Runcher cannot open that folder (maybe it doesn't exists/is misconfigured?).", false);
@@ -186,7 +186,7 @@ impl AppUISlots {
 
                     // Reload the pack view.
                     let game_info = view.game_selected().read().unwrap();
-                    let game_path = setting_path(game_info.game_key_name());
+                    let game_path = setting_path(game_info.key());
                     if let Err(error) = view.pack_list_ui().load(game_config, &game_info, &game_path) {
                         show_dialog(view.main_window(), error, false);
                     }

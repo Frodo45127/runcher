@@ -81,10 +81,10 @@ impl GameConfigV0 {
     }
 
     pub fn load(game: &GameInfo, new_if_missing: bool) -> Result<Self> {
-        let path = game_config_path()?.join(format!("game_config_{}.json", game.game_key_name()));
+        let path = game_config_path()?.join(format!("game_config_{}.json", game.key()));
         if !path.is_file() && new_if_missing {
             return Ok(Self {
-                game_key: game.game_key_name().to_string(),
+                game_key: game.key().to_string(),
                 ..Default::default()
             });
         }

@@ -112,10 +112,10 @@ pub struct Save {
 impl GameConfig {
 
     pub fn load(game: &GameInfo, new_if_missing: bool) -> Result<Self> {
-        let path = game_config_path()?.join(format!("game_config_{}.json", game.game_key_name()));
+        let path = game_config_path()?.join(format!("game_config_{}.json", game.key()));
         if !path.is_file() && new_if_missing {
             return Ok(Self {
-                game_key: game.game_key_name().to_string(),
+                game_key: game.key().to_string(),
                 ..Default::default()
             });
         }
@@ -130,7 +130,7 @@ impl GameConfig {
     }
 
     pub fn save(&mut self, game: &GameInfo) -> Result<()> {
-        let path = game_config_path()?.join(format!("game_config_{}.json", game.game_key_name()));
+        let path = game_config_path()?.join(format!("game_config_{}.json", game.key()));
 
         // Make sure the path exists to avoid problems with updating schemas.
         if let Some(parent_folder) = path.parent() {
@@ -156,7 +156,7 @@ impl Profile {
     pub fn profiles_for_game(game: &GameInfo) -> Result<HashMap<String, Self>> {
         let mut profiles = HashMap::new();
         let path = profiles_path()?;
-        let file_name_start = format!("profile_{}_", game.game_key_name());
+        let file_name_start = format!("profile_{}_", game.key());
 
         let files = files_from_subdir(&path, false)?;
         for file in files {
@@ -172,7 +172,7 @@ impl Profile {
     }
 
     pub fn load(game: &GameInfo, profile: &str, new_if_missing: bool) -> Result<Self> {
-        let path = profiles_path()?.join(format!("profile_{}_{}.json", game.game_key_name(), profile));
+        let path = profiles_path()?.join(format!("profile_{}_{}.json", game.key(), profile));
         if !path.is_file() && new_if_missing {
             return Ok(Self {
                 id: profile.to_string(),
@@ -189,7 +189,7 @@ impl Profile {
     }
 
     pub fn save(&mut self, game: &GameInfo, profile: &str) -> Result<()> {
-        let path = profiles_path()?.join(format!("profile_{}_{}.json", game.game_key_name(), profile));
+        let path = profiles_path()?.join(format!("profile_{}_{}.json", game.key(), profile));
 
         // Make sure the path exists to avoid problems with updating schemas.
         if let Some(parent_folder) = path.parent() {

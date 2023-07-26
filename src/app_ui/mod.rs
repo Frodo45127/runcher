@@ -552,7 +552,7 @@ impl AppUI {
         let new_game_selected = new_game_selected.replace(' ', "_").to_lowercase();
 
         // If the game changed or we're initializing the program, change the game selected.
-        if reload_same_game || new_game_selected != self.game_selected().read().unwrap().game_key_name() {
+        if reload_same_game || new_game_selected != self.game_selected().read().unwrap().key() {
             self.load_data(&new_game_selected)?;
         }
 
@@ -569,7 +569,7 @@ impl AppUI {
                 *self.game_selected().write().unwrap() = game.clone();
 
                 // Trigger an update of all game configs, just in case one needs update.
-                let _ = GameConfig::update(game.game_key_name());
+                let _ = GameConfig::update(game.key());
 
                 // Load the game's config.
                 *self.game_config().write().unwrap() = Some(GameConfig::load(game, true)?);
@@ -648,7 +648,7 @@ impl AppUI {
                 }
 
                 // If we don't have a path in the settings for the game, disable the play button.
-                let game_path_str = setting_string(game.game_key_name());
+                let game_path_str = setting_string(game.key());
                 self.actions_ui().play_button().set_enabled(!game_path_str.is_empty());
 
                 // Get the modified date of the game's exe, to check if a mod is outdated or not.
@@ -887,10 +887,10 @@ impl AppUI {
                 }
 
                 // Update the launch options for the new game.
-                self.actions_ui().enable_logging().set_checked(setting_bool(&format!("enable_logging_{}", game.game_key_name())));
-                self.actions_ui().enable_skip_intro().set_checked(setting_bool(&format!("enable_skip_intros_{}", game.game_key_name())));
+                self.actions_ui().enable_logging().set_checked(setting_bool(&format!("enable_logging_{}", game.key())));
+                self.actions_ui().enable_skip_intro().set_checked(setting_bool(&format!("enable_skip_intros_{}", game.key())));
                 self.actions_ui().unit_multiplier_spinbox().set_value({
-                    let value = setting_f32(&format!("unit_multiplier_{}", game.game_key_name()));
+                    let value = setting_f32(&format!("unit_multiplier_{}", game.key()));
                     if value == 0.00 {
                         1.00
                     } else {
@@ -906,7 +906,7 @@ impl AppUI {
 
     pub unsafe fn open_settings(&self) {
         let game_selected = self.game_selected().read().unwrap();
-        let game_key = game_selected.game_key_name();
+        let game_key = game_selected.key();
         let game_path_old = setting_path(game_key);
 
         match SettingsUI::new(self.main_window()) {
@@ -939,14 +939,14 @@ impl AppUI {
         let mut folder_list = String::new();
         let mut pack_list = String::new();
         let game = self.game_selected().read().unwrap();
-        let game_path = setting_path(game.game_key_name());
+        let game_path = setting_path(game.key());
 
         if (self.actions_ui().enable_logging().is_enabled() && self.actions_ui().enable_logging().is_checked()) ||
             (self.actions_ui().enable_skip_intro().is_enabled() && self.actions_ui().enable_skip_intro().is_checked()) ||
             (self.actions_ui().unit_multiplier_spinbox().is_enabled() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00) {
 
             let temp_path_folder = config_path()?;
-            let temp_path_file_name = format!("{}_{}.pack", RESERVED_PACK_NAME, self.game_selected().read().unwrap().game_key_name());
+            let temp_path_file_name = format!("{}_{}.pack", RESERVED_PACK_NAME, self.game_selected().read().unwrap().key());
             let temp_path = temp_path_folder.join(&temp_path_file_name);
             folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_path_folder.to_string_lossy()));
             pack_list.push_str(&format!("mod \"{}\";\n", temp_path_file_name));
@@ -958,7 +958,7 @@ impl AppUI {
             // Skip videos.
             if self.actions_ui().enable_skip_intro().is_enabled() && self.actions_ui().enable_skip_intro().is_checked() {
                 for (game_key, paths) in INTRO_MOVIE_PATHS_BY_GAME {
-                    if game.game_key_name() == game_key {
+                    if game.key() == game_key {
                         for path in paths {
                             let file = RFile::new_from_vec(&EMPTY_MOVIE, FileType::Video, 0, path);
                             reserved_pack.files_mut().insert(path.to_string(), file);
@@ -1015,7 +1015,7 @@ impl AppUI {
                             return None;
                         }
                     }
-                    if game.raw_db_version() > 1 {
+                    if game.raw_db_version() > &1 {
                         string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
                     } else {
                         string.push_str(&format!("mod {};", item.text().to_std_string()));
@@ -1040,7 +1040,7 @@ impl AppUI {
         }
 
         // NOTE: On Shogun 2 and older we need to use the user_script, not the custom file, as it doesn't seem to work.
-        let file_path = if game.raw_db_version() > 1 {
+        let file_path = if game.raw_db_version() > &1 {
             game_path.join("mod_list.txt")
         } else {
             let config_path = game.config_path(&game_path).ok_or(anyhow!("Error getting the game's config path."))?;
@@ -1055,7 +1055,7 @@ impl AppUI {
         let exec_game = game.executable_path(&game_path).unwrap();
 
         if cfg!(target_os = "windows") {
-            let mut command = if game.raw_db_version() > 1 {
+            let mut command = if game.raw_db_version() > &1 {
                 let mut command = SystemCommand::new("cmd");
                 command.arg("/C");
                 command.arg("start");
@@ -1473,7 +1473,7 @@ impl AppUI {
             }
 
             let game = self.game_selected().read().unwrap();
-            let game_path = setting_path(game.game_key_name());
+            let game_path = setting_path(game.key());
             self.mod_list_ui().load(game_config)?;
             self.pack_list_ui().load(game_config, &game, &game_path)?;
 
@@ -1607,7 +1607,7 @@ impl AppUI {
     pub unsafe fn prepare_unit_multiplier(&self, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack) -> Result<()> {
 
         let schema = SCHEMA.read().unwrap();
-        if schema.is_some() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00 && game.game_key_name() == "warhammer_3" {
+        if schema.is_some() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00 && game.key() == "warhammer_3" {
             let vanilla_pack = Pack::read_and_merge_ca_packs(&game, &game_path)?;
             let mut kv_rules = vanilla_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
                 .into_iter()

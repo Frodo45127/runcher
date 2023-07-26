@@ -149,8 +149,8 @@ impl SettingsUI {
         let mut paths_games_buttons = BTreeMap::new();
 
         for (index, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
-            if game.game_key_name() != KEY_ARENA {
-                let game_key = game.game_key_name();
+            if game.key() != KEY_ARENA {
+                let game_key = game.key();
                 let game_label = QLabel::from_q_string_q_widget(&QString::from_std_str(game.display_name()), &paths_groupbox);
                 let game_line_edit = QLineEdit::from_q_widget(&paths_groupbox);
                 let game_button = QToolButton::new_1a(&paths_groupbox);
@@ -216,7 +216,7 @@ impl SettingsUI {
         // Get the default game.
         let default_game = setting_string_from_q_setting(&q_settings, "default_game");
         for (index, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
-            if game.game_key_name() == default_game {
+            if game.key() == default_game {
                 self.default_game_combobox.set_current_index(index as i32);
                 break;
             }
@@ -374,9 +374,9 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_bool(&q_settings, "dark_mode", false);
 
     for game in &SUPPORTED_GAMES.games_sorted() {
-        if game.game_key_name() != KEY_ARENA {
-            set_setting_if_new_bool(&q_settings, &format!("enable_logging_{}", game.game_key_name()), false);
-            set_setting_if_new_bool(&q_settings, &format!("enable_skip_intros_{}", game.game_key_name()), false);
+        if game.key() != KEY_ARENA {
+            set_setting_if_new_bool(&q_settings, &format!("enable_logging_{}", game.key()), false);
+            set_setting_if_new_bool(&q_settings, &format!("enable_skip_intros_{}", game.key()), false);
 
             let game_path = if let Ok(Some(game_path)) = game.find_game_install_location() {
                 game_path.to_string_lossy().to_string()
@@ -385,11 +385,11 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
             };
 
             // If we got a path and we don't have it saved yet, save it automatically.
-            let current_path = setting_string_from_q_setting(&q_settings, game.game_key_name());
+            let current_path = setting_string_from_q_setting(&q_settings, game.key());
             if current_path.is_empty() && !game_path.is_empty() {
-                set_setting_string_to_q_setting(&q_settings, game.game_key_name(), &game_path);
+                set_setting_string_to_q_setting(&q_settings, game.key(), &game_path);
             } else {
-                set_setting_if_new_string(&q_settings, game.game_key_name(), &game_path);
+                set_setting_if_new_string(&q_settings, game.key(), &game_path);
             }
         }
     }
