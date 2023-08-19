@@ -6,14 +6,16 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
-## [Unreleased]
+## [0.5.0]
 ### Added
 - Implemented unit multiplier for WH3.
 - Implemented schema downloader.
+- Implemented load to save support.
 
 ### Fixed
 - Fixed support for .bin mods, shogun 2 content mods, and pre-rome 2 mods in general.
 - Fixed launch options being available for games where they don't work.
+- Fixed some issues causing saves to complain about missing "run_you_fools" pack.
 
 ## [0.4.3]
 ### Added
@@ -114,7 +116,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Frodo45127/runcher/compare/v0.4.3...v0.5.0
 [0.4.3]: https://github.com/Frodo45127/runcher/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/Frodo45127/runcher/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/Frodo45127/runcher/compare/v0.4.0...v0.4.1
