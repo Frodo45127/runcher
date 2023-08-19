@@ -565,7 +565,7 @@ impl AppUI {
         match SUPPORTED_GAMES.game(game) {
             Some(game) => {
                 let schema_path = schemas_path().unwrap().join(game.schema_file_name());
-                *SCHEMA.write().unwrap() = Schema::load(&schema_path).ok();
+                *SCHEMA.write().unwrap() = Schema::load(&schema_path, None).ok();
                 *self.game_selected().write().unwrap() = game.clone();
 
                 // Trigger an update of all game configs, just in case one needs update.
@@ -588,7 +588,7 @@ impl AppUI {
                 }
 
                 // Only set enabled the launch options that work for the current game.
-                match game.game_key_name() {
+                match game.key() {
                     "warhammer_3" => {
                         self.actions_ui().enable_logging().set_enabled(true);
                         self.actions_ui().enable_skip_intro().set_enabled(true);
@@ -1682,7 +1682,7 @@ impl AppUI {
 
             for table in &mut kv_rules {
                 if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
-                    for row in data.data_mut()? {
+                    for row in data.data_mut() {
 
                         if let Some(DecodedData::StringU8(key)) = row.get(0).cloned() {
 
@@ -1732,7 +1732,7 @@ impl AppUI {
             // Damage scaling.
             for table in &mut kv_unit_ability_scaling_rules {
                 if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
-                    for row in data.data_mut()? {
+                    for row in data.data_mut() {
                         if let Some(DecodedData::StringU8(key)) = row.get(0).cloned() {
                             if key == "direct_damage_large" || key == "direct_damage_medium" || key == "direct_damage_small" || key == "direct_damage_ultra" {
                                 if let Some(DecodedData::F32(value)) = row.get_mut(1) {
@@ -1756,7 +1756,7 @@ impl AppUI {
                     let num_men_column = data.definition().column_position_by_name("num_men");
                     let land_unit_column = data.definition().column_position_by_name("land_unit");
 
-                    for row in data.data_mut()? {
+                    for row in data.data_mut() {
 
                         // General unit size.
                         if let Some(num_men_column) = num_men_column {
@@ -1802,7 +1802,7 @@ impl AppUI {
                     let bonus_hit_points_column = data.definition().column_position_by_name("bonus_hit_points");
                     let num_engines_column = data.definition().column_position_by_name("num_engines");
 
-                    for row in data.data_mut()? {
+                    for row in data.data_mut() {
 
                         // For single entities, multiply their health, not their number too.
                         if let Some(key_column) = key_column {
@@ -1878,7 +1878,7 @@ impl AppUI {
                     let fort_tower_fire_frequency_large = data.definition().column_position_by_name("fort_tower_fire_frequency_large");
                     let fort_tower_fire_frequency_ultra = data.definition().column_position_by_name("fort_tower_fire_frequency_ultra");
 
-                    for row in data.data_mut()? {
+                    for row in data.data_mut() {
 
                         if let Some(column) = hit_points_building_small {
                             if let Some(DecodedData::F32(value)) = row.get_mut(column) {
@@ -2011,7 +2011,7 @@ impl AppUI {
             for table in &mut unit_stat_to_size_scaling_values {
                 if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
                     let single_entity_value = data.definition().column_position_by_name("single_entity_value");
-                    for row in data.data_mut()? {
+                    for row in data.data_mut() {
                         if let Some(single_entity_value_column) = single_entity_value {
                             if let Some(DecodedData::F64(value)) = row.get_mut(single_entity_value_column) {
                                 *value = *value * self.actions_ui().unit_multiplier_spinbox().value();

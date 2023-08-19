@@ -61,7 +61,7 @@ pub fn background_loop() {
                         match git_integration.update_repo() {
                             Ok(_) => {
                                 let schema_path = schemas_path().unwrap().join(schema_file_name);
-                                *SCHEMA.write().unwrap() = Schema::load(&schema_path).ok();
+                                *SCHEMA.write().unwrap() = Schema::load(&schema_path, None).ok();
                                 CentralCommand::send_back(&sender, Response::Success)
                             },
                             Err(error) => CentralCommand::send_back(&sender, Response::Error(From::from(error))),
