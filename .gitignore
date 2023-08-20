@@ -33,3 +33,6 @@
 
 # These are usually files locked by applications.
 *.*~
+
+# Ignore the reserved pack.
+\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!run_you_fool_warhammer_3.pack
