@@ -1,5 +1,6 @@
 #include "kicontheme.h"
 #include "launcher_window.h"
+#include <QSettings>
 
 // Fuction to be able to create a custom QMainWindow.
 extern "C" QMainWindow* launcher_window(bool use_dark_theme) {
@@ -47,4 +48,18 @@ LauncherWindow::LauncherWindow(QWidget *parent, bool use_dark_theme) : QMainWind
             qWarning() << "Empty rcc file" << iconThemeRccFallback;
         }
     #endif
+}
+
+void LauncherWindow::closeEvent(QCloseEvent *event) {
+    event->ignore();
+
+    // Save the state of the window before closing it.
+    QSettings settings("FrodoWazEre", "runcher");
+    settings.setValue("geometry", saveGeometry());
+    settings.setValue("windowState", saveState());
+
+    // Make sure the settings are saved before closing.
+    settings.sync();
+
+    event->accept();
 }
