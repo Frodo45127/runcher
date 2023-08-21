@@ -349,7 +349,12 @@ impl AppUI {
 
         // Show the Main Window.
         app_ui.main_window().show();
+        app_ui.main_window().set_disabled(true);
         log_to_status_bar(app_ui.main_window().status_bar(), "Initializing, please wait...");
+
+        // Trigger an event loop cycle so the window is shown, then we do the expensive stuff.
+        let event_loop = qt_core::QEventLoop::new_0a();
+        event_loop.process_events_0a();
 
         // Set the game selected based on the default game. If we passed a game through an argument, use that one.
         //
@@ -387,7 +392,9 @@ impl AppUI {
             KEY_EMPIRE => app_ui.game_selected_empire().set_checked(true),
             _ => app_ui.game_selected_warhammer_3().set_checked(true),
         }
+
         app_ui.load_data(&default_game)?;
+        app_ui.main_window().set_disabled(false);
 
         // If we have it enabled in the prefs, check if there are updates.
         if setting_bool("check_updates_on_start") {
