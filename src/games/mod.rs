@@ -15,6 +15,8 @@ use std::path::Path;
 use rpfm_lib::files::pack::Pack;
 use rpfm_lib::games::GameInfo;
 
+use rpfm_ui_common::settings::*;
+
 use crate::app_ui::AppUI;
 use crate::SCHEMA;
 
@@ -60,6 +62,82 @@ mod warhammer_3;
 //-------------------------------------------------------------------------------//
 //                             Implementations
 //-------------------------------------------------------------------------------//
+
+pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo) {
+
+    // Only set enabled the launch options that work for the current game.
+    match game.key() {
+        "warhammer_3" => {
+            let schema = SCHEMA.read().unwrap();
+            app_ui.actions_ui().enable_logging().set_enabled(true);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(schema.is_some());
+        },
+        "troy" => {
+            app_ui.actions_ui().enable_logging().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+        },
+        "three_kingdoms" => {
+            app_ui.actions_ui().enable_logging().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+        },
+        "warhammer_2" => {
+            app_ui.actions_ui().enable_logging().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+        },
+        "warhammer" => {
+            app_ui.actions_ui().enable_logging().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+        },
+        "thrones_of_britannia" => {
+            app_ui.actions_ui().enable_logging().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+        },
+        "attila" => {
+            app_ui.actions_ui().enable_logging().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+        },
+        "rome_2" => {
+            app_ui.actions_ui().enable_logging().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+        },
+        "shogun_2" => {
+            app_ui.actions_ui().enable_logging().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+        },
+        "napoleon" => {
+            app_ui.actions_ui().enable_logging().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+        },
+        "empire" => {
+            app_ui.actions_ui().enable_logging().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+        }
+        &_ => {},
+    }
+
+    // Update the launch options for the new game.
+    app_ui.actions_ui().enable_logging().set_checked(setting_bool(&format!("enable_logging_{}", game.key())));
+    app_ui.actions_ui().enable_skip_intro().set_checked(setting_bool(&format!("enable_skip_intros_{}", game.key())));
+    app_ui.actions_ui().unit_multiplier_spinbox().set_value({
+        let value = setting_f32(&format!("unit_multiplier_{}", game.key()));
+        if value == 0.00 {
+            1.00
+        } else {
+            value
+        }
+    } as f64);
+}
 
 pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack) -> Result<()> {
     match *SCHEMA.read().unwrap() {

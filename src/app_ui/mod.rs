@@ -349,7 +349,7 @@ impl AppUI {
 
         // Show the Main Window.
         app_ui.main_window().show();
-        app_ui.main_window().set_disabled(true);
+        app_ui.toggle_main_window(false);
         log_to_status_bar(app_ui.main_window().status_bar(), "Initializing, please wait...");
 
         // Trigger an event loop cycle so the window is shown, then we do the expensive stuff.
@@ -393,8 +393,14 @@ impl AppUI {
             _ => app_ui.game_selected_warhammer_3().set_checked(true),
         }
 
-        app_ui.load_data(&default_game)?;
-        app_ui.main_window().set_disabled(false);
+        // This may fail for path problems.
+        //
+        // Also, the game we already have loaded is arena. We don't need to force a manual reload with that one.
+        if let Err(error) = app_ui.change_game_selected(false) {
+            show_dialog(app_ui.main_window(), error, false);
+        }
+
+        app_ui.toggle_main_window(true);
 
         // If we have it enabled in the prefs, check if there are updates.
         if setting_bool("check_updates_on_start") {
@@ -497,6 +503,8 @@ impl AppUI {
         let new_game_selected = new_game_selected.replace(' ', "_").to_lowercase();
 
         // If the game changed or we're initializing the program, change the game selected.
+        //
+        // This works because by default, the initially stored game selected is arena, and that one can never set manually.
         if reload_same_game || new_game_selected != self.game_selected().read().unwrap().key() {
             self.load_data(&new_game_selected)?;
         }
@@ -509,6 +517,8 @@ impl AppUI {
         // We may receive invalid games here, so rule out the invalid ones.
         match SUPPORTED_GAMES.game(game) {
             Some(game) => {
+
+                // Schemas are optional, so don't interrupt loading due to they not being present.
                 let schema_path = schemas_path().unwrap().join(game.schema_file_name());
                 *SCHEMA.write().unwrap() = Schema::load(&schema_path, None).ok();
                 *self.game_selected().write().unwrap() = game.clone();
@@ -519,85 +529,89 @@ impl AppUI {
                 // Load the game's config.
                 *self.game_config().write().unwrap() = Some(GameConfig::load(game, true)?);
 
+                // Load the launch options for the game selected.
+                setup_launch_options(self, game);
+
                 // Load the profile's list.
                 *self.game_profiles().write().unwrap() = Profile::profiles_for_game(game)?;
                 self.actions_ui().profile_model().clear();
+
+                for profile in self.game_profiles().read().unwrap().keys() {
+                    self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
+                }
 
                 // Load the save list.
                 self.actions_ui().save_model().clear();
                 let item = QStandardItem::from_q_string(&QString::from_std_str("No saves"));
                 self.actions_ui().save_model().append_row_q_standard_item(item.into_ptr());
 
-                for profile in self.game_profiles().read().unwrap().keys() {
-                    self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
-                }
-
-                // Only set enabled the launch options that work for the current game.
-                match game.key() {
-                    "warhammer_3" => {
-                        self.actions_ui().enable_logging().set_enabled(true);
-                        self.actions_ui().enable_skip_intro().set_enabled(true);
-                        self.actions_ui().unit_multiplier_spinbox().set_enabled(true);
-                    },
-                    "troy" => {
-                        self.actions_ui().enable_logging().set_enabled(false);
-                        self.actions_ui().enable_skip_intro().set_enabled(false);
-                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-                    },
-                    "three_kingdoms" => {
-                        self.actions_ui().enable_logging().set_enabled(false);
-                        self.actions_ui().enable_skip_intro().set_enabled(false);
-                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-                    },
-                    "warhammer_2" => {
-                        self.actions_ui().enable_logging().set_enabled(false);
-                        self.actions_ui().enable_skip_intro().set_enabled(false);
-                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-                    },
-                    "warhammer" => {
-                        self.actions_ui().enable_logging().set_enabled(false);
-                        self.actions_ui().enable_skip_intro().set_enabled(false);
-                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-                    },
-                    "thrones_of_britannia" => {
-                        self.actions_ui().enable_logging().set_enabled(false);
-                        self.actions_ui().enable_skip_intro().set_enabled(false);
-                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-                    },
-                    "attila" => {
-                        self.actions_ui().enable_logging().set_enabled(false);
-                        self.actions_ui().enable_skip_intro().set_enabled(false);
-                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-                    },
-                    "rome_2" => {
-                        self.actions_ui().enable_logging().set_enabled(false);
-                        self.actions_ui().enable_skip_intro().set_enabled(false);
-                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-                    },
-                    "shogun_2" => {
-                        self.actions_ui().enable_logging().set_enabled(false);
-                        self.actions_ui().enable_skip_intro().set_enabled(false);
-                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-                    },
-                    "napoleon" => {
-                        self.actions_ui().enable_logging().set_enabled(false);
-                        self.actions_ui().enable_skip_intro().set_enabled(false);
-                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-                    },
-                    "empire" => {
-                        self.actions_ui().enable_logging().set_enabled(false);
-                        self.actions_ui().enable_skip_intro().set_enabled(false);
-                        self.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-                    }
-                    &_ => {},
-                }
-
                 // If we don't have a path in the settings for the game, disable the play button.
                 let game_path_str = setting_string(game.key());
+                let game_path = PathBuf::from(&game_path_str);
                 self.actions_ui().play_button().set_enabled(!game_path_str.is_empty());
 
+                // If we have a save folder for the game, read its saves and load them to the save combo.
+                if let Some(ref config_path) = game.config_path(&game_path) {
+                    let mut game_saves = self.game_saves.write().unwrap();
+                    game_saves.clear();
+
+                    let save_path = config_path.join("save_games");
+                    if let Ok(mut saves_paths) = files_from_subdir(&save_path, false) {
+
+                        // Sort them by date, then reverse, so the most recent one is first.
+                        saves_paths.sort_by_key(|x| x.metadata().unwrap().modified().unwrap());
+                        saves_paths.reverse();
+
+                        for save_path in &saves_paths {
+                            let mut save = RFile::new_from_file_path(&save_path)?;
+                            save.guess_file_type()?;
+                            if let Some(RFileDecoded::ESF(file)) = save.decode(&None, false, true)? {
+                                let mut save = Save::default();
+                                save.set_path(save_path.to_path_buf());
+                                save.set_name(save_path.file_name().unwrap().to_string_lossy().to_string());
+                                let mut mods = vec![];
+
+                                let root_node = file.root_node();
+                                if let NodeType::Record(node) = root_node {
+                                    if node.name() == "CAMPAIGN_SAVE_GAME" {
+                                        for children in node.children() {
+                                            for child in children {
+                                                if let NodeType::Record(node) = child {
+                                                    if node.name() == "SAVE_GAME_HEADER" {
+                                                        for children in node.children() {
+                                                            for child in children {
+                                                                if let NodeType::Record(node) = child {
+                                                                    if node.name() == "mod_history_block_name" {
+                                                                        for children in node.children() {
+                                                                            if let NodeType::Ascii(pack_name) = &children[0] {
+                                                                                //if let NodeType::Ascii(pack_folder) = &children[1] {
+                                                                                    mods.push(pack_name.to_owned());
+                                                                                //}
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                save.set_mods(mods);
+
+                                let item = QStandardItem::from_q_string(&QString::from_std_str(save.name()));
+                                self.actions_ui().save_model().append_row_q_standard_item(item.into_ptr());
+
+                                game_saves.push(save);
+                            }
+                        }
+                    }
+                }
+
                 // Get the modified date of the game's exe, to check if a mod is outdated or not.
-                let game_path = PathBuf::from(&game_path_str);
                 let last_update_date = if let Some(exe_path) = game.executable_path(&game_path) {
                     if let Ok(exe) = File::open(exe_path) {
                         exe.metadata()?.created()?.duration_since(UNIX_EPOCH)?.as_secs()
@@ -770,78 +784,6 @@ impl AppUI {
                     self.mod_list_ui().load(mods)?;
                     self.pack_list_ui().load(mods, &self.game_selected().read().unwrap(), &game_path)?;
                 }
-
-                // Read the saves to see if we can autolaunch any of them.
-                let config_path = self.game_selected.read().unwrap().config_path(&game_path);
-                if let Some(ref config_path) = config_path {
-                    let mut game_saves = self.game_saves.write().unwrap();
-
-                    let save_path = config_path.join("save_games");
-                    let mut saves_paths = files_from_subdir(&save_path, false)?;
-
-                    // Sort them by date, then reverse, so the most recent one is first.
-                    saves_paths.sort_by_key(|x| x.metadata().unwrap().modified().unwrap());
-                    saves_paths.reverse();
-
-                    for save_path in &saves_paths {
-                        let mut save = RFile::new_from_file_path(&save_path)?;
-                        save.guess_file_type()?;
-                        if let Some(RFileDecoded::ESF(file)) = save.decode(&None, false, true)? {
-                            let mut save = Save::default();
-                            save.set_path(save_path.to_path_buf());
-                            save.set_name(save_path.file_name().unwrap().to_string_lossy().to_string());
-                            let mut mods = vec![];
-
-                            let root_node = file.root_node();
-                            if let NodeType::Record(node) = root_node {
-                                if node.name() == "CAMPAIGN_SAVE_GAME" {
-                                    for children in node.children() {
-                                        for child in children {
-                                            if let NodeType::Record(node) = child {
-                                                if node.name() == "SAVE_GAME_HEADER" {
-                                                    for children in node.children() {
-                                                        for child in children {
-                                                            if let NodeType::Record(node) = child {
-                                                                if node.name() == "mod_history_block_name" {
-                                                                    for children in node.children() {
-                                                                        if let NodeType::Ascii(pack_name) = &children[0] {
-                                                                            //if let NodeType::Ascii(pack_folder) = &children[1] {
-                                                                                mods.push(pack_name.to_owned());
-                                                                            //}
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            save.set_mods(mods);
-
-                            let item = QStandardItem::from_q_string(&QString::from_std_str(save.name()));
-                            self.actions_ui().save_model().append_row_q_standard_item(item.into_ptr());
-
-                            game_saves.push(save);
-                        }
-                    }
-                }
-
-                // Update the launch options for the new game.
-                self.actions_ui().enable_logging().set_checked(setting_bool(&format!("enable_logging_{}", game.key())));
-                self.actions_ui().enable_skip_intro().set_checked(setting_bool(&format!("enable_skip_intros_{}", game.key())));
-                self.actions_ui().unit_multiplier_spinbox().set_value({
-                    let value = setting_f32(&format!("unit_multiplier_{}", game.key()));
-                    if value == 0.00 {
-                        1.00
-                    } else {
-                        value
-                    }
-                } as f64);
 
                 Ok(())
             },
@@ -1253,6 +1195,12 @@ impl AppUI {
             let response = CENTRAL_COMMAND.recv_try(&receiver);
             match response {
                 Response::Success => {
+
+                    // We need to reload the game in question, so stuff that depends on schemas existing actually works.
+                    if let Err(error) = self.change_game_selected(true) {
+                        show_dialog(&dialog, error, false);
+                    }
+
                     dialog.set_text(&qtr("schema_update_success"));
                     close_button.set_enabled(true);
                 },
