@@ -828,6 +828,7 @@ impl AppUI {
         let game = self.game_selected().read().unwrap();
         let game_path = setting_path(game.key());
 
+        // We only use the reserved pack if we need to.
         if (self.actions_ui().enable_logging().is_enabled() && self.actions_ui().enable_logging().is_checked()) ||
             (self.actions_ui().enable_skip_intro().is_enabled() && self.actions_ui().enable_skip_intro().is_checked()) ||
             (self.actions_ui().unit_multiplier_spinbox().is_enabled() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00) {
@@ -921,43 +922,46 @@ impl AppUI {
         file.write_all(pack_list.as_bytes())?;
         file.flush()?;
 
-        let exec_game = game.executable_path(&game_path).unwrap();
+        match game.executable_path(&game_path) {
+            Some(exec_game) => {
+                if cfg!(target_os = "windows") {
+                    let mut command = if game.raw_db_version() > &1 {
+                        let mut command = SystemCommand::new("cmd");
+                        command.arg("/C");
+                        command.arg("start");
+                        command.arg("/d");
+                        command.arg(game_path.to_string_lossy().replace('\\', "/"));
+                        command.arg(exec_game.file_name().unwrap().to_string_lossy().to_string());
+                        command.arg("mod_list.txt;");
 
-        if cfg!(target_os = "windows") {
-            let mut command = if game.raw_db_version() > &1 {
-                let mut command = SystemCommand::new("cmd");
-                command.arg("/C");
-                command.arg("start");
-                command.arg("/d");
-                command.arg(game_path.to_string_lossy().replace('\\', "/"));
-                command.arg(exec_game.file_name().unwrap().to_string_lossy().to_string());
-                command.arg("mod_list.txt;");
+                        for arg in &extra_args {
+                            command.arg(arg);
+                        }
 
-                for arg in &extra_args {
-                    command.arg(arg);
+                        command
+                    } else {
+                        let mut command = SystemCommand::new(exec_game.to_string_lossy().to_string());
+                        command.current_dir(game_path.to_string_lossy().replace('\\', "/"));
+
+                        for arg in &extra_args {
+                            command.arg(arg);
+                        }
+
+                        command
+                    };
+
+                    // This disables the terminal when executing the command.
+                    #[cfg(target_os = "windows")]command.creation_flags(CREATE_NO_WINDOW);
+                    command.spawn()?;
+
+                    Ok(())
+                } else if cfg!(target_os = "linux") {
+                    Err(anyhow!("Unsupported OS."))
+                } else {
+                    Err(anyhow!("Unsupported OS."))
                 }
-
-                command
-            } else {
-                let mut command = SystemCommand::new(exec_game.to_string_lossy().to_string());
-                command.current_dir(game_path.to_string_lossy().replace('\\', "/"));
-
-                for arg in &extra_args {
-                    command.arg(arg);
-                }
-
-                command
-            };
-
-            // This disables the terminal when executing the command.
-            #[cfg(target_os = "windows")]command.creation_flags(CREATE_NO_WINDOW);
-            command.spawn()?;
-
-            Ok(())
-        } else if cfg!(target_os = "linux") {
-            Err(anyhow!("Unsupported OS."))
-        } else {
-            Err(anyhow!("Unsupported OS."))
+            }
+            None => Err(anyhow!("Executable path not found. Is the game folder configured correctly in the settings?"))
         }
     }
 
