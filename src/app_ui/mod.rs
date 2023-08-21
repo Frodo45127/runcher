@@ -11,6 +11,7 @@
 use qt_widgets::QAction;
 use qt_widgets::QActionGroup;
 use qt_widgets::QApplication;
+use qt_widgets::QToolBar;
 use qt_widgets::{QDialog, QDialogButtonBox, q_dialog_button_box::StandardButton};
 use qt_widgets::QLabel;
 use qt_widgets::QMainWindow;
@@ -23,11 +24,13 @@ use qt_gui::QIcon;
 use qt_gui::QStandardItem;
 
 use qt_core::CheckState;
+use qt_core::Orientation;
 use qt_core::QBox;
 use qt_core::QCoreApplication;
 use qt_core::QFlags;
 use qt_core::QModelIndex;
 use qt_core::QPtr;
+use qt_core::QSize;
 use qt_core::QString;
 use qt_core::QVariant;
 use qt_core::SlotNoArgs;
@@ -173,14 +176,14 @@ impl AppUI {
 
         // Initialize and configure the main window.
         let main_window = launcher_window_safe(setting_bool("dark_mode"));
-        let widget = QWidget::new_1a(&main_window);
-        let central_layout = create_grid_layout(widget.static_upcast());
-        main_window.set_central_widget(&widget);
-        main_window.resize_2a(1300, 800);
+        let central_widget = QWidget::new_1a(&main_window);
+        let central_layout = create_grid_layout(central_widget.static_upcast());
+        main_window.set_central_widget(&central_widget);
+        main_window.resize_2a(1300, 1000);
         main_window.set_window_title(&QString::from_std_str("The Runcher"));
         QApplication::set_window_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/runcher.png", ASSETS_PATH.to_string_lossy()))));
 
-        let splitter = QSplitter::from_q_widget(&widget);
+        let splitter = QSplitter::from_q_widget(&central_widget);
         let left_widget = QWidget::new_1a(&splitter);
         let right_widget = QWidget::new_1a(&splitter);
         let _ = create_grid_layout(left_widget.static_upcast());
@@ -188,43 +191,39 @@ impl AppUI {
         splitter.set_stretch_factor(0, 1);
         right_widget.set_minimum_width(540);
 
-        central_layout.add_widget(splitter.into_raw_ptr());
+        central_layout.add_widget_5a(splitter.into_raw_ptr(), 0, 1, 1, 1);
 
         // Get the menu and status bars.
         let menu_bar = main_window.menu_bar();
         let status_bar = main_window.status_bar();
         status_bar.set_size_grip_enabled(false);
-        let menu_bar_game_selected = menu_bar.add_menu_q_string(&qtr("menu_bar_game_selected"));
         let menu_bar_about = menu_bar.add_menu_q_string(&qtr("menu_bar_about"));
 
         //-----------------------------------------------//
         // `Game Selected` Menu.
         //-----------------------------------------------//
-        let game_selected_warhammer_3 = menu_bar_game_selected.add_action_q_string(&QString::from_std_str(DISPLAY_NAME_WARHAMMER_3));
-        let game_selected_troy = menu_bar_game_selected.add_action_q_string(&QString::from_std_str(DISPLAY_NAME_TROY));
-        let game_selected_three_kingdoms = menu_bar_game_selected.add_action_q_string(&QString::from_std_str(DISPLAY_NAME_THREE_KINGDOMS));
-        let game_selected_warhammer_2 = menu_bar_game_selected.add_action_q_string(&QString::from_std_str(DISPLAY_NAME_WARHAMMER_2));
-        let game_selected_warhammer = menu_bar_game_selected.add_action_q_string(&QString::from_std_str(DISPLAY_NAME_WARHAMMER));
-        let game_selected_thrones_of_britannia = menu_bar_game_selected.add_action_q_string(&QString::from_std_str(DISPLAY_NAME_THRONES_OF_BRITANNIA));
-        let game_selected_attila = menu_bar_game_selected.add_action_q_string(&QString::from_std_str(DISPLAY_NAME_ATTILA));
-        let game_selected_rome_2 = menu_bar_game_selected.add_action_q_string(&QString::from_std_str(DISPLAY_NAME_ROME_2));
-        let game_selected_shogun_2 = menu_bar_game_selected.add_action_q_string(&QString::from_std_str(DISPLAY_NAME_SHOGUN_2));
-        let game_selected_napoleon = menu_bar_game_selected.add_action_q_string(&QString::from_std_str(DISPLAY_NAME_NAPOLEON));
-        let game_selected_empire = menu_bar_game_selected.add_action_q_string(&QString::from_std_str(DISPLAY_NAME_EMPIRE));
 
-        //game_selected_warhammer_3.set_icon(QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/{}", ASSETS_PATH.to_string_lossy(), SUPPORTED_GAMES.game(KEY_WARHAMMER_3).unwrap().icon_file_name()))).as_ref());
-        //game_selected_troy.set_icon(QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/{}", ASSETS_PATH.to_string_lossy(), SUPPORTED_GAMES.game(KEY_TROY).unwrap().icon_file_name()))).as_ref());
-        //game_selected_three_kingdoms.set_icon(QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/{}", ASSETS_PATH.to_string_lossy(), SUPPORTED_GAMES.game(KEY_THREE_KINGDOMS).unwrap().icon_file_name()))).as_ref());
-        //game_selected_warhammer_2.set_icon(QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/{}", ASSETS_PATH.to_string_lossy(), SUPPORTED_GAMES.game(KEY_WARHAMMER_2).unwrap().icon_file_name()))).as_ref());
-        //game_selected_warhammer.set_icon(QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/{}", ASSETS_PATH.to_string_lossy(), SUPPORTED_GAMES.game(KEY_WARHAMMER).unwrap().icon_file_name()))).as_ref());
-        //game_selected_thrones_of_britannia.set_icon(QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/{}", ASSETS_PATH.to_string_lossy(), SUPPORTED_GAMES.game(KEY_THRONES_OF_BRITANNIA).unwrap().icon_file_name()))).as_ref());
-        //game_selected_attila.set_icon(QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/{}", ASSETS_PATH.to_string_lossy(), SUPPORTED_GAMES.game(KEY_ATTILA).unwrap().icon_file_name()))).as_ref());
-        //game_selected_rome_2.set_icon(QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/{}", ASSETS_PATH.to_string_lossy(), SUPPORTED_GAMES.game(KEY_ROME_2).unwrap().icon_file_name()))).as_ref());
-        //game_selected_shogun_2.set_icon(QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/{}", ASSETS_PATH.to_string_lossy(), SUPPORTED_GAMES.game(KEY_SHOGUN_2).unwrap().icon_file_name()))).as_ref());
-        //game_selected_napoleon.set_icon(QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/{}", ASSETS_PATH.to_string_lossy(), SUPPORTED_GAMES.game(KEY_NAPOLEON).unwrap().icon_file_name()))).as_ref());
-        //game_selected_empire.set_icon(QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/{}", ASSETS_PATH.to_string_lossy(), SUPPORTED_GAMES.game(KEY_EMPIRE).unwrap().icon_file_name()))).as_ref());
+        // Add a game selected toolbar on the left side of the screen.
+        let game_selected_bar = QToolBar::from_q_widget(&central_widget);
+        let _ = create_grid_layout(game_selected_bar.static_upcast());
+        game_selected_bar.set_orientation(Orientation::Vertical);
+        game_selected_bar.set_icon_size(&QSize::new_2a(64, 64));
+        game_selected_bar.set_fixed_width(64);
 
-        let game_selected_group = QActionGroup::new(&menu_bar_game_selected);
+        let icon_folder = format!("{}/icons/", ASSETS_PATH.to_string_lossy());
+        let game_selected_warhammer_3 = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_WARHAMMER_3).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_WARHAMMER_3));
+        let game_selected_troy = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_TROY).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_TROY));
+        let game_selected_three_kingdoms = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_THREE_KINGDOMS).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_THREE_KINGDOMS));
+        let game_selected_warhammer_2 = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_WARHAMMER_2).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_WARHAMMER_2));
+        let game_selected_warhammer = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_WARHAMMER).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_WARHAMMER));
+        let game_selected_thrones_of_britannia = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_THRONES_OF_BRITANNIA).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_THRONES_OF_BRITANNIA));
+        let game_selected_attila = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_ATTILA).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_ATTILA));
+        let game_selected_rome_2 = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_ROME_2).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_ROME_2));
+        let game_selected_shogun_2 = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_SHOGUN_2).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_SHOGUN_2));
+        let game_selected_napoleon = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_NAPOLEON).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_NAPOLEON));
+        let game_selected_empire = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_EMPIRE).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_EMPIRE));
+
+        let game_selected_group = QActionGroup::new(&game_selected_bar);
 
         // Configure the `Game Selected` Menu.
         game_selected_group.add_action_q_action(&game_selected_warhammer_3);
@@ -249,6 +248,8 @@ impl AppUI {
         game_selected_shogun_2.set_checkable(true);
         game_selected_napoleon.set_checkable(true);
         game_selected_empire.set_checkable(true);
+
+        central_layout.add_widget_5a(game_selected_bar.into_raw_ptr(), 0, 0, 1, 1);
 
         //-----------------------------------------------//
         // `About` Menu.
