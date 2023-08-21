@@ -57,6 +57,7 @@ mod app_ui;
 mod background_thread;
 mod communications;
 mod ffi;
+mod games;
 mod integrations;
 mod mod_list_ui;
 mod network_thread;
