@@ -71,56 +71,67 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo) {
             let schema = SCHEMA.read().unwrap();
             app_ui.actions_ui().enable_logging().set_enabled(true);
             app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(schema.is_some());
         },
         "troy" => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         "three_kingdoms" => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         "warhammer_2" => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         "warhammer" => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         "thrones_of_britannia" => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         "attila" => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         "rome_2" => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         "shogun_2" => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         "napoleon" => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         "empire" => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         }
         &_ => {},
@@ -129,6 +140,7 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo) {
     // Update the launch options for the new game.
     app_ui.actions_ui().enable_logging().set_checked(setting_bool(&format!("enable_logging_{}", game.key())));
     app_ui.actions_ui().enable_skip_intro().set_checked(setting_bool(&format!("enable_skip_intros_{}", game.key())));
+    app_ui.actions_ui().merge_all_mods().set_checked(setting_bool(&format!("merge_all_mods_{}", game.key())));
     app_ui.actions_ui().unit_multiplier_spinbox().set_value({
         let value = setting_f32(&format!("unit_multiplier_{}", game.key()));
         if value == 0.00 {

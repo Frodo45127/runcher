@@ -37,6 +37,7 @@ pub struct AppUISlots {
     launch_game: QBox<SlotNoArgs>,
     toggle_logging: QBox<SlotOfBool>,
     toggle_skip_intros: QBox<SlotOfBool>,
+    toggle_merge_all_mods: QBox<SlotOfBool>,
     change_unit_multiplier: QBox<SlotOfDouble>,
     open_settings: QBox<SlotNoArgs>,
     open_folders_submenu: QBox<SlotNoArgs>,
@@ -94,6 +95,14 @@ impl AppUISlots {
             view => move |state| {
                 let game = view.game_selected().read().unwrap();
                 let setting = format!("enable_skip_intros_{}", game.key());
+                set_setting_bool(&setting, state);
+            }
+        ));
+
+        let toggle_merge_all_mods = SlotOfBool::new(view.main_window(), clone!(
+            view => move |state| {
+                let game = view.game_selected().read().unwrap();
+                let setting = format!("merge_all_mods_{}", game.key());
                 set_setting_bool(&setting, state);
             }
         ));
@@ -375,6 +384,7 @@ impl AppUISlots {
             launch_game,
             toggle_logging,
             toggle_skip_intros,
+            toggle_merge_all_mods,
             change_unit_multiplier,
             open_settings,
             open_folders_submenu,

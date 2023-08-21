@@ -46,6 +46,7 @@ pub struct ActionsUI {
     play_button: QPtr<QToolButton>,
     enable_logging: QPtr<QAction>,
     enable_skip_intro: QPtr<QAction>,
+    merge_all_mods: QPtr<QAction>,
     _unit_multiplier: QBox<QWidgetAction>,
     unit_multiplier_spinbox: QBox<QDoubleSpinBox>,
 
@@ -87,8 +88,10 @@ impl ActionsUI {
         let play_menu = QMenu::from_q_widget(&play_button);
         let enable_logging = play_menu.add_action_q_string(&qtr("enable_logging"));
         let enable_skip_intro = play_menu.add_action_q_string(&qtr("enable_skip_intro"));
+        let merge_all_mods = play_menu.add_action_q_string(&qtr("merge_all_mods"));
         enable_logging.set_checkable(true);
         enable_skip_intro.set_checkable(true);
+        merge_all_mods.set_checkable(true);
         play_button.set_popup_mode(ToolButtonPopupMode::MenuButtonPopup);
 
         let unit_multiplier = QWidgetAction::new(&play_menu);
@@ -144,6 +147,7 @@ impl ActionsUI {
             play_button,
             enable_logging,
             enable_skip_intro,
+            merge_all_mods,
             _unit_multiplier: unit_multiplier,
             unit_multiplier_spinbox,
 

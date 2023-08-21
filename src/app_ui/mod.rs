@@ -94,6 +94,7 @@ const LOAD_ORDER_STRING_VIEW_DEBUG: &str = "ui_templates/load_order_string_dialo
 const LOAD_ORDER_STRING_VIEW_RELEASE: &str = "ui/load_order_string_dialog.ui";
 
 const RESERVED_PACK_NAME: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool";
+const MERGE_ALL_PACKS_PACK_NAME: &str = "merge_me_sideways_honey";
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -419,6 +420,7 @@ impl AppUI {
         self.actions_ui().play_button().released().connect(slots.launch_game());
         self.actions_ui().enable_logging().toggled().connect(slots.toggle_logging());
         self.actions_ui().enable_skip_intro().toggled().connect(slots.toggle_skip_intros());
+        self.actions_ui().merge_all_mods().toggled().connect(slots.toggle_merge_all_mods());
         self.actions_ui().unit_multiplier_spinbox().value_changed().connect(slots.change_unit_multiplier());
         self.actions_ui().settings_button().released().connect(slots.open_settings());
         self.actions_ui().folders_button().released().connect(slots.open_folders_submenu());
@@ -827,13 +829,13 @@ impl AppUI {
         let mut pack_list = String::new();
         let game = self.game_selected().read().unwrap();
         let game_path = setting_path(game.key());
+        let temp_path_folder = config_path()?;
 
         // We only use the reserved pack if we need to.
         if (self.actions_ui().enable_logging().is_enabled() && self.actions_ui().enable_logging().is_checked()) ||
             (self.actions_ui().enable_skip_intro().is_enabled() && self.actions_ui().enable_skip_intro().is_checked()) ||
             (self.actions_ui().unit_multiplier_spinbox().is_enabled() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00) {
 
-            let temp_path_folder = config_path()?;
             let temp_path_file_name = format!("{}_{}.pack", RESERVED_PACK_NAME, self.game_selected().read().unwrap().key());
             let temp_path = temp_path_folder.join(&temp_path_file_name);
             folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_path_folder.to_string_lossy()));
@@ -858,45 +860,86 @@ impl AppUI {
             reserved_pack.save(Some(&temp_path), &game, &Some(encode_data))?;
         }
 
-        pack_list.push_str(&(0..self.pack_list_ui().model().row_count_0a())
-            .filter_map(|index| {
-                let mut string = String::new();
-                let item = self.pack_list_ui().model().item_1a(index);
-                let item_type = self.pack_list_ui().model().item_2a(index, 1);
-                let item_path = self.pack_list_ui().model().item_2a(index, 2);
-                let item_location = self.pack_list_ui().model().item_2a(index, 4);
-                let item_steam_id = self.pack_list_ui().model().item_2a(index, 5);
+        // If we have "merge all mods" checked, we need to load the entire load order into a single pack, and load that pack instead of the entire load order.
+        if self.actions_ui().merge_all_mods().is_enabled() && self.actions_ui().merge_all_mods().is_checked() {
+            let temp_path_file_name = format!("{}_{}.pack", MERGE_ALL_PACKS_PACK_NAME, self.game_selected().read().unwrap().key());
+            let temp_path = temp_path_folder.join(&temp_path_file_name);
+            pack_list.push_str(&format!("add_working_directory \"{}\";\n", temp_path_folder.to_string_lossy()));
+            pack_list.push_str(&format!("mod {};", temp_path_file_name));
 
-                if item_type.text().to_std_string() == "Mod" {
-                    let steam_id = item_steam_id.text().to_std_string();
-                    if item_location.text().to_std_string().starts_with("Content") && !steam_id.is_empty() {
-                        let mut path = PathBuf::from(item_path.text().to_std_string());
-                        path.pop();
+            // Generate the merged pack.
+            let pack_paths = (0..self.pack_list_ui().model().row_count_0a())
+                .filter_map(|index| {
+                    let item_type = self.pack_list_ui().model().item_2a(index, 1);
+                    let item_path = self.pack_list_ui().model().item_2a(index, 2);
+
+                    if item_type.text().to_std_string() == "Mod" {
+                        let path = PathBuf::from(item_path.text().to_std_string());
 
                         // Canonicalization is required due to some issues with the game not loading not properly formatted paths.
-                        if let Ok(path) = std::fs::canonicalize(path) {
-                            let mut path_str = path.to_string_lossy().to_string();
-                            if path_str.starts_with("\\\\?\\") {
-                                path_str = path_str[4..].to_string();
-                            }
-
-                            folder_list.push_str(&format!("add_working_directory \"{}\";\n", path_str));
-                        } else {
-                            return None;
-                        }
-                    }
-                    if game.raw_db_version() > &1 {
-                        string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
+                        std::fs::canonicalize(path).ok()
                     } else {
-                        string.push_str(&format!("mod {};", item.text().to_std_string()));
+                        None
                     }
-                    Some(string)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>()
-            .join("\n"));
+                })
+                .collect::<Vec<_>>();
+
+            if !pack_paths.is_empty() {
+                let mut reserved_pack = Pack::read_and_merge(&pack_paths, true, false)?;
+                let pack_version = game.pfh_version_by_file_type(PFHFileType::Mod);
+                reserved_pack.set_pfh_version(pack_version);
+
+                let mut encode_data = EncodeableExtraData::default();
+                encode_data.set_nullify_dates(true);
+
+                reserved_pack.save(Some(&temp_path), &game, &Some(encode_data))?;
+            }
+        }
+
+        // Otherwise, just add the packs from the load order to the text file.
+        else {
+
+            pack_list.push_str(&(0..self.pack_list_ui().model().row_count_0a())
+                .filter_map(|index| {
+                    let mut string = String::new();
+                    let item = self.pack_list_ui().model().item_1a(index);
+                    let item_type = self.pack_list_ui().model().item_2a(index, 1);
+                    let item_path = self.pack_list_ui().model().item_2a(index, 2);
+                    let item_location = self.pack_list_ui().model().item_2a(index, 4);
+                    let item_steam_id = self.pack_list_ui().model().item_2a(index, 5);
+
+                    if item_type.text().to_std_string() == "Mod" {
+                        let steam_id = item_steam_id.text().to_std_string();
+                        if item_location.text().to_std_string().starts_with("Content") && !steam_id.is_empty() {
+                            let mut path = PathBuf::from(item_path.text().to_std_string());
+                            path.pop();
+
+                            // Canonicalization is required due to some issues with the game not loading not properly formatted paths.
+                            if let Ok(path) = std::fs::canonicalize(path) {
+                                let mut path_str = path.to_string_lossy().to_string();
+                                if path_str.starts_with("\\\\?\\") {
+                                    path_str = path_str[4..].to_string();
+                                }
+
+                                folder_list.push_str(&format!("add_working_directory \"{}\";\n", path_str));
+                            } else {
+                                return None;
+                            }
+                        }
+                        if game.raw_db_version() > &1 {
+                            string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
+                        } else {
+                            string.push_str(&format!("mod {};", item.text().to_std_string()));
+                        }
+                        Some(string)
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n"));
+        }
+
 
         // Check if we are loading a save. First option is no save load. Any index above that is a save.
         let mut extra_args = vec![];

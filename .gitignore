@@ -34,5 +34,6 @@
 # These are usually files locked by applications.
 *.*~
 
-# Ignore the reserved pack.
-\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!run_you_fool_warhammer_3.pack
+# Ignore the reserved pack and the merged pack.
+\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!run_you_fool_*.pack
+merge_me_sideways_honey_*.pack

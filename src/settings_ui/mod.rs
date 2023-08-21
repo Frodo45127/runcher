@@ -377,6 +377,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
         if game.key() != KEY_ARENA {
             set_setting_if_new_bool(&q_settings, &format!("enable_logging_{}", game.key()), false);
             set_setting_if_new_bool(&q_settings, &format!("enable_skip_intros_{}", game.key()), false);
+            set_setting_if_new_bool(&q_settings, &format!("merge_all_mods_{}", game.key()), false);
 
             let game_path = if let Ok(Some(game_path)) = game.find_game_install_location() {
                 game_path.to_string_lossy().to_string()
