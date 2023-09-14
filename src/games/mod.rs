@@ -13,7 +13,7 @@ use anyhow::Result;
 use std::path::Path;
 
 use rpfm_lib::files::pack::Pack;
-use rpfm_lib::games::GameInfo;
+use rpfm_lib::games::{*, supported_games::*};
 
 use rpfm_ui_common::settings::*;
 
@@ -67,68 +67,68 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo) {
 
     // Only set enabled the launch options that work for the current game.
     match game.key() {
-        "warhammer_3" => {
+        KEY_WARHAMMER_3 => {
             let schema = SCHEMA.read().unwrap();
             app_ui.actions_ui().enable_logging().set_enabled(true);
             app_ui.actions_ui().enable_skip_intro().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(schema.is_some());
         },
-        "troy" => {
+        KEY_TROY => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
-        "three_kingdoms" => {
+        KEY_THREE_KINGDOMS => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
-        "warhammer_2" => {
+        KEY_WARHAMMER_2 => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
-        "warhammer" => {
+        KEY_WARHAMMER => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
-        "thrones_of_britannia" => {
+        KEY_THRONES_OF_BRITANNIA => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
-        "attila" => {
+        KEY_ATTILA => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
-        "rome_2" => {
+        KEY_ROME_2 => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
-        "shogun_2" => {
+        KEY_SHOGUN_2 => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
-        "napoleon" => {
+        KEY_NAPOLEON => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
-        "empire" => {
+        KEY_EMPIRE => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
@@ -156,7 +156,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
         Some(ref schema) => {
             if app_ui.actions_ui().unit_multiplier_spinbox().is_enabled() && app_ui.actions_ui().unit_multiplier_spinbox().value() != 1.00 {
                 match game.key() {
-                    "warhammer_3" => warhammer_3::prepare_unit_multiplier(app_ui, game, game_path, reserved_pack, schema),
+                    KEY_WARHAMMER_3 => warhammer_3::prepare_unit_multiplier(app_ui, game, game_path, reserved_pack, schema),
                     _ => Ok(())
                 }
             } else {
@@ -170,7 +170,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
 pub unsafe fn prepare_script_logging(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack) -> Result<()> {
     if app_ui.actions_ui().enable_logging().is_enabled() && app_ui.actions_ui().enable_logging().is_checked() {
         match game.key() {
-            "warhammer_3" => warhammer_3::prepare_script_logging(reserved_pack),
+            KEY_WARHAMMER_3 => warhammer_3::prepare_script_logging(reserved_pack),
             _ => Ok(())
         }
     } else {
@@ -181,7 +181,7 @@ pub unsafe fn prepare_script_logging(app_ui: &AppUI, game: &GameInfo, reserved_p
 pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack) -> Result<()> {
     if app_ui.actions_ui().enable_skip_intro().is_enabled() && app_ui.actions_ui().enable_skip_intro().is_checked() {
         match game.key() {
-            "warhammer_3" => warhammer_3::prepare_skip_intro_videos(reserved_pack),
+            KEY_WARHAMMER_3 => warhammer_3::prepare_skip_intro_videos(reserved_pack),
             _ => Ok(())
         }
     } else {

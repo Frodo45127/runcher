@@ -39,7 +39,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use rpfm_lib::games::supported_games::KEY_ARENA;
+use rpfm_lib::games::supported_games::{KEY_ARENA, KEY_WARHAMMER_3};
 
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
@@ -366,7 +366,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
 
     set_setting_if_new_string(&q_settings, "steam_user_id", &steam_user_id);
     set_setting_if_new_string(&q_settings, "steam_api_key", "");
-    set_setting_if_new_string(&q_settings, "default_game", "warhammer_3");
+    set_setting_if_new_string(&q_settings, "default_game", KEY_WARHAMMER_3);
     set_setting_if_new_string(&q_settings, "update_channel", "stable");
     set_setting_if_new_string(&q_settings, "language", "English_en");
     set_setting_if_new_bool(&q_settings, "check_updates_on_start", true);
