@@ -565,7 +565,7 @@ impl AppUI {
                         saves_paths.reverse();
 
                         for save_path in &saves_paths {
-                            let mut save = RFile::new_from_file_path(&save_path)?;
+                            let mut save = RFile::new_from_file_path(save_path)?;
                             save.guess_file_type()?;
                             if let Some(RFileDecoded::ESF(file)) = save.decode(&None, false, true)? {
                                 let mut save = Save::default();
@@ -696,7 +696,7 @@ impl AppUI {
                             // If any of the mods has a .bin file, we need to copy it to /data and turn it into a Pack.
                             // All the if lets are because we only want to do all this if nothing files and ignore failures.
                             let steam_user_id = setting_string("steam_user_id");
-                            for (_, modd) in mods.mods_mut() {
+                            for modd in mods.mods_mut().values_mut() {
                                 if let Some(last_path) = modd.paths().last() {
                                     if let Some(extension) = last_path.extension() {
 
@@ -708,10 +708,8 @@ impl AppUI {
                                                         let new_path = new_path.join(name);
 
                                                         // Copy the files unless it exists and its ours.
-                                                        if !new_path.is_file() || (new_path.is_file() && &steam_user_id != modd.creator()) {
-                                                            if pack.save(Some(&new_path), game, &None).is_ok() {
-                                                                modd.paths_mut().insert(0, new_path);
-                                                            }
+                                                        if (!new_path.is_file() || (new_path.is_file() && &steam_user_id != modd.creator())) && pack.save(Some(&new_path), game, &None).is_ok() {
+                                                            modd.paths_mut().insert(0, new_path);
                                                         }
                                                     }
                                                 }
@@ -1265,7 +1263,7 @@ impl AppUI {
         let mut file = File::open(ASSETS_PATH.join("dark-theme.qss"))?;
         let mut string = String::new();
         file.read_to_string(&mut string)?;
-        Ok(string.replace("{assets_path}", &ASSETS_PATH.to_string_lossy().replace("\\", "/")))
+        Ok(string.replace("{assets_path}", &ASSETS_PATH.to_string_lossy().replace('\\', "/")))
     }
 
     /// This function is used to load/reload a theme live.
