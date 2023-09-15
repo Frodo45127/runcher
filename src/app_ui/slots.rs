@@ -16,6 +16,7 @@ use qt_core::QBox;
 use qt_core::SlotNoArgs;
 use qt_core::SlotOfBool;
 use qt_core::SlotOfDouble;
+use qt_core::SlotOfQString;
 
 use std::sync::Arc;
 
@@ -38,6 +39,7 @@ pub struct AppUISlots {
     toggle_logging: QBox<SlotOfBool>,
     toggle_skip_intros: QBox<SlotOfBool>,
     toggle_merge_all_mods: QBox<SlotOfBool>,
+    toggle_enable_translations: QBox<SlotOfQString>,
     change_unit_multiplier: QBox<SlotOfDouble>,
     open_settings: QBox<SlotNoArgs>,
     open_folders_submenu: QBox<SlotNoArgs>,
@@ -104,6 +106,14 @@ impl AppUISlots {
                 let game = view.game_selected().read().unwrap();
                 let setting = format!("merge_all_mods_{}", game.key());
                 set_setting_bool(&setting, state);
+            }
+        ));
+
+        let toggle_enable_translations = SlotOfQString::new(view.main_window(), clone!(
+            view => move |lang| {
+                let game = view.game_selected().read().unwrap();
+                let setting = format!("enable_translations_{}", game.key());
+                set_setting_string(&setting, &lang.to_std_string());
             }
         ));
 
@@ -385,6 +395,7 @@ impl AppUISlots {
             toggle_logging,
             toggle_skip_intros,
             toggle_merge_all_mods,
+            toggle_enable_translations,
             change_unit_multiplier,
             open_settings,
             open_folders_submenu,

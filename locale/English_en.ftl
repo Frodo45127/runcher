@@ -106,3 +106,4 @@ check_schema_updates_on_start = Check Schema Updates on Start
 
 steam_user_id = Steam User Id
 merge_all_mods = Merge All Mods
+enable_translations = Enable Translations

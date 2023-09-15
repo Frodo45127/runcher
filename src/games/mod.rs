@@ -8,6 +8,8 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use qt_core::QString;
+
 use anyhow::Result;
 
 use std::path::Path;
@@ -63,7 +65,7 @@ mod warhammer_3;
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
-pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo) {
+pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
 
     // Only set enabled the launch options that work for the current game.
     match game.key() {
@@ -71,66 +73,77 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo) {
             let schema = SCHEMA.read().unwrap();
             app_ui.actions_ui().enable_logging().set_enabled(true);
             app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(schema.is_some());
         },
         KEY_TROY => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         KEY_THREE_KINGDOMS => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         KEY_WARHAMMER_2 => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         KEY_WARHAMMER => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         KEY_THRONES_OF_BRITANNIA => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         KEY_ATTILA => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         KEY_ROME_2 => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         KEY_SHOGUN_2 => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         KEY_NAPOLEON => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         KEY_EMPIRE => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
             app_ui.actions_ui().enable_skip_intro().set_enabled(false);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         }
@@ -149,6 +162,30 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo) {
             value
         }
     } as f64);
+
+    // Populate the list of translations depending on what local_XX packs the game has.
+    app_ui.actions_ui().enable_translations_combobox().clear();
+    app_ui.actions_ui().enable_translations_combobox().insert_item_int_q_string(0, &QString::from_std_str("--"));
+    app_ui.actions_ui().enable_translations_combobox().set_current_index(0);
+
+    if let Ok(ca_packs) = game.ca_packs_paths(game_path) {
+        let mut languages = ca_packs.iter()
+            .filter_map(|path| path.file_stem())
+            .filter(|name| name.to_string_lossy().starts_with("local_"))
+            .map(|name| name.to_string_lossy().split_at(6).1.to_uppercase())
+            .collect::<Vec<_>>();
+
+        // Sort, and remove anything longer than 2 characters to avoid duplicates.
+        languages.retain(|lang| lang.chars().count() == 2);
+        languages.sort();
+
+        for (index, language) in languages.iter().enumerate() {
+            app_ui.actions_ui().enable_translations_combobox().insert_item_int_q_string(index as i32 + 1, &QString::from_std_str(language));
+        }
+
+        let language_to_select = setting_string(&format!("enable_translations_{}", game.key()));
+        app_ui.actions_ui().enable_translations_combobox().set_current_text(&QString::from_std_str(language_to_select));
+    }
 }
 
 pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack) -> Result<()> {
@@ -188,3 +225,15 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, reserve
         Ok(())
     }
 }
+
+pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack) -> Result<()> {
+    if app_ui.actions_ui().enable_translations_combobox().is_enabled() && app_ui.actions_ui().enable_translations_combobox().current_index() != 0 {
+        match game.key() {
+            KEY_WARHAMMER_3 => warhammer_3::prepare_translations(app_ui, game, reserved_pack),
+            _ => Ok(())
+        }
+    } else {
+        Ok(())
+    }
+}
+

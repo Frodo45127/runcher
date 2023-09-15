@@ -421,6 +421,7 @@ impl AppUI {
         self.actions_ui().enable_logging().toggled().connect(slots.toggle_logging());
         self.actions_ui().enable_skip_intro().toggled().connect(slots.toggle_skip_intros());
         self.actions_ui().merge_all_mods().toggled().connect(slots.toggle_merge_all_mods());
+        self.actions_ui().enable_translations_combobox().current_text_changed().connect(slots.toggle_enable_translations());
         self.actions_ui().unit_multiplier_spinbox().value_changed().connect(slots.change_unit_multiplier());
         self.actions_ui().settings_button().released().connect(slots.open_settings());
         self.actions_ui().folders_button().released().connect(slots.open_folders_submenu());
@@ -531,9 +532,6 @@ impl AppUI {
                 // Load the game's config.
                 *self.game_config().write().unwrap() = Some(GameConfig::load(game, true)?);
 
-                // Load the launch options for the game selected.
-                setup_launch_options(self, game);
-
                 // Load the profile's list.
                 *self.game_profiles().write().unwrap() = Profile::profiles_for_game(game)?;
                 self.actions_ui().profile_model().clear();
@@ -551,6 +549,9 @@ impl AppUI {
                 let game_path_str = setting_string(game.key());
                 let game_path = PathBuf::from(&game_path_str);
                 self.actions_ui().play_button().set_enabled(!game_path_str.is_empty());
+
+                // Load the launch options for the game selected.
+                setup_launch_options(self, game, &game_path);
 
                 // If we have a save folder for the game, read its saves and load them to the save combo.
                 if let Some(ref config_path) = game.config_path(&game_path) {
@@ -832,6 +833,7 @@ impl AppUI {
         // We only use the reserved pack if we need to.
         if (self.actions_ui().enable_logging().is_enabled() && self.actions_ui().enable_logging().is_checked()) ||
             (self.actions_ui().enable_skip_intro().is_enabled() && self.actions_ui().enable_skip_intro().is_checked()) ||
+            (self.actions_ui().enable_translations_combobox().is_enabled() && self.actions_ui().enable_translations_combobox().current_index() != 0) ||
             (self.actions_ui().unit_multiplier_spinbox().is_enabled() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00) {
 
             let temp_path_file_name = format!("{}_{}.pack", RESERVED_PACK_NAME, self.game_selected().read().unwrap().key());
@@ -848,6 +850,9 @@ impl AppUI {
 
             // Logging.
             prepare_script_logging(self, &game, &mut reserved_pack)?;
+
+            // Translations.
+            prepare_translations(self, &game, &mut reserved_pack)?;
 
             // Unit multiplier.
             prepare_unit_multiplier(self, &game, &game_path, &mut reserved_pack)?;

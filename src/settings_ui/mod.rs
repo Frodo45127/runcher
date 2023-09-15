@@ -25,11 +25,13 @@ use qt_widgets::QToolButton;
 use qt_gui::QIcon;
 
 use qt_core::QBox;
+use qt_core::QCoreApplication;
 use qt_core::QFlags;
 use qt_core::QPtr;
 use qt_core::QString;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use directories::ProjectDirs;
 use getset::*;
 use regex::Regex;
 
@@ -377,6 +379,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
         if game.key() != KEY_ARENA {
             set_setting_if_new_bool(&q_settings, &format!("enable_logging_{}", game.key()), false);
             set_setting_if_new_bool(&q_settings, &format!("enable_skip_intros_{}", game.key()), false);
+            set_setting_if_new_string(&q_settings, &format!("enable_translations_{}", game.key()), "--");
             set_setting_if_new_bool(&q_settings, &format!("merge_all_mods_{}", game.key()), false);
 
             let game_path = if let Ok(Some(game_path)) = game.find_game_install_location() {
@@ -409,6 +412,8 @@ pub fn init_config_path() -> Result<()> {
     DirBuilder::new().recursive(true).create(profiles_path()?)?;
     DirBuilder::new().recursive(true).create(schemas_path()?)?;
 
+    DirBuilder::new().recursive(true).create(translations_local_path()?)?;
+
     Ok(())
 }
 
@@ -422,4 +427,19 @@ pub fn game_config_path() -> Result<PathBuf> {
 
 pub fn profiles_path() -> Result<PathBuf> {
     Ok(config_path()?.join("profiles"))
+}
+
+pub fn rpfm_config_path() -> Result<PathBuf> {
+    if cfg!(debug_assertions) { std::env::current_dir().map_err(From::from) } else {
+        unsafe {
+            match ProjectDirs::from(&QCoreApplication::organization_domain().to_std_string(), &QCoreApplication::organization_name().to_std_string(), "rpfm") {
+                Some(proj_dirs) => Ok(proj_dirs.config_dir().to_path_buf()),
+                None => Err(anyhow!("Failed to get RPFM's config path."))
+            }
+        }
+    }
+}
+
+pub fn translations_local_path() -> Result<PathBuf> {
+    rpfm_config_path().map(|path| path.join("translations_local"))
 }

@@ -46,6 +46,8 @@ pub struct ActionsUI {
     play_button: QPtr<QToolButton>,
     enable_logging: QPtr<QAction>,
     enable_skip_intro: QPtr<QAction>,
+    _enable_translations: QBox<QWidgetAction>,
+    enable_translations_combobox: QBox<QComboBox>,
     merge_all_mods: QPtr<QAction>,
     _unit_multiplier: QBox<QWidgetAction>,
     unit_multiplier_spinbox: QBox<QDoubleSpinBox>,
@@ -88,11 +90,23 @@ impl ActionsUI {
         let play_menu = QMenu::from_q_widget(&play_button);
         let enable_logging = play_menu.add_action_q_string(&qtr("enable_logging"));
         let enable_skip_intro = play_menu.add_action_q_string(&qtr("enable_skip_intro"));
-        let merge_all_mods = play_menu.add_action_q_string(&qtr("merge_all_mods"));
         enable_logging.set_checkable(true);
         enable_skip_intro.set_checkable(true);
+
+        // Note: this is populated on game change, by detecting the languages available as locale packs.
+        let enable_translations = QWidgetAction::new(&play_menu);
+        let enable_translations_widget = QWidget::new_1a(&play_menu);
+        let enable_translations_label = QLabel::from_q_string_q_widget(&qtr("enable_translations"), &enable_translations_widget);
+        let enable_translations_combobox = QComboBox::new_1a(&enable_translations_widget);
+        let enable_translations_layout = create_grid_layout(enable_translations_widget.static_upcast());
+        enable_translations_layout.add_widget_5a(&enable_translations_label, 0, 0, 1, 1);
+        enable_translations_layout.add_widget_5a(&enable_translations_combobox, 0, 1, 1, 1);
+        enable_translations_combobox.set_current_index(0);
+        enable_translations.set_default_widget(&enable_translations_widget);
+        play_menu.add_action(&enable_translations);
+
+        let merge_all_mods = play_menu.add_action_q_string(&qtr("merge_all_mods"));
         merge_all_mods.set_checkable(true);
-        play_button.set_popup_mode(ToolButtonPopupMode::MenuButtonPopup);
 
         let unit_multiplier = QWidgetAction::new(&play_menu);
         let unit_multiplier_widget = QWidget::new_1a(&play_menu);
@@ -104,7 +118,9 @@ impl ActionsUI {
         unit_multiplier_spinbox.set_value(1.00);
         unit_multiplier.set_default_widget(&unit_multiplier_widget);
         play_menu.add_action(&unit_multiplier);
+
         play_button.set_menu(play_menu.into_raw_ptr());
+        play_button.set_popup_mode(ToolButtonPopupMode::MenuButtonPopup);
 
         let settings_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "settings_button")?;
         let folders_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "folders_button")?;
@@ -147,6 +163,8 @@ impl ActionsUI {
             play_button,
             enable_logging,
             enable_skip_intro,
+            _enable_translations: enable_translations,
+            enable_translations_combobox,
             merge_all_mods,
             _unit_multiplier: unit_multiplier,
             unit_multiplier_spinbox,
