@@ -150,6 +150,9 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
         &_ => {},
     }
 
+    // Disable this until I figure out how to fix the performance problems, and I change the pack to be on /data
+    app_ui.actions_ui().merge_all_mods().set_enabled(false);
+
     // Update the launch options for the new game.
     app_ui.actions_ui().enable_logging().set_checked(setting_bool(&format!("enable_logging_{}", game.key())));
     app_ui.actions_ui().enable_skip_intro().set_checked(setting_bool(&format!("enable_skip_intros_{}", game.key())));
