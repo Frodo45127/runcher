@@ -747,7 +747,16 @@ impl AppUI {
                     }
 
                     if let Some(ref paths) = data_paths {
-                        let paths = paths.iter().filter(|path| !vanilla_packs.contains(path)).collect::<Vec<_>>();
+                        let paths = paths.iter()
+                            .filter(|path| {
+                                if let Ok(canon_path) = std::fs::canonicalize(path) {
+                                    !vanilla_packs.contains(&canon_path)
+                                } else {
+                                    false
+                                }
+                            })
+                            .collect::<Vec<_>>();
+
                         let packs = paths.par_iter()
                             .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false)))
                             .collect::<Vec<_>>();
