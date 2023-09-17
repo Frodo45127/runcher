@@ -859,6 +859,7 @@ impl AppUI {
         let mut pack_list = String::new();
         let game = self.game_selected().read().unwrap();
         let game_path = setting_path(game.key());
+        let data_path = game.data_path(&game_path)?;
         let temp_path_folder = config_path()?;
 
         // We only use the reserved pack if we need to.
@@ -900,8 +901,7 @@ impl AppUI {
         // If we have "merge all mods" checked, we need to load the entire load order into a single pack, and load that pack instead of the entire load order.
         if self.actions_ui().merge_all_mods().is_enabled() && self.actions_ui().merge_all_mods().is_checked() {
             let temp_path_file_name = format!("{}_{}.pack", MERGE_ALL_PACKS_PACK_NAME, self.game_selected().read().unwrap().key());
-            let temp_path = temp_path_folder.join(&temp_path_file_name);
-            pack_list.push_str(&format!("add_working_directory \"{}\";\n", temp_path_folder.to_string_lossy()));
+            let temp_path = data_path.join(&temp_path_file_name);
             pack_list.push_str(&format!("mod {};", temp_path_file_name));
 
             // Generate the merged pack.
