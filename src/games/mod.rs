@@ -10,17 +10,21 @@
 
 use qt_core::QString;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use rpfm_lib::files::Container;
 
-use std::path::Path;
+use std::path::{PathBuf, Path};
 
-use rpfm_lib::files::pack::Pack;
+use rpfm_extensions::translator::*;
+
+use rpfm_lib::files::{loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
 use rpfm_lib::games::{*, supported_games::*};
 
 use rpfm_ui_common::settings::*;
 
 use crate::app_ui::AppUI;
 use crate::SCHEMA;
+use crate::translations_local_path;
 
 const EMPTY_CA_VP8: [u8; 595] = [
     0x43, 0x41, 0x4d, 0x56, 0x01, 0x00, 0x29, 0x00, 0x56, 0x50, 0x38, 0x30, 0x80, 0x02, 0xe0, 0x01, 0x55, 0x55,
@@ -109,9 +113,9 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         KEY_WARHAMMER => {
-            app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
+            app_ui.actions_ui().enable_logging().set_enabled(false);    // Warhammer 1 doesn't support logging by default.
+            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
@@ -255,7 +259,7 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, reserve
             KEY_TROY |
             KEY_THREE_KINGDOMS => Ok(()),
             KEY_WARHAMMER_2 => warhammer_2::prepare_skip_intro_videos(reserved_pack),
-            KEY_WARHAMMER |
+            KEY_WARHAMMER => warhammer::prepare_skip_intro_videos(reserved_pack),
             KEY_THRONES_OF_BRITANNIA |
             KEY_ATTILA |
             KEY_ROME_2 |
@@ -269,21 +273,88 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, reserve
     }
 }
 
+/// All total war games use the same translation system.
+///
+/// The only particularity is that all games before warhammer 1 need to merge all translations into a localisation.loc file.
 pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack) -> Result<()> {
     if app_ui.actions_ui().enable_translations_combobox().is_enabled() && app_ui.actions_ui().enable_translations_combobox().current_index() != 0 {
-        match game.key() {
-            KEY_WARHAMMER_3 => warhammer_3::prepare_translations(app_ui, game, reserved_pack),
-            KEY_TROY |
-            KEY_THREE_KINGDOMS => Ok(()),
-            KEY_WARHAMMER_2 => warhammer_2::prepare_translations(app_ui, game, reserved_pack),
-            KEY_WARHAMMER |
-            KEY_THRONES_OF_BRITANNIA |
-            KEY_ATTILA |
-            KEY_ROME_2 |
-            KEY_SHOGUN_2 |
-            KEY_NAPOLEON |
-            KEY_EMPIRE => Ok(()),
-            _ => Ok(())
+        match translations_local_path() {
+            Ok(path) => {
+                let language = app_ui.actions_ui().enable_translations_combobox().current_text().to_std_string();
+                let mut pack_names = (0..app_ui.pack_list_ui().model().row_count_0a())
+                    .filter_map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()).file_name().map(|name| name.to_string_lossy().to_string()))
+                    .collect::<Vec<_>>();
+
+                // Reversed so we just get the higher priority stuff at the end, overwriting the rest.
+                pack_names.sort();
+                pack_names.reverse();
+
+                // If we need to merge the localisation.loc file if found to the translations.
+                let use_old_multilanguage_logic = match game.key() {
+                    KEY_THRONES_OF_BRITANNIA |
+                    KEY_ATTILA |
+                    KEY_ROME_2 |
+                    KEY_SHOGUN_2 |
+                    KEY_NAPOLEON |
+                    KEY_EMPIRE => true,
+                    _ => false,
+                };
+
+                let mut loc = Loc::new();
+                let mut loc_data = vec![];
+                for pack_name in &pack_names {
+                    if let Ok(tr) = PackTranslation::load(&path, pack_name, game.key(), &language) {
+                        for tr in tr.translations().values() {
+
+                            // Only add entries for values we actually have translated and up to date.
+                            if !tr.value_translated().is_empty() && !*tr.needs_retranslation() {
+                                loc_data.push(vec![
+                                    DecodedData::StringU16(tr.key().to_owned()),
+                                    DecodedData::StringU16(tr.value_translated().to_owned()),
+                                    DecodedData::Boolean(false),
+                                ]);
+                            }
+
+                            // If we're in a game with the old logic and there is no translation, add the text in english directly.
+                            else if use_old_multilanguage_logic && !tr.value_original().is_empty() {
+                                loc_data.push(vec![
+                                    DecodedData::StringU16(tr.key().to_owned()),
+                                    DecodedData::StringU16(tr.value_original().to_owned()),
+                                    DecodedData::Boolean(false),
+                                ]);
+                            }
+                        }
+                    }
+                }
+
+                // If the game uses the old multilanguage logic, we need to get the most updated version of localisation.loc from the game and append it to our loc.
+                if use_old_multilanguage_logic {
+                    let game_path = setting_path(game.key());
+                    let mut pack = Pack::read_and_merge_ca_packs(game, &game_path)?;
+
+                    if let Some(vanilla_loc) = pack.file_mut(TRANSLATED_PATH_OLD, false) {
+                        if let Ok(RFileDecoded::Loc(loc)) = vanilla_loc.decoded_mut() {
+                            loc_data.append(&mut loc.data_mut())
+                        }
+                    }
+                }
+
+                if !loc_data.is_empty() {
+                    loc.set_data(&loc_data)?;
+
+                    let path = if use_old_multilanguage_logic {
+                        TRANSLATED_PATH_OLD.to_string()
+                    } else {
+                        TRANSLATED_PATH.to_string()
+                    };
+
+                    let file = RFile::new_from_decoded(&RFileDecoded::Loc(loc), 0, &path);
+                    reserved_pack.files_mut().insert(path, file);
+                }
+
+                Ok(())
+            }
+            Err(_) => Err(anyhow!("Failed to get local translations path. If you see this, it means I forgot to write the code to make sure that folder exists.")),
         }
     } else {
         Ok(())
