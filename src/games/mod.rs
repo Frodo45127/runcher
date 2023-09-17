@@ -11,13 +11,12 @@
 use qt_core::QString;
 
 use anyhow::{anyhow, Result};
-use rpfm_lib::files::Container;
 
 use std::path::{PathBuf, Path};
 
 use rpfm_extensions::translator::*;
 
-use rpfm_lib::files::{loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
+use rpfm_lib::files::{Container, FileType, loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
 use rpfm_lib::games::{*, supported_games::*};
 
 use rpfm_ui_common::settings::*;
@@ -128,8 +127,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
         },
         KEY_THRONES_OF_BRITANNIA => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
@@ -274,7 +273,7 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, reserve
             KEY_THREE_KINGDOMS => Ok(()),
             KEY_WARHAMMER_2 => warhammer_2::prepare_skip_intro_videos(reserved_pack),
             KEY_WARHAMMER => warhammer::prepare_skip_intro_videos(reserved_pack),
-            KEY_THRONES_OF_BRITANNIA |
+            KEY_THRONES_OF_BRITANNIA => thrones::prepare_skip_intro_videos(reserved_pack),
             KEY_ATTILA |
             KEY_ROME_2 |
             KEY_SHOGUN_2 |
@@ -295,13 +294,13 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
         match translations_local_path() {
             Ok(path) => {
                 let language = app_ui.actions_ui().enable_translations_combobox().current_text().to_std_string();
-                let mut pack_names = (0..app_ui.pack_list_ui().model().row_count_0a())
-                    .filter_map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()).file_name().map(|name| name.to_string_lossy().to_string()))
+                let mut pack_paths = (0..app_ui.pack_list_ui().model().row_count_0a())
+                    .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
                     .collect::<Vec<_>>();
 
                 // Reversed so we just get the higher priority stuff at the end, overwriting the rest.
-                pack_names.sort();
-                pack_names.reverse();
+                pack_paths.sort();
+                pack_paths.reverse();
 
                 // If we need to merge the localisation.loc file if found to the translations.
                 let use_old_multilanguage_logic = match game.key() {
@@ -316,27 +315,50 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
 
                 let mut loc = Loc::new();
                 let mut loc_data = vec![];
-                for pack_name in &pack_names {
-                    if let Ok(tr) = PackTranslation::load(&path, pack_name, game.key(), &language) {
-                        for tr in tr.translations().values() {
+                for pack_path in &pack_paths {
+                    if let Some(ref pack_name) = pack_path.file_name().map(|name| name.to_string_lossy().to_string()) {
+                        if let Ok(tr) = PackTranslation::load(&path, pack_name, game.key(), &language) {
+                            for tr in tr.translations().values() {
 
-                            // Only add entries for values we actually have translated and up to date.
-                            if !tr.value_translated().is_empty() && !*tr.needs_retranslation() {
-                                loc_data.push(vec![
-                                    DecodedData::StringU16(tr.key().to_owned()),
-                                    DecodedData::StringU16(tr.value_translated().to_owned()),
-                                    DecodedData::Boolean(false),
-                                ]);
-                            }
+                                // Only add entries for values we actually have translated and up to date.
+                                if !tr.value_translated().is_empty() && !*tr.needs_retranslation() {
+                                    loc_data.push(vec![
+                                        DecodedData::StringU16(tr.key().to_owned()),
+                                        DecodedData::StringU16(tr.value_translated().to_owned()),
+                                        DecodedData::Boolean(false),
+                                    ]);
+                                }
 
-                            // If we're in a game with the old logic and there is no translation, add the text in english directly.
-                            else if use_old_multilanguage_logic && !tr.value_original().is_empty() {
-                                loc_data.push(vec![
-                                    DecodedData::StringU16(tr.key().to_owned()),
-                                    DecodedData::StringU16(tr.value_original().to_owned()),
-                                    DecodedData::Boolean(false),
-                                ]);
+                                // If we're in a game with the old logic and there is no translation, add the text in english directly.
+                                else if use_old_multilanguage_logic && !tr.value_original().is_empty() {
+                                    loc_data.push(vec![
+                                        DecodedData::StringU16(tr.key().to_owned()),
+                                        DecodedData::StringU16(tr.value_original().to_owned()),
+                                        DecodedData::Boolean(false),
+                                    ]);
+                                }
                             }
+                        }
+
+                        // If there's no translation data, just merge their locs.
+                        else {
+                            let mut pack = Pack::read_and_merge(&[pack_path.to_path_buf()], true, false)?;
+
+                            let mut locs = pack.files_by_type_mut(&[FileType::Loc]);
+                            locs.sort_by(|a, b| a.path_in_container_raw().cmp(b.path_in_container_raw()));
+
+                            let locs_split = locs.iter_mut()
+                                .filter_map(|loc| if let Ok(Some(RFileDecoded::Loc(loc))) = loc.decode(&None, false, true) {
+                                    Some(loc)
+                                } else {
+                                    None
+                                })
+                                .collect::<Vec<_>>();
+
+                            let locs_split_ref = locs_split.iter().collect::<Vec<_>>();
+
+                            let mut merged_loc = Loc::merge(&locs_split_ref)?;
+                            loc_data.append(&mut merged_loc.data_mut());
                         }
                     }
                 }
@@ -345,10 +367,9 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
                 if use_old_multilanguage_logic {
                     let game_path = setting_path(game.key());
                     let mut pack = Pack::read_and_merge_ca_packs(game, &game_path)?;
-
                     if let Some(vanilla_loc) = pack.file_mut(TRANSLATED_PATH_OLD, false) {
-                        if let Ok(RFileDecoded::Loc(loc)) = vanilla_loc.decoded_mut() {
-                            loc_data.append(&mut loc.data_mut())
+                        if let Ok(Some(RFileDecoded::Loc(mut loc))) = vanilla_loc.decode(&None, false, true) {
+                            loc_data.append(&mut loc.data_mut());
                         }
                     }
                 }

@@ -873,8 +873,11 @@ impl AppUI {
             pack_list.push_str(&format!("mod \"{}\";\n", temp_path_file_name));
 
             // Generate the reserved pack.
-            let pack_version = game.pfh_version_by_file_type(PFHFileType::Mod);
+            //
+            // Note: It has to be a movie pack because otherwise we cannot overwrite the intro files in older games.
+            let pack_version = game.pfh_version_by_file_type(PFHFileType::Movie);
             let mut reserved_pack = Pack::new_with_version(pack_version);
+            reserved_pack.set_pfh_file_type(PFHFileType::Movie);
 
             // Skip videos.
             prepare_skip_intro_videos(self, &game, &mut reserved_pack)?;
