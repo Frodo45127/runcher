@@ -81,6 +81,13 @@ mod warhammer_3;
 
 pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
 
+    // The blockers are needed to avoid issues with game change causing incorrect status to be saved.
+    app_ui.actions_ui().enable_logging().block_signals(true);
+    app_ui.actions_ui().enable_skip_intro().block_signals(true);
+    app_ui.actions_ui().enable_translations_combobox().block_signals(true);
+    app_ui.actions_ui().merge_all_mods().block_signals(true);
+    app_ui.actions_ui().unit_multiplier_spinbox().block_signals(true);
+
     // Only set enabled the launch options that work for the current game.
     match game.key() {
         KEY_WARHAMMER_3 => {
@@ -203,6 +210,13 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
         let language_to_select = setting_string(&format!("enable_translations_{}", game.key()));
         app_ui.actions_ui().enable_translations_combobox().set_current_text(&QString::from_std_str(language_to_select));
     }
+
+    // Unblock all blocked signals.
+    app_ui.actions_ui().enable_logging().block_signals(false);
+    app_ui.actions_ui().enable_skip_intro().block_signals(false);
+    app_ui.actions_ui().enable_translations_combobox().block_signals(false);
+    app_ui.actions_ui().merge_all_mods().block_signals(false);
+    app_ui.actions_ui().unit_multiplier_spinbox().block_signals(false);
 }
 
 pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack) -> Result<()> {
