@@ -134,8 +134,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
         },
         KEY_ATTILA => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
@@ -274,7 +274,7 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, reserve
             KEY_WARHAMMER_2 => warhammer_2::prepare_skip_intro_videos(reserved_pack),
             KEY_WARHAMMER => warhammer::prepare_skip_intro_videos(reserved_pack),
             KEY_THRONES_OF_BRITANNIA => thrones::prepare_skip_intro_videos(reserved_pack),
-            KEY_ATTILA |
+            KEY_ATTILA => attila::prepare_skip_intro_videos(reserved_pack),
             KEY_ROME_2 |
             KEY_SHOGUN_2 |
             KEY_NAPOLEON |
