@@ -10,6 +10,9 @@
 # Schemas folder.
 /schemas/
 
+# Packs created on launch.
+/temp_packs/
+
 # Linux built Qt extensions lib.
 /3rdparty/builds/libqt_runcher_extensions.a
 

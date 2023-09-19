@@ -93,7 +93,7 @@ pub mod slots;
 const LOAD_ORDER_STRING_VIEW_DEBUG: &str = "ui_templates/load_order_string_dialog.ui";
 const LOAD_ORDER_STRING_VIEW_RELEASE: &str = "ui/load_order_string_dialog.ui";
 
-const RESERVED_PACK_NAME: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool";
+const RESERVED_PACK_NAME: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
 const MERGE_ALL_PACKS_PACK_NAME: &str = "merge_me_sideways_honey";
 
 //-------------------------------------------------------------------------------//
@@ -860,7 +860,6 @@ impl AppUI {
         let game = self.game_selected().read().unwrap();
         let game_path = setting_path(game.key());
         let data_path = game.data_path(&game_path)?;
-        let temp_path_folder = config_path()?;
 
         // We only use the reserved pack if we need to.
         if (self.actions_ui().enable_logging().is_enabled() && self.actions_ui().enable_logging().is_checked()) ||
@@ -868,10 +867,10 @@ impl AppUI {
             (self.actions_ui().enable_translations_combobox().is_enabled() && self.actions_ui().enable_translations_combobox().current_index() != 0) ||
             (self.actions_ui().unit_multiplier_spinbox().is_enabled() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00) {
 
-            let temp_path_file_name = format!("{}_{}.pack", RESERVED_PACK_NAME, self.game_selected().read().unwrap().key());
-            let temp_path = temp_path_folder.join(&temp_path_file_name);
-            folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_path_folder.to_string_lossy()));
-            pack_list.push_str(&format!("mod \"{}\";\n", temp_path_file_name));
+            //let temp_path_file_name = format!("{}_{}.pack", RESERVED_PACK_NAME, self.game_selected().read().unwrap().key());
+            let temp_packs_folder = temp_packs_folder(&game)?;
+            let temp_path = temp_packs_folder.join(&RESERVED_PACK_NAME);
+            folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_packs_folder.to_string_lossy()));
 
             // Generate the reserved pack.
             //

@@ -41,7 +41,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use rpfm_lib::games::supported_games::{KEY_ARENA, KEY_WARHAMMER_3};
+use rpfm_lib::games::{GameInfo, supported_games::{KEY_ARENA, KEY_WARHAMMER_3}};
 
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
@@ -414,7 +414,19 @@ pub fn init_config_path() -> Result<()> {
 
     DirBuilder::new().recursive(true).create(translations_local_path()?)?;
 
+    // Within the config path we need to create a folder to store the temp packs of each game.
+    // Otherwise they interfere with each other due to being movie packs.
+    for (_, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
+        if game.key() != KEY_ARENA {
+            DirBuilder::new().recursive(true).create(config_path()?.join("temp_packs").join(game.key()))?;
+        }
+    }
+
     Ok(())
+}
+
+pub fn temp_packs_folder(game: &GameInfo) -> Result<PathBuf> {
+    Ok(config_path()?.join("temp_packs").join(game.key()))
 }
 
 pub fn schemas_path() -> Result<PathBuf> {
