@@ -996,11 +996,16 @@ impl AppUI {
         }
 
         // NOTE: On Shogun 2 and older we need to use the user_script, not the custom file, as it doesn't seem to work.
-        let file_path = if game.raw_db_version() > &1 {
+        let file_path = if *game.raw_db_version() >= 2 {
             game_path.join("mod_list.txt")
         } else {
+
+            // Games may fail to launch if we don't have this path created, which is done the first time we start the game.
             let config_path = game.config_path(&game_path).ok_or(anyhow!("Error getting the game's config path."))?;
-            config_path.join("scripts/user.script.txt")
+            let scripts_path = config_path.join("scripts");
+            DirBuilder::new().recursive(true).create(&scripts_path)?;
+
+            scripts_path.join("user.script.txt")
         };
 
         let mut file = BufWriter::new(File::create(file_path)?);
