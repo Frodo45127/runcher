@@ -6,6 +6,43 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [Unreleased]
+### Added
+- Implemented "Merge all mods" feature for all games.
+- Implemented "Enable translations" feature for all games (fixes the "no text on not-english language" bug in old games).
+- Implemented "Enable Logging" feature for:
+    + Warhammer 3
+    + Warhammer 2
+    + Troy
+- Implemented "Skip Intro" feature for all games.
+
+### Changed
+- Game selected menu moved to a left-side toolbar.
+- Refactored a large part of the codebase to make it more flexible and less prone to bugs.
+- Runcher should no longer throw a flash grenade to you when you open it.
+- Runcher should no longer allow you to select a game you don't have installed.
+- Runcher should no longer allow you to select "Open Contents folder" and "Save" if the game doesn't support them.
+- Disabled Shogun 2 support, as I haven't found a way to bypass the launcher.
+
+### Fixed
+- Fixed Runcher not remembering the window geometry after closing it.
+- Fixed CTD when a non-installed game is selected.
+- Fixed unit multiplier being available without schema.
+- Fixed saves not getting cleared after triggering a game selected change.
+- Fixed schema update not triggering a full game selected reload.
+- Fixed CTD when launching a game if you don't have the exe.
+- Fixed several issues when switching the game selected.
+- Fixed unit multiplier not working under certain circustances.
+- Fixed multiple instances of vanilla movie packs showing up as mods.
+- Fixed launch options sometimes not getting correctly saved.
+- Fixed extra pack not loading for certain games.
+- Fixed movies.pack not being marked as vanilla file in empire.
+- Fixed userscript edits not woking for shogun 2, empire and napoleon.
+- Fixed error when trying to launch a game that has not been launched before.
+- Fixed error when trying to launch a game with no mods while using the unit multiplier.
+- Fixed multiple issues causing all games older than warhammer to work partially or not work at all.
+- Fixed runcher trying to load mods from content for games that do not support loading mods from outside the /data folder.
+
 ## [0.5.0]
 ### Added
 - Implemented unit multiplier for WH3.
