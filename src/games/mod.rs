@@ -135,7 +135,7 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
         },
         KEY_TROY => {
             app_ui.actions_ui().enable_logging().set_enabled(true);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(false); // Disabled because the game crashes if we skip them.
+            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
@@ -323,11 +323,14 @@ pub unsafe fn prepare_script_logging(app_ui: &AppUI, game: &GameInfo, reserved_p
     }
 }
 
-pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack) -> Result<()> {
+pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack) -> Result<()> {
     if app_ui.actions_ui().enable_skip_intro().is_enabled() && app_ui.actions_ui().enable_skip_intro().is_checked() {
         match game.key() {
             KEY_WARHAMMER_3 => warhammer_3::prepare_skip_intro_videos(reserved_pack),
-            KEY_TROY => troy::prepare_skip_intro_videos(reserved_pack),
+            KEY_TROY => match *SCHEMA.read().unwrap() {
+                Some(ref schema) => troy::prepare_skip_intro_videos(app_ui, game, game_path, reserved_pack, schema),
+                None => Ok(())
+            }
             KEY_THREE_KINGDOMS => three_kingdoms::prepare_skip_intro_videos(reserved_pack),
             KEY_WARHAMMER_2 => warhammer_2::prepare_skip_intro_videos(reserved_pack),
             KEY_WARHAMMER => warhammer::prepare_skip_intro_videos(reserved_pack),

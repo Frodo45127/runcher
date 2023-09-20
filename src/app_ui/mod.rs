@@ -892,7 +892,7 @@ impl AppUI {
             reserved_pack.set_pfh_file_type(PFHFileType::Movie);
 
             // Skip videos.
-            prepare_skip_intro_videos(self, &game, &mut reserved_pack)?;
+            prepare_skip_intro_videos(self, &game, &game_path, &mut reserved_pack)?;
 
             // Logging.
             prepare_script_logging(self, &game, &mut reserved_pack)?;
