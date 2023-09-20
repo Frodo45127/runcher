@@ -180,22 +180,22 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
         },
         KEY_SHOGUN_2 => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         KEY_NAPOLEON => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         },
         KEY_EMPIRE => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
         }
@@ -308,9 +308,9 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, reserve
             KEY_THRONES_OF_BRITANNIA => thrones::prepare_skip_intro_videos(reserved_pack),
             KEY_ATTILA => attila::prepare_skip_intro_videos(reserved_pack),
             KEY_ROME_2 => rome_2::prepare_skip_intro_videos(reserved_pack),
-            KEY_SHOGUN_2 |
-            KEY_NAPOLEON |
-            KEY_EMPIRE => Ok(()),
+            KEY_SHOGUN_2 => shogun_2::prepare_skip_intro_videos(reserved_pack),
+            KEY_NAPOLEON => napoleon::prepare_skip_intro_videos(reserved_pack),
+            KEY_EMPIRE => empire::prepare_skip_intro_videos(reserved_pack),
             _ => Ok(())
         }
     } else {

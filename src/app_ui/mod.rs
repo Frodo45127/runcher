@@ -45,7 +45,7 @@ use sha256::try_digest;
 use std::cmp::Reverse;
 use std::collections::HashMap;
 use std::env::{args, current_exe};
-use std::fs::File;
+use std::fs::{DirBuilder, File};
 use std::io::{BufWriter, Read, Write};
 #[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
@@ -54,6 +54,7 @@ use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::time::UNIX_EPOCH;
 
+use rpfm_lib::binary::WriteBytes;
 use rpfm_lib::files::{EncodeableExtraData, esf::NodeType, pack::Pack, RFile, RFileDecoded};
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::{git::*, log::*};
@@ -93,7 +94,7 @@ pub mod slots;
 const LOAD_ORDER_STRING_VIEW_DEBUG: &str = "ui_templates/load_order_string_dialog.ui";
 const LOAD_ORDER_STRING_VIEW_RELEASE: &str = "ui/load_order_string_dialog.ui";
 
-const RESERVED_PACK_NAME: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
+const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
 const MERGE_ALL_PACKS_PACK_NAME: &str = "merge_me_sideways_honey";
 
 //-------------------------------------------------------------------------------//
@@ -906,7 +907,7 @@ impl AppUI {
         if self.actions_ui().merge_all_mods().is_enabled() && self.actions_ui().merge_all_mods().is_checked() {
             let temp_path_file_name = format!("{}_{}.pack", MERGE_ALL_PACKS_PACK_NAME, self.game_selected().read().unwrap().key());
             let temp_path = data_path.join(&temp_path_file_name);
-            pack_list.push_str(&format!("mod {};", temp_path_file_name));
+            pack_list.push_str(&format!("mod \"{}\";", temp_path_file_name));
 
             // Generate the merged pack.
             let pack_paths = (0..self.pack_list_ui().model().row_count_0a())
@@ -969,11 +970,8 @@ impl AppUI {
                                 return None;
                             }
                         }
-                        if game.raw_db_version() > &1 {
-                            string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
-                        } else {
-                            string.push_str(&format!("mod {};", item.text().to_std_string()));
-                        }
+
+                        string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
                         Some(string)
                     } else {
                         None
@@ -1024,7 +1022,10 @@ impl AppUI {
         match game.executable_path(&game_path) {
             Some(exec_game) => {
                 if cfg!(target_os = "windows") {
-                    let mut command = if game.raw_db_version() > &1 {
+
+                    // For post-shogun 2 games, we use the same command to bypass the launcher.
+                    if *game.raw_db_version() >= 2 {
+
                         let mut command = SystemCommand::new("cmd");
                         command.arg("/C");
                         command.arg("start");
@@ -1037,8 +1038,21 @@ impl AppUI {
                             command.arg(arg);
                         }
 
-                        command
-                    } else {
+                        // This disables the terminal when executing the command.
+                        #[cfg(target_os = "windows")]command.creation_flags(CREATE_NO_WINDOW);
+                        command.spawn()?;
+                    }
+
+                    // Empire and Napoleon do not have a launcher. We can make our lives easier calling steam instead of launching the game manually.
+                    else if *game.raw_db_version() == 0 {
+                        match game.game_launch_command(&game_path) {
+                            Ok(command) => { let _ = open::that(command); },
+                            _ => show_dialog(self.main_window(), "The currently selected game cannot be launched from Steam.", false),
+                        }
+                    }
+
+                    // The one left is shogun 2. Since the last update, this is a pain in the ass to launch.
+                    else {
                         let mut command = SystemCommand::new(exec_game.to_string_lossy().to_string());
                         command.current_dir(game_path.to_string_lossy().replace('\\', "/"));
 
@@ -1046,12 +1060,10 @@ impl AppUI {
                             command.arg(arg);
                         }
 
-                        command
-                    };
-
-                    // This disables the terminal when executing the command.
-                    #[cfg(target_os = "windows")]command.creation_flags(CREATE_NO_WINDOW);
-                    command.spawn()?;
+                        // This disables the terminal when executing the command.
+                        #[cfg(target_os = "windows")]command.creation_flags(CREATE_NO_WINDOW);
+                        command.spawn()?;
+                    }
 
                     Ok(())
                 } else if cfg!(target_os = "linux") {
