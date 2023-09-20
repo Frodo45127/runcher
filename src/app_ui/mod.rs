@@ -750,7 +750,7 @@ impl AppUI {
                         let paths = paths.iter()
                             .filter(|path| {
                                 if let Ok(canon_path) = std::fs::canonicalize(path) {
-                                    !vanilla_packs.contains(&canon_path)
+                                    !vanilla_packs.contains(&canon_path) && canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(|| String::new()) != RESERVED_PACK_NAME
                                 } else {
                                     false
                                 }
