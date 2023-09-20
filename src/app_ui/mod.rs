@@ -1004,8 +1004,16 @@ impl AppUI {
         };
 
         let mut file = BufWriter::new(File::create(file_path)?);
-        file.write_all(folder_list.as_bytes())?;
-        file.write_all(pack_list.as_bytes())?;
+
+        // Napoleon and Empire require the user.script.txt file to be in UTF-16. What the actual fuck.
+        if *game.raw_db_version() < 2 {
+            file.write_string_u16(&folder_list)?;
+            file.write_string_u16(&pack_list)?;
+        } else {
+            file.write_all(folder_list.as_bytes())?;
+            file.write_all(pack_list.as_bytes())?;
+        }
+
         file.flush()?;
 
         match game.executable_path(&game_path) {
