@@ -1014,7 +1014,7 @@ impl AppUI {
 
         let mut file = BufWriter::new(File::create(file_path)?);
 
-        // Napoleon and Empire require the user.script.txt file to be in UTF-16. What the actual fuck.
+        // Napoleon, Empire and Shogun 2 require the user.script.txt file to be in UTF-16. What the actual fuck.
         if *game.raw_db_version() < 2 {
             file.write_string_u16(&folder_list)?;
             file.write_string_u16(&pack_list)?;

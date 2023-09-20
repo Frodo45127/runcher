@@ -118,6 +118,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
     app_ui.actions_ui().enable_translations_combobox().block_signals(true);
     app_ui.actions_ui().merge_all_mods().block_signals(true);
     app_ui.actions_ui().unit_multiplier_spinbox().block_signals(true);
+    app_ui.actions_ui().open_game_content_folder().block_signals(true);
+    app_ui.actions_ui().save_combobox().block_signals(true);
 
     // Only set enabled the launch options that work for the current game.
     match game.key() {
@@ -128,6 +130,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(schema.is_some());
+            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
+            app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_TROY => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
@@ -135,6 +139,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
+            app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_THREE_KINGDOMS => {
             app_ui.actions_ui().enable_logging().set_enabled(false);    // 3K doesn't support logging by default.
@@ -142,6 +148,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
+            app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_WARHAMMER_2 => {
             app_ui.actions_ui().enable_logging().set_enabled(true);
@@ -149,6 +157,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
+            app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_WARHAMMER => {
             app_ui.actions_ui().enable_logging().set_enabled(false);    // Warhammer 1 doesn't support logging by default.
@@ -156,6 +166,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
+            app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_THRONES_OF_BRITANNIA => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
@@ -163,6 +175,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
+            app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_ATTILA => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
@@ -170,6 +184,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
+            app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_ROME_2 => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
@@ -177,6 +193,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
+            app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_SHOGUN_2 => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
@@ -184,6 +202,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
+            app_ui.actions_ui().save_combobox().set_enabled(false);
         },
         KEY_NAPOLEON => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
@@ -191,6 +211,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().set_enabled(false);
+            app_ui.actions_ui().save_combobox().set_enabled(false);
         },
         KEY_EMPIRE => {
             app_ui.actions_ui().enable_logging().set_enabled(false);
@@ -198,6 +220,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().set_enabled(false);
+            app_ui.actions_ui().save_combobox().set_enabled(false);
         }
         &_ => {},
     }
@@ -248,6 +272,8 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
     app_ui.actions_ui().enable_translations_combobox().block_signals(false);
     app_ui.actions_ui().merge_all_mods().block_signals(false);
     app_ui.actions_ui().unit_multiplier_spinbox().block_signals(false);
+    app_ui.actions_ui().save_combobox().block_signals(false);
+    app_ui.actions_ui().open_game_content_folder().block_signals(false);
 }
 
 pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack) -> Result<()> {
