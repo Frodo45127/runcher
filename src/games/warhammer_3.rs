@@ -85,36 +85,38 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
         .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
         .collect::<Vec<_>>();
 
-    let modded_pack = Pack::read_and_merge(&paths, true, false)?;
-    kv_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
-        .into_iter()
-        .cloned()
-        .collect::<Vec<_>>());
+    if !paths.is_empty() {
+        let modded_pack = Pack::read_and_merge(&paths, true, false)?;
+        kv_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>());
 
-    kv_unit_ability_scaling_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_unit_ability_scaling_rules_tables/".to_string()), true)
-        .into_iter()
-        .cloned()
-        .collect::<Vec<_>>());
+        kv_unit_ability_scaling_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_unit_ability_scaling_rules_tables/".to_string()), true)
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>());
 
-    land_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
-        .into_iter()
-        .cloned()
-        .collect::<Vec<_>>());
+        land_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>());
 
-    main_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/main_units_tables/".to_string()), true)
-        .into_iter()
-        .cloned()
-        .collect::<Vec<_>>());
+        main_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/main_units_tables/".to_string()), true)
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>());
 
-    unit_size_global_scalings.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/unit_size_global_scalings_tables/".to_string()), true)
-        .into_iter()
-        .cloned()
-        .collect::<Vec<_>>());
+        unit_size_global_scalings.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/unit_size_global_scalings_tables/".to_string()), true)
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>());
 
-    unit_stat_to_size_scaling_values.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/unit_stat_to_size_scaling_values_tables/".to_string()), true)
-        .into_iter()
-        .cloned()
-        .collect::<Vec<_>>());
+        unit_stat_to_size_scaling_values.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/unit_stat_to_size_scaling_values_tables/".to_string()), true)
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>());
+    }
 
     // Decode each table, modify it, then re-encode it and add it.
     let enc_extra_data = Some(EncodeableExtraData::new_from_game_info(game));
