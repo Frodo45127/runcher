@@ -95,6 +95,7 @@ const LOAD_ORDER_STRING_VIEW_DEBUG: &str = "ui_templates/load_order_string_dialo
 const LOAD_ORDER_STRING_VIEW_RELEASE: &str = "ui/load_order_string_dialog.ui";
 
 const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
+const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
 const MERGE_ALL_PACKS_PACK_NAME: &str = "merge_me_sideways_honey";
 
 //-------------------------------------------------------------------------------//
@@ -751,7 +752,9 @@ impl AppUI {
                         let paths = paths.iter()
                             .filter(|path| {
                                 if let Ok(canon_path) = std::fs::canonicalize(path) {
-                                    !vanilla_packs.contains(&canon_path) && canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(|| String::new()) != RESERVED_PACK_NAME
+                                    !vanilla_packs.contains(&canon_path) &&
+                                        canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(|| String::new()) != RESERVED_PACK_NAME &&
+                                        canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(|| String::new()) != RESERVED_PACK_NAME_ALTERNATIVE
                                 } else {
                                     false
                                 }
@@ -868,14 +871,17 @@ impl AppUI {
             (self.actions_ui().enable_translations_combobox().is_enabled() && self.actions_ui().enable_translations_combobox().current_index() != 0) ||
             (self.actions_ui().unit_multiplier_spinbox().is_enabled() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00) {
 
+            // We need to use an alternative name for Rome 2, Attila and Thrones because their load order logic for movie packs seems... either different or broken.
+            let reserved_pack_name = if game.key() == KEY_ROME_2 || game.key() == KEY_ATTILA || game.key() == KEY_THRONES_OF_BRITANNIA { RESERVED_PACK_NAME_ALTERNATIVE } else { RESERVED_PACK_NAME };
+
             // Support for add_working_directory seems to be only present in rome 2 and newer games. For older games, we drop the pack into /data.
             let temp_path = if *game.raw_db_version() >= 2 {
                 let temp_packs_folder = temp_packs_folder(&game)?;
-                let temp_path = temp_packs_folder.join(&RESERVED_PACK_NAME);
+                let temp_path = temp_packs_folder.join(&reserved_pack_name);
                 folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_packs_folder.to_string_lossy()));
                 temp_path
             } else {
-                data_path.join(&RESERVED_PACK_NAME)
+                data_path.join(&reserved_pack_name)
             };
 
             // Generate the reserved pack.
