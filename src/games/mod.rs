@@ -134,9 +134,9 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
             app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_TROY => {
-            app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(false);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(false);
+            app_ui.actions_ui().enable_logging().set_enabled(true);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(false); // Disabled because the game crashes if we skip them.
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
             app_ui.actions_ui().merge_all_mods().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
             app_ui.actions_ui().open_game_content_folder().set_enabled(true);
@@ -306,7 +306,7 @@ pub unsafe fn prepare_script_logging(app_ui: &AppUI, game: &GameInfo, reserved_p
     if app_ui.actions_ui().enable_logging().is_enabled() && app_ui.actions_ui().enable_logging().is_checked() {
         match game.key() {
             KEY_WARHAMMER_3 => warhammer_3::prepare_script_logging(reserved_pack),
-            KEY_TROY |
+            KEY_TROY => troy::prepare_script_logging(reserved_pack),
             KEY_THREE_KINGDOMS => Ok(()),
             KEY_WARHAMMER_2 => warhammer_2::prepare_script_logging(reserved_pack),
             KEY_WARHAMMER |
@@ -327,7 +327,7 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, reserve
     if app_ui.actions_ui().enable_skip_intro().is_enabled() && app_ui.actions_ui().enable_skip_intro().is_checked() {
         match game.key() {
             KEY_WARHAMMER_3 => warhammer_3::prepare_skip_intro_videos(reserved_pack),
-            KEY_TROY => Ok(()),
+            KEY_TROY => troy::prepare_skip_intro_videos(reserved_pack),
             KEY_THREE_KINGDOMS => three_kingdoms::prepare_skip_intro_videos(reserved_pack),
             KEY_WARHAMMER_2 => warhammer_2::prepare_skip_intro_videos(reserved_pack),
             KEY_WARHAMMER => warhammer::prepare_skip_intro_videos(reserved_pack),
