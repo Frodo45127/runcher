@@ -343,6 +343,25 @@ impl AppUI {
         // Initialize settings.
         init_settings(&app_ui.main_window().static_upcast());
 
+        // Disable the games we don't have a path for (uninstalled) and Shogun 2, as it's not supported yet.
+        for (_, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
+            let has_exe = game.executable_path(&setting_path(game.key())).filter(|path| path.is_file()).is_some();
+            match game.key() {
+                KEY_WARHAMMER_3 => app_ui.game_selected_warhammer_3().set_enabled(has_exe),
+                KEY_TROY => app_ui.game_selected_troy().set_enabled(has_exe),
+                KEY_THREE_KINGDOMS => app_ui.game_selected_three_kingdoms().set_enabled(has_exe),
+                KEY_WARHAMMER_2 => app_ui.game_selected_warhammer_2().set_enabled(has_exe),
+                KEY_WARHAMMER => app_ui.game_selected_warhammer().set_enabled(has_exe),
+                KEY_THRONES_OF_BRITANNIA => app_ui.game_selected_thrones_of_britannia().set_enabled(has_exe),
+                KEY_ATTILA => app_ui.game_selected_attila().set_enabled(has_exe),
+                KEY_ROME_2 => app_ui.game_selected_rome_2().set_enabled(has_exe),
+                KEY_SHOGUN_2 => app_ui.game_selected_shogun_2().set_enabled(false),
+                KEY_NAPOLEON => app_ui.game_selected_napoleon().set_enabled(has_exe),
+                KEY_EMPIRE => app_ui.game_selected_empire().set_enabled(has_exe),
+                _ => {},
+            }
+        }
+
         // Load the correct theme.
         Self::reload_theme();
 
@@ -843,6 +862,25 @@ impl AppUI {
                         QAction::trigger(&self.game_selected_group.checked_action());
                     }
 
+                    // Disable the games we don't have a path for (uninstalled) and Shogun 2, as it's not supported yet.
+                    for (_, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
+                        let has_exe = game.executable_path(&setting_path(game.key())).filter(|path| path.is_file()).is_some();
+                        match game.key() {
+                            KEY_WARHAMMER_3 => self.game_selected_warhammer_3().set_enabled(has_exe),
+                            KEY_TROY => self.game_selected_troy().set_enabled(has_exe),
+                            KEY_THREE_KINGDOMS => self.game_selected_three_kingdoms().set_enabled(has_exe),
+                            KEY_WARHAMMER_2 => self.game_selected_warhammer_2().set_enabled(has_exe),
+                            KEY_WARHAMMER => self.game_selected_warhammer().set_enabled(has_exe),
+                            KEY_THRONES_OF_BRITANNIA => self.game_selected_thrones_of_britannia().set_enabled(has_exe),
+                            KEY_ATTILA => self.game_selected_attila().set_enabled(has_exe),
+                            KEY_ROME_2 => self.game_selected_rome_2().set_enabled(has_exe),
+                            KEY_SHOGUN_2 => self.game_selected_shogun_2().set_enabled(false),
+                            KEY_NAPOLEON => self.game_selected_napoleon().set_enabled(has_exe),
+                            KEY_EMPIRE => self.game_selected_empire().set_enabled(has_exe),
+                            _ => {},
+                        }
+                    }
+
                     // If we detect a factory reset, reset the window's geometry and state, and the font.
                     let factory_reset = setting_bool("factoryReset");
                     if factory_reset {
@@ -1057,7 +1095,8 @@ impl AppUI {
                         }
                     }
 
-                    // The one left is shogun 2. Since the last update, this is a pain in the ass to launch.
+                    // The one left is shogun 2. Since the last update, both exes are broken and starting them causes the game to load with no dlc loaded,
+                    // which disables all campaigns and causes crashes the moment you click on custom battles.
                     else {
                         let mut command = SystemCommand::new(exec_game.to_string_lossy().to_string());
                         command.current_dir(game_path.to_string_lossy().replace('\\', "/"));

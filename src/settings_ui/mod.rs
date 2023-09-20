@@ -41,7 +41,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use rpfm_lib::games::{GameInfo, supported_games::{KEY_ARENA, KEY_WARHAMMER_3}};
+use rpfm_lib::games::{GameInfo, supported_games::{KEY_ARENA, KEY_SHOGUN_2, KEY_WARHAMMER_3}};
 
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
@@ -376,7 +376,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_bool(&q_settings, "dark_mode", false);
 
     for game in &SUPPORTED_GAMES.games_sorted() {
-        if game.key() != KEY_ARENA {
+        if game.key() != KEY_ARENA && game.key() != KEY_SHOGUN_2 {
             set_setting_if_new_bool(&q_settings, &format!("enable_logging_{}", game.key()), false);
             set_setting_if_new_bool(&q_settings, &format!("enable_skip_intros_{}", game.key()), false);
             set_setting_if_new_string(&q_settings, &format!("enable_translations_{}", game.key()), "--");
