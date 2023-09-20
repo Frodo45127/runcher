@@ -867,10 +867,15 @@ impl AppUI {
             (self.actions_ui().enable_translations_combobox().is_enabled() && self.actions_ui().enable_translations_combobox().current_index() != 0) ||
             (self.actions_ui().unit_multiplier_spinbox().is_enabled() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00) {
 
-            //let temp_path_file_name = format!("{}_{}.pack", RESERVED_PACK_NAME, self.game_selected().read().unwrap().key());
-            let temp_packs_folder = temp_packs_folder(&game)?;
-            let temp_path = temp_packs_folder.join(&RESERVED_PACK_NAME);
-            folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_packs_folder.to_string_lossy()));
+            // Support for add_working_directory seems to be only present in rome 2 and newer games. For older games, we drop the pack into /data.
+            let temp_path = if *game.raw_db_version() >= 2 {
+                let temp_packs_folder = temp_packs_folder(&game)?;
+                let temp_path = temp_packs_folder.join(&RESERVED_PACK_NAME);
+                folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_packs_folder.to_string_lossy()));
+                temp_path
+            } else {
+                data_path.join(&RESERVED_PACK_NAME)
+            };
 
             // Generate the reserved pack.
             //
@@ -946,7 +951,9 @@ impl AppUI {
 
                     if item_type.text().to_std_string() == "Mod" {
                         let steam_id = item_steam_id.text().to_std_string();
-                        if item_location.text().to_std_string().starts_with("Content") && !steam_id.is_empty() {
+
+                        // Loading packs from outside /data is only supported on rome 2 and newer games.
+                        if item_location.text().to_std_string().starts_with("Content") && *game.raw_db_version() >= 2 && !steam_id.is_empty() {
                             let mut path = PathBuf::from(item_path.text().to_std_string());
                             path.pop();
 
