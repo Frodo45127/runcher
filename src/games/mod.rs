@@ -97,6 +97,7 @@ const EMPTY_BIK: [u8; 520] = [
 mod attila;
 mod empire;
 mod napoleon;
+mod pharaoh;
 mod rome_2;
 mod shogun_2;
 mod three_kingdoms;
@@ -123,6 +124,15 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
 
     // Only set enabled the launch options that work for the current game.
     match game.key() {
+        KEY_PHARAOH => {
+            app_ui.actions_ui().enable_logging().set_enabled(true);
+            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
+            app_ui.actions_ui().save_combobox().set_enabled(true);
+        },
         KEY_WARHAMMER_3 => {
             let schema = SCHEMA.read().unwrap();
             app_ui.actions_ui().enable_logging().set_enabled(true);
@@ -281,6 +291,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
         Some(ref schema) => {
             if app_ui.actions_ui().unit_multiplier_spinbox().is_enabled() && app_ui.actions_ui().unit_multiplier_spinbox().value() != 1.00 {
                 match game.key() {
+                    KEY_PHARAOH => Ok(()),
                     KEY_WARHAMMER_3 => warhammer_3::prepare_unit_multiplier(app_ui, game, game_path, reserved_pack, schema),
                     KEY_TROY |
                     KEY_THREE_KINGDOMS |
@@ -305,6 +316,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
 pub unsafe fn prepare_script_logging(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack) -> Result<()> {
     if app_ui.actions_ui().enable_logging().is_enabled() && app_ui.actions_ui().enable_logging().is_checked() {
         match game.key() {
+            KEY_PHARAOH => pharaoh::prepare_script_logging(reserved_pack),
             KEY_WARHAMMER_3 => warhammer_3::prepare_script_logging(reserved_pack),
             KEY_TROY => troy::prepare_script_logging(reserved_pack),
             KEY_THREE_KINGDOMS => Ok(()),
@@ -326,6 +338,10 @@ pub unsafe fn prepare_script_logging(app_ui: &AppUI, game: &GameInfo, reserved_p
 pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack) -> Result<()> {
     if app_ui.actions_ui().enable_skip_intro().is_enabled() && app_ui.actions_ui().enable_skip_intro().is_checked() {
         match game.key() {
+            KEY_PHARAOH => match *SCHEMA.read().unwrap() {
+                Some(ref schema) => pharaoh::prepare_skip_intro_videos(app_ui, game, game_path, reserved_pack, schema),
+                None => Ok(())
+            }
             KEY_WARHAMMER_3 => warhammer_3::prepare_skip_intro_videos(reserved_pack),
             KEY_TROY => match *SCHEMA.read().unwrap() {
                 Some(ref schema) => troy::prepare_skip_intro_videos(app_ui, game, game_path, reserved_pack, schema),
@@ -351,6 +367,8 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_pa
 ///
 /// The only particularity is that all games before warhammer 1 need to merge all translations into a localisation.loc file.
 pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack) -> Result<()> {
+
+    // TODO: Troy has a weird translation system. Check that it works, and check pharaoh too.
     if app_ui.actions_ui().enable_translations_combobox().is_enabled() && app_ui.actions_ui().enable_translations_combobox().current_index() != 0 {
         match translations_local_path() {
             Ok(path) => {

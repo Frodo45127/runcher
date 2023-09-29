@@ -22,7 +22,7 @@ use rpfm_ui_common::settings::error_path;
 
 use crate::CENTRAL_COMMAND;
 use crate::communications::*;
-use crate::integrations::*;
+use crate::mod_manager::mods::ShareableMod;
 use crate::settings_ui::schemas_path;
 use crate::SCHEMA;
 

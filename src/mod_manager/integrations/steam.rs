@@ -18,16 +18,11 @@ use std::collections::HashMap;
 
 use rpfm_ui_common::settings::setting_string;
 
-use crate::integrations::Mod;
+use crate::mod_manager::mods::Mod;
 
 lazy_static::lazy_static! {
     pub static ref REGEX_URL: Regex = Regex::new(r"(\[url=)(.*)(\])(.*)(\[/url\])").unwrap();
 }
-
-//-------------------------------------------------------------------------------//
-//                              Enums & Structs
-//-------------------------------------------------------------------------------//
-
 
 //-------------------------------------------------------------------------------//
 //                             Implementations

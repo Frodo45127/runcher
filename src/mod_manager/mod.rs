@@ -8,9 +8,11 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
-use crate::integrations::GameConfig as GameConfigV3;
-use crate::integrations::Mod as ModV3;
+//! Module containing the centralized code for mod and load order management.
 
-pub mod v0;
-pub mod v1;
-pub mod v2;
+pub mod game_config;
+pub mod integrations;
+pub mod load_order;
+pub mod mods;
+pub mod profiles;
+pub mod saves;

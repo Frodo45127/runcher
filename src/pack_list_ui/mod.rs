@@ -29,20 +29,22 @@ use qt_core::QTimer;
 use qt_core::QVariant;
 use qt_core::SortOrder;
 
+use cpp_core::CppBox;
+
 use anyhow::Result;
 use getset::*;
 
-use std::cmp::Ordering;
 use std::sync::Arc;
 use std::path::Path;
 
 use rpfm_lib::files::pack::Pack;
-use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
+use rpfm_lib::games::GameInfo;
 
 use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::utils::*;
 
-use crate::integrations::GameConfig;
+use crate::mod_manager::game_config::GameConfig;
+use crate::mod_manager::load_order::LoadOrder;
 
 use self::slots::PackListUISlots;
 
@@ -119,63 +121,52 @@ impl PackListUI {
     pub unsafe fn load(&self, game_config: &GameConfig, game_info: &GameInfo, game_path: &Path) -> Result<()> {
         self.model().clear();
 
-        // Pre-sort the mods.
-        let mut mods = game_config.mods()
-            .values()
-            .filter(|modd| (*modd.enabled() || *modd.pack_type() == PFHFileType::Movie) && !modd.paths().is_empty())
-            .collect::<Vec<_>>();
-
-        mods.sort_by(|a, b|
-            match a.pack_type().cmp(b.pack_type()) {
-                Ordering::Greater => Ordering::Greater,
-                Ordering::Equal => a.id().cmp(b.id()),
-                Ordering::Less => Ordering::Less,
-            }
-        );
+        let mut load_order = LoadOrder::default();
+        load_order.generate(game_config);
 
         if !game_path.to_string_lossy().is_empty() {
             if let Ok(game_data_folder) = game_info.data_path(game_path) {
-                for (index, modd) in mods.iter().enumerate() {
-                    let row = QListOfQStandardItem::new();
-                    let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                    let item_name = QStandardItem::from_q_string(&QString::from_std_str(&pack_name));
-                    let pack = Pack::read_and_merge(&[modd.paths()[0].to_path_buf()], true, false)?;
-                    let combined_name = format!("{}{}", pack.pfh_file_type() as u32, pack_name);
-                    item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(combined_name)), 20);
+                for (index, mod_id) in load_order.mods().iter().enumerate() {
+                    if let Some(modd) = game_config.mods().get(mod_id) {
 
-                    let item_type = QStandardItem::from_q_string(&QString::from_std_str(&modd.pack_type().to_string()));
-                    let item_path = QStandardItem::from_q_string(&QString::from_std_str(&modd.paths()[0].to_string_lossy()));
-                    let load_order = QStandardItem::new();
-                    let location = QStandardItem::from_q_string(&QString::from_std_str(
-                        if modd.paths()[0].starts_with(&game_data_folder) {
-                            "Data".to_string()
-                        } else {
-                            format!("Content ({})", modd.steam_id().as_ref().unwrap())
+                        let row = QListOfQStandardItem::new();
+                        let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
+                        let pack = Pack::read_and_merge(&[modd.paths()[0].to_path_buf()], true, false)?;
+
+                        let item_name = Self::new_item();
+                        let item_type = Self::new_item();
+                        let item_path = Self::new_item();
+                        let load_order = Self::new_item();
+                        let location = Self::new_item();
+                        let steam_id = Self::new_item();
+
+                        item_name.set_text(&QString::from_std_str(&pack_name));
+                        item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str((pack.pfh_file_type() as u32).to_string() + &pack_name)), 20);
+                        item_type.set_text(&QString::from_std_str(&modd.pack_type().to_string()));
+                        item_path.set_text(&QString::from_std_str(&modd.paths()[0].to_string_lossy()));
+                        load_order.set_data_2a(&QVariant::from_int(index as i32), 2);
+
+                        location.set_text(&QString::from_std_str(
+                            if modd.paths()[0].starts_with(&game_data_folder) {
+                                "Data".to_string()
+                            } else {
+                                format!("Content ({})", modd.steam_id().as_ref().unwrap())
+                            }
+                        ));
+
+                        if let Some(id) = modd.steam_id() {
+                            steam_id.set_text(&QString::from_std_str(id));
                         }
-                    ));
 
-                    let steam_id = match modd.steam_id() {
-                        Some(steam_id) => QStandardItem::from_q_string(&QString::from_std_str(steam_id)),
-                        None => QStandardItem::new(),
-                    };
+                        row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
+                        row.append_q_standard_item(&item_type.into_ptr().as_mut_raw_ptr());
+                        row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());
+                        row.append_q_standard_item(&load_order.into_ptr().as_mut_raw_ptr());
+                        row.append_q_standard_item(&location.into_ptr().as_mut_raw_ptr());
+                        row.append_q_standard_item(&steam_id.into_ptr().as_mut_raw_ptr());
 
-                    load_order.set_data_2a(&QVariant::from_int(index as i32), 2);
-
-                    item_name.set_editable(false);
-                    item_type.set_editable(false);
-                    item_path.set_editable(false);
-                    load_order.set_editable(false);
-                    location.set_editable(false);
-                    steam_id.set_editable(false);
-
-                    row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&item_type.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&load_order.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&location.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&steam_id.into_ptr().as_mut_raw_ptr());
-
-                    self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
+                        self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
+                    }
                 }
             }
         }
@@ -223,5 +214,11 @@ impl PackListUI {
     pub unsafe fn delayed_updates(&self) {
         self.filter_timer.set_interval(500);
         self.filter_timer.start_0a();
+    }
+
+    unsafe fn new_item() -> CppBox<QStandardItem> {
+        let item = QStandardItem::new();
+        item.set_editable(false);
+        item
     }
 }

@@ -74,7 +74,7 @@ use crate::communications::*;
 use crate::DARK_PALETTE;
 use crate::ffi::launcher_window_safe;
 use crate::games::*;
-use crate::integrations::{GameConfig, Mod, Profile, Save, ShareableMod, steam::*};
+use crate::mod_manager::{game_config::GameConfig, mods::{Mod, ShareableMod}, profiles::Profile, saves::Save, integrations::*};
 use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::*;
@@ -117,6 +117,7 @@ pub struct AppUI {
     //-------------------------------------------------------------------------------//
     // `Game Selected` menu.
     //-------------------------------------------------------------------------------//
+    game_selected_pharaoh: QPtr<QAction>,
     game_selected_warhammer_3: QPtr<QAction>,
     game_selected_troy: QPtr<QAction>,
     game_selected_three_kingdoms: QPtr<QAction>,
@@ -214,6 +215,7 @@ impl AppUI {
         game_selected_bar.set_fixed_width(64);
 
         let icon_folder = format!("{}/icons/", ASSETS_PATH.to_string_lossy());
+        let game_selected_pharaoh = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_PHARAOH).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_PHARAOH));
         let game_selected_warhammer_3 = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_WARHAMMER_3).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_WARHAMMER_3));
         let game_selected_troy = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_TROY).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_TROY));
         let game_selected_three_kingdoms = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_THREE_KINGDOMS).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_THREE_KINGDOMS));
@@ -229,6 +231,7 @@ impl AppUI {
         let game_selected_group = QActionGroup::new(&game_selected_bar);
 
         // Configure the `Game Selected` Menu.
+        game_selected_group.add_action_q_action(&game_selected_pharaoh);
         game_selected_group.add_action_q_action(&game_selected_warhammer_3);
         game_selected_group.add_action_q_action(&game_selected_troy);
         game_selected_group.add_action_q_action(&game_selected_three_kingdoms);
@@ -240,6 +243,7 @@ impl AppUI {
         game_selected_group.add_action_q_action(&game_selected_shogun_2);
         game_selected_group.add_action_q_action(&game_selected_napoleon);
         game_selected_group.add_action_q_action(&game_selected_empire);
+        game_selected_pharaoh.set_checkable(true);
         game_selected_warhammer_3.set_checkable(true);
         game_selected_troy.set_checkable(true);
         game_selected_three_kingdoms.set_checkable(true);
@@ -287,6 +291,7 @@ impl AppUI {
             //-------------------------------------------------------------------------------//
             // "Game Selected" menu.
             //-------------------------------------------------------------------------------//
+            game_selected_pharaoh,
             game_selected_warhammer_3,
             game_selected_troy,
             game_selected_three_kingdoms,
@@ -347,6 +352,7 @@ impl AppUI {
         for (_, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
             let has_exe = game.executable_path(&setting_path(game.key())).filter(|path| path.is_file()).is_some();
             match game.key() {
+                KEY_PHARAOH => app_ui.game_selected_pharaoh().set_enabled(has_exe),
                 KEY_WARHAMMER_3 => app_ui.game_selected_warhammer_3().set_enabled(has_exe),
                 KEY_TROY => app_ui.game_selected_troy().set_enabled(has_exe),
                 KEY_THREE_KINGDOMS => app_ui.game_selected_three_kingdoms().set_enabled(has_exe),
@@ -385,6 +391,7 @@ impl AppUI {
         let args = args().collect::<Vec<String>>();
         if args.len() == 2 {
             match &*args[1] {
+                KEY_PHARAOH |
                 KEY_WARHAMMER_3 |
                 KEY_TROY |
                 KEY_THREE_KINGDOMS |
@@ -401,6 +408,7 @@ impl AppUI {
         }
 
         match &*default_game {
+            KEY_PHARAOH => app_ui.game_selected_pharaoh().set_checked(true),
             KEY_WARHAMMER_3 => app_ui.game_selected_warhammer_3().set_checked(true),
             KEY_TROY => app_ui.game_selected_troy().set_checked(true),
             KEY_THREE_KINGDOMS => app_ui.game_selected_three_kingdoms().set_checked(true),
@@ -457,6 +465,7 @@ impl AppUI {
         self.actions_ui().profile_load_button().released().connect(slots.load_profile());
         self.actions_ui().profile_save_button().released().connect(slots.save_profile());
 
+        self.game_selected_pharaoh().triggered().connect(slots.change_game_selected());
         self.game_selected_warhammer_3().triggered().connect(slots.change_game_selected());
         self.game_selected_troy().triggered().connect(slots.change_game_selected());
         self.game_selected_three_kingdoms().triggered().connect(slots.change_game_selected());
@@ -866,6 +875,7 @@ impl AppUI {
                     for (_, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
                         let has_exe = game.executable_path(&setting_path(game.key())).filter(|path| path.is_file()).is_some();
                         match game.key() {
+                            KEY_PHARAOH => self.game_selected_pharaoh().set_enabled(has_exe),
                             KEY_WARHAMMER_3 => self.game_selected_warhammer_3().set_enabled(has_exe),
                             KEY_TROY => self.game_selected_troy().set_enabled(has_exe),
                             KEY_THREE_KINGDOMS => self.game_selected_three_kingdoms().set_enabled(has_exe),
@@ -985,6 +995,7 @@ impl AppUI {
         // Otherwise, just add the packs from the load order to the text file.
         else {
 
+            // TODO: Replace this with the load order list once it's made global.
             pack_list.push_str(&(0..self.pack_list_ui().model().row_count_0a())
                 .filter_map(|index| {
                     let mut string = String::new();

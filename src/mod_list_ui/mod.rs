@@ -57,7 +57,7 @@ use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::ffi::*;
-use crate::integrations::GameConfig;
+use crate::mod_manager::game_config::GameConfig;
 
 use self::slots::ModListUISlots;
 
