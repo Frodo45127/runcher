@@ -45,9 +45,9 @@ use sha256::try_digest;
 use std::cmp::Reverse;
 use std::collections::HashMap;
 use std::env::{args, current_exe};
-use std::fs::{DirBuilder, File};
+use std::fs::{copy, DirBuilder, File};
 use std::io::{BufWriter, Read, Write};
-#[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")] use std::os::windows::{prelude::MetadataExt, process::CommandExt};
 use std::path::{Path, PathBuf};
 use std::process::{Command as SystemCommand, exit};
 use std::rc::Rc;
@@ -97,6 +97,10 @@ const LOAD_ORDER_STRING_VIEW_RELEASE: &str = "ui/load_order_string_dialog.ui";
 const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
 const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
 const MERGE_ALL_PACKS_PACK_NAME: &str = "merge_me_sideways_honey";
+
+#[allow(dead_code)] const VANILLA_MOD_LIST_FILE_NAME: &str = "used_mods.txt";
+#[allow(dead_code)] const CUSTOM_MOD_LIST_FILE_NAME: &str = "mod_list.txt";
+#[allow(dead_code)] const USER_SCRIPT_FILE_NAME: &str = "user.script.txt";
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -361,7 +365,7 @@ impl AppUI {
                 KEY_THRONES_OF_BRITANNIA => app_ui.game_selected_thrones_of_britannia().set_enabled(has_exe),
                 KEY_ATTILA => app_ui.game_selected_attila().set_enabled(has_exe),
                 KEY_ROME_2 => app_ui.game_selected_rome_2().set_enabled(has_exe),
-                KEY_SHOGUN_2 => app_ui.game_selected_shogun_2().set_enabled(false),
+                KEY_SHOGUN_2 => app_ui.game_selected_shogun_2().set_enabled(has_exe),
                 KEY_NAPOLEON => app_ui.game_selected_napoleon().set_enabled(has_exe),
                 KEY_EMPIRE => app_ui.game_selected_empire().set_enabled(has_exe),
                 _ => {},
@@ -884,7 +888,7 @@ impl AppUI {
                             KEY_THRONES_OF_BRITANNIA => self.game_selected_thrones_of_britannia().set_enabled(has_exe),
                             KEY_ATTILA => self.game_selected_attila().set_enabled(has_exe),
                             KEY_ROME_2 => self.game_selected_rome_2().set_enabled(has_exe),
-                            KEY_SHOGUN_2 => self.game_selected_shogun_2().set_enabled(false),
+                            KEY_SHOGUN_2 => self.game_selected_shogun_2().set_enabled(has_exe),
                             KEY_NAPOLEON => self.game_selected_napoleon().set_enabled(has_exe),
                             KEY_EMPIRE => self.game_selected_empire().set_enabled(has_exe),
                             _ => {},
@@ -1048,9 +1052,10 @@ impl AppUI {
             }
         }
 
-        // NOTE: On Shogun 2 and older we need to use the user_script, not the custom file, as it doesn't seem to work.
-        let file_path = if *game.raw_db_version() >= 2 {
-            game_path.join("mod_list.txt")
+        // NOTE: On Empire and Napoleon we need to use the user_script, not the custom file, as it doesn't seem to work.
+        // Older versions of shogun 2 also used the user_script, but the latest update enabled use of custom mod lists.
+        let file_path = if *game.raw_db_version() >= 1 {
+            game_path.join(CUSTOM_MOD_LIST_FILE_NAME)
         } else {
 
             // Games may fail to launch if we don't have this path created, which is done the first time we start the game.
@@ -1058,12 +1063,12 @@ impl AppUI {
             let scripts_path = config_path.join("scripts");
             DirBuilder::new().recursive(true).create(&scripts_path)?;
 
-            scripts_path.join("user.script.txt")
+            scripts_path.join(USER_SCRIPT_FILE_NAME)
         };
 
         let mut file = BufWriter::new(File::create(file_path)?);
 
-        // Napoleon, Empire and Shogun 2 require the user.script.txt file to be in UTF-16. What the actual fuck.
+        // Napoleon, Empire and Shogun 2 require the user.script.txt or mod list file (for Shogun's latest update) to be in UTF-16 LE. What the actual fuck.
         if *game.raw_db_version() < 2 {
             file.write_string_u16(&folder_list)?;
             file.write_string_u16(&pack_list)?;
@@ -1087,7 +1092,7 @@ impl AppUI {
                         command.arg("/d");
                         command.arg(game_path.to_string_lossy().replace('\\', "/"));
                         command.arg(exec_game.file_name().unwrap().to_string_lossy().to_string());
-                        command.arg("mod_list.txt;");
+                        command.arg(CUSTOM_MOD_LIST_FILE_NAME.to_string() + ";");
 
                         for arg in &extra_args {
                             command.arg(arg);
@@ -1106,19 +1111,55 @@ impl AppUI {
                         }
                     }
 
-                    // The one left is shogun 2. Since the last update, both exes are broken and starting them causes the game to load with no dlc loaded,
-                    // which disables all campaigns and causes crashes the moment you click on custom battles.
+                    // Shogun 2 has problems since we lost the hot ashigaru sex chat. The current theory I have is that launching from the exe seems to skip the steam checks,
+                    // meaning the game launches as if you do not own anything on it. Nor the base game nor the dlcs. Launching from the launcher works, as well as launching from steam.
+                    //
+                    // The only method I found that works is replacing the vanilla launcher with an exe that bounces of to the exe, so we launch the game from steam,
+                    // which does the ownership checks, that launches our custom launcher, which launches the exe of the game with the custom mod list.
+                    //
+                    // Also, is not my idea. Someone already did it on steam with an aut2exe script.
                     else {
-                        let mut command = SystemCommand::new(exec_game.to_string_lossy().to_string());
-                        command.current_dir(game_path.to_string_lossy().replace('\\', "/"));
+                        let mut launcher_path = game_path.join("launcher");
+                        let mut launcher_path_bak = launcher_path.to_path_buf();
+                        launcher_path.push("launcher.exe");
+                        launcher_path_bak.push("launcher.exe.bak");
 
-                        for arg in &extra_args {
-                            command.arg(arg);
+                        // On debug mode, it's in third party libs. On release, it's in runcher's folder.
+                        let mut bouncer_path = std::env::current_exe()?;
+                        if cfg!(debug_assertions) {
+                            bouncer_path.pop();
+                            bouncer_path.pop();
+                            bouncer_path.pop();
+                            bouncer_path.push("3rdparty");
+                            bouncer_path.push("builds");
+                        } else {
+                            bouncer_path.pop();
+                        }
+                        bouncer_path.push("bouncer.exe");
+
+                        let replace_launcher = if let Ok(file) = File::open(&launcher_path) {
+                            if let Ok(metadata) = file.metadata() {
+
+                                // Vanilla launcher is about 50mb, bouncer is less than one.
+                                metadata.file_size() > 1_000_000
+                            } else {
+                                true
+                            }
+                        } else {
+                            true
+                        };
+
+                        // If this fails, report it.
+                        if replace_launcher {
+                            copy(&launcher_path, launcher_path_bak)?;
+                            copy(bouncer_path, launcher_path)?;
                         }
 
-                        // This disables the terminal when executing the command.
-                        #[cfg(target_os = "windows")]command.creation_flags(CREATE_NO_WINDOW);
-                        command.spawn()?;
+                        // Once we've replaced the launcher (if needed), launch the game from steam.
+                        match game.game_launch_command(&game_path) {
+                            Ok(command) => { let _ = open::that(command); },
+                            _ => show_dialog(self.main_window(), "The currently selected game cannot be launched from Steam.", false),
+                        }
                     }
 
                     Ok(())
