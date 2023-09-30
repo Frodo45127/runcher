@@ -46,6 +46,7 @@ pub struct AppUISlots {
     open_game_root_folder: QBox<SlotNoArgs>,
     open_game_data_folder: QBox<SlotNoArgs>,
     open_game_content_folder: QBox<SlotNoArgs>,
+    open_game_config_folder: QBox<SlotNoArgs>,
     open_runcher_config_folder: QBox<SlotNoArgs>,
     open_runcher_error_folder: QBox<SlotNoArgs>,
     change_game_selected: QBox<SlotNoArgs>,
@@ -161,6 +162,16 @@ impl AppUISlots {
             let game = view.game_selected().read().unwrap();
             if let Ok(game_path) = game.content_path(&setting_path(game.key())) {
                 let _ = open::that(game_path);
+            } else {
+                show_dialog(view.main_window(), "Runcher cannot open that folder (maybe it doesn't exists/is misconfigured?).", false);
+            }
+        }));
+
+        let open_game_config_folder = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+            let game = view.game_selected().read().unwrap();
+            if let Some(path) = game.config_path(&setting_path(game.key())) {
+                let _ = open::that(path);
             } else {
                 show_dialog(view.main_window(), "Runcher cannot open that folder (maybe it doesn't exists/is misconfigured?).", false);
             }
@@ -402,6 +413,7 @@ impl AppUISlots {
             open_game_root_folder,
             open_game_data_folder,
             open_game_content_folder,
+            open_game_config_folder,
             open_runcher_config_folder,
             open_runcher_error_folder,
             change_game_selected,
