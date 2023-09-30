@@ -15,6 +15,7 @@ If you're looking for the changes included in the latest beta (against the lates
     + Warhammer 2
     + Troy
 - Implemented "Skip Intro" feature for all games.
+- Implemented support for Pharaoh (Early Access).
 
 ### Changed
 - Game selected menu moved to a left-side toolbar.
