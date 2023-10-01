@@ -1142,7 +1142,11 @@ impl AppUI {
                             if let Ok(metadata) = file.metadata() {
 
                                 // Vanilla launcher is about 50mb, bouncer is less than one.
-                                metadata.file_size() > 1_000_000
+                                if cfg!(target_os = "windows") {
+                                    metadata.file_size() > 1_000_000
+                                } else {
+                                    metadata.len() > 1_000_000
+                                }
                             } else {
                                 true
                             }
