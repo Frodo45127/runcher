@@ -10,9 +10,11 @@
 
 use qt_widgets::QMessageBox;
 
+use qt_gui::QDesktopServices;
 use qt_gui::SlotOfQStandardItem;
 
 use qt_core::QBox;
+use qt_core::QUrl;
 use qt_core::SlotNoArgs;
 use qt_core::SlotOfBool;
 use qt_core::SlotOfDouble;
@@ -22,7 +24,10 @@ use std::rc::Rc;
 
 use rpfm_ui_common::clone;
 
+use crate::DISCORD_URL;
+use crate::GITHUB_URL;
 use crate::mod_list_ui::VALUE_MOD_ID;
+use crate::PATREON_URL;
 use crate::VERSION;
 use crate::VERSION_SUBTITLE;
 
@@ -57,6 +62,10 @@ pub struct AppUISlots {
     about_runcher: QBox<SlotNoArgs>,
     check_updates: QBox<SlotNoArgs>,
     check_schema_updates: QBox<SlotNoArgs>,
+
+    github_link: QBox<SlotNoArgs>,
+    discord_link: QBox<SlotNoArgs>,
+    patreon_link: QBox<SlotNoArgs>,
 
     copy_load_order: QBox<SlotNoArgs>,
     paste_load_order: QBox<SlotNoArgs>,
@@ -401,6 +410,10 @@ impl AppUISlots {
             }
         ));
 
+        let github_link = SlotNoArgs::new(view.main_window(), || { QDesktopServices::open_url(&QUrl::new_1a(&QString::from_std_str(GITHUB_URL))); });
+        let discord_link = SlotNoArgs::new(view.main_window(), || { QDesktopServices::open_url(&QUrl::new_1a(&QString::from_std_str(DISCORD_URL))); });
+        let patreon_link = SlotNoArgs::new(view.main_window(), || { QDesktopServices::open_url(&QUrl::new_1a(&QString::from_std_str(PATREON_URL))); });
+
         Self {
             launch_game,
             toggle_logging,
@@ -424,6 +437,10 @@ impl AppUISlots {
             about_runcher,
             check_updates,
             check_schema_updates,
+
+            github_link,
+            discord_link,
+            patreon_link,
 
             copy_load_order,
             paste_load_order,

@@ -15,6 +15,7 @@ use qt_widgets::QToolBar;
 use qt_widgets::{QDialog, QDialogButtonBox, q_dialog_button_box::StandardButton};
 use qt_widgets::QLabel;
 use qt_widgets::QMainWindow;
+use qt_widgets::QPushButton;
 use qt_widgets::QSplitter;
 use qt_widgets::QTextEdit;
 use qt_widgets::{QMessageBox, q_message_box};
@@ -118,6 +119,10 @@ pub struct AppUI {
     //-------------------------------------------------------------------------------//
     main_window: QBox<QMainWindow>,
 
+    github_button: QBox<QPushButton>,
+    discord_button: QBox<QPushButton>,
+    patreon_button: QBox<QPushButton>,
+
     //-------------------------------------------------------------------------------//
     // `Game Selected` menu.
     //-------------------------------------------------------------------------------//
@@ -207,6 +212,24 @@ impl AppUI {
         status_bar.set_size_grip_enabled(false);
         let menu_bar_about = menu_bar.add_menu_q_string(&qtr("menu_bar_about"));
 
+        let github_button = QPushButton::from_q_widget(&status_bar);
+        github_button.set_flat(true);
+        github_button.set_tool_tip(&qtr("github_link"));
+        github_button.set_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/github.svg", ASSETS_PATH.to_string_lossy()))));
+        status_bar.add_permanent_widget_1a(&github_button);
+
+        let discord_button = QPushButton::from_q_widget(&status_bar);
+        discord_button.set_flat(true);
+        discord_button.set_tool_tip(&qtr("discord_link"));
+        discord_button.set_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/discord.svg", ASSETS_PATH.to_string_lossy()))));
+        status_bar.add_permanent_widget_1a(&discord_button);
+
+        let patreon_button = QPushButton::from_q_widget(&status_bar);
+        patreon_button.set_flat(true);
+        patreon_button.set_tool_tip(&qtr("patreon_link"));
+        patreon_button.set_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/patreon.png", ASSETS_PATH.to_string_lossy()))));
+        status_bar.add_permanent_widget_1a(&patreon_button);
+
         //-----------------------------------------------//
         // `Game Selected` Menu.
         //-----------------------------------------------//
@@ -292,6 +315,10 @@ impl AppUI {
             //-------------------------------------------------------------------------------//
             main_window,
 
+            github_button,
+            discord_button,
+            patreon_button,
+
             //-------------------------------------------------------------------------------//
             // "Game Selected" menu.
             //-------------------------------------------------------------------------------//
@@ -373,7 +400,7 @@ impl AppUI {
         }
 
         // Load the correct theme.
-        Self::reload_theme();
+        Self::reload_theme(&app_ui);
 
         // Apply last ui state.
         app_ui.main_window().restore_geometry(&setting_byte_array("geometry"));
@@ -487,6 +514,10 @@ impl AppUI {
         self.about_about_runcher().triggered().connect(slots.about_runcher());
         self.about_check_updates().triggered().connect(slots.check_updates());
         self.about_check_schema_updates().triggered().connect(slots.check_schema_updates());
+
+        self.github_button().released().connect(slots.github_link());
+        self.discord_button().released().connect(slots.discord_link());
+        self.patreon_button().released().connect(slots.patreon_link());
 
         self.mod_list_ui().model().item_changed().connect(slots.update_pack_list());
         self.mod_list_ui().context_menu().about_to_show().connect(slots.mod_list_context_menu_open());
@@ -1435,7 +1466,7 @@ impl AppUI {
     }
 
     /// This function is used to load/reload a theme live.
-    pub unsafe fn reload_theme() {
+    pub unsafe fn reload_theme(app_ui: &AppUI) {
         let app = QCoreApplication::instance();
         let qapp = app.static_downcast::<QApplication>();
         let use_dark_theme = setting_bool("dark_mode");
@@ -1453,10 +1484,14 @@ impl AppUI {
                 if let Ok(dark_stylesheet) = Self::dark_stylesheet() {
                     qapp.set_style_sheet(&QString::from_std_str(dark_stylesheet));
                 }
+
+                app_ui.github_button().set_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/github.svg", ASSETS_PATH.to_string_lossy()))));
             } else {
                 QApplication::set_style_q_string(&QString::from_std_str("windowsvista"));
                 QApplication::set_palette_1a(light_palette);
                 qapp.set_style_sheet(light_style_sheet);
+
+                app_ui.github_button().set_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/github-dark.svg", ASSETS_PATH.to_string_lossy()))));
             }
         }
 
