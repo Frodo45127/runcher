@@ -9,6 +9,7 @@
 //---------------------------------------------------------------------------//
 
 use qt_widgets::QAction;
+use qt_widgets::QCheckBox;
 use qt_widgets::QComboBox;
 use qt_widgets::QDoubleSpinBox;
 use qt_widgets::QGridLayout;
@@ -44,12 +45,10 @@ const VIEW_RELEASE: &str = "ui/actions_groupbox.ui";
 #[getset(get = "pub")]
 pub struct ActionsUI {
     play_button: QPtr<QToolButton>,
-    enable_logging: QPtr<QAction>,
-    enable_skip_intro: QPtr<QAction>,
-    _enable_translations: QBox<QWidgetAction>,
+    enable_logging_checkbox: QBox<QCheckBox>,
+    enable_skip_intro_checkbox: QBox<QCheckBox>,
     enable_translations_combobox: QBox<QComboBox>,
-    merge_all_mods: QPtr<QAction>,
-    _unit_multiplier: QBox<QWidgetAction>,
+    merge_all_mods_checkbox: QBox<QCheckBox>,
     unit_multiplier_spinbox: QBox<QDoubleSpinBox>,
 
     settings_button: QPtr<QToolButton>,
@@ -80,6 +79,17 @@ pub struct ActionsUI {
 
 impl ActionsUI {
 
+    pub unsafe fn new_launch_option_checkbox(menu: &QBox<QMenu>, text_key: &str) -> QBox<QCheckBox> {
+        let action = QWidgetAction::new(menu);
+        let widget = QWidget::new_1a(menu);
+        let checkbox = QCheckBox::from_q_string_q_widget(&qtr(text_key), &widget);
+        let layout = create_grid_layout(widget.static_upcast());
+        layout.add_widget_5a(&checkbox, 0, 0, 2, 1);
+        action.set_default_widget(&widget);
+        menu.add_action(&action);
+        checkbox
+    }
+
     pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Arc<Self>> {
         let layout: QPtr<QGridLayout> = parent.layout().static_downcast();
 
@@ -89,10 +99,8 @@ impl ActionsUI {
 
         let play_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "play_button")?;
         let play_menu = QMenu::from_q_widget(&play_button);
-        let enable_logging = play_menu.add_action_q_string(&qtr("enable_logging"));
-        let enable_skip_intro = play_menu.add_action_q_string(&qtr("enable_skip_intro"));
-        enable_logging.set_checkable(true);
-        enable_skip_intro.set_checkable(true);
+        let enable_logging_checkbox = Self::new_launch_option_checkbox(&play_menu, "enable_logging");
+        let enable_skip_intro_checkbox = Self::new_launch_option_checkbox(&play_menu, "enable_skip_intro");
 
         // Note: this is populated on game change, by detecting the languages available as locale packs.
         let enable_translations = QWidgetAction::new(&play_menu);
@@ -106,8 +114,7 @@ impl ActionsUI {
         enable_translations.set_default_widget(&enable_translations_widget);
         play_menu.add_action(&enable_translations);
 
-        let merge_all_mods = play_menu.add_action_q_string(&qtr("merge_all_mods"));
-        merge_all_mods.set_checkable(true);
+        let merge_all_mods_checkbox = Self::new_launch_option_checkbox(&play_menu, "merge_all_mods");
 
         let unit_multiplier = QWidgetAction::new(&play_menu);
         let unit_multiplier_widget = QWidget::new_1a(&play_menu);
@@ -163,12 +170,10 @@ impl ActionsUI {
 
         let ui = Arc::new(Self {
             play_button,
-            enable_logging,
-            enable_skip_intro,
-            _enable_translations: enable_translations,
+            enable_logging_checkbox,
+            enable_skip_intro_checkbox,
             enable_translations_combobox,
-            merge_all_mods,
-            _unit_multiplier: unit_multiplier,
+            merge_all_mods_checkbox,
             unit_multiplier_spinbox,
 
             settings_button,

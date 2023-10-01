@@ -114,10 +114,10 @@ mod warhammer_3;
 pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
 
     // The blockers are needed to avoid issues with game change causing incorrect status to be saved.
-    app_ui.actions_ui().enable_logging().block_signals(true);
-    app_ui.actions_ui().enable_skip_intro().block_signals(true);
+    app_ui.actions_ui().enable_logging_checkbox().block_signals(true);
+    app_ui.actions_ui().enable_skip_intro_checkbox().block_signals(true);
     app_ui.actions_ui().enable_translations_combobox().block_signals(true);
-    app_ui.actions_ui().merge_all_mods().block_signals(true);
+    app_ui.actions_ui().merge_all_mods_checkbox().block_signals(true);
     app_ui.actions_ui().unit_multiplier_spinbox().block_signals(true);
     app_ui.actions_ui().open_game_content_folder().block_signals(true);
     app_ui.actions_ui().save_combobox().block_signals(true);
@@ -125,110 +125,110 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
     // Only set enabled the launch options that work for the current game.
     match game.key() {
         KEY_PHARAOH => {
-            app_ui.actions_ui().enable_logging().set_enabled(true);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().set_enabled(true);
+            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
             app_ui.actions_ui().open_game_content_folder().set_enabled(true);
             app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_WARHAMMER_3 => {
             let schema = SCHEMA.read().unwrap();
-            app_ui.actions_ui().enable_logging().set_enabled(true);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().set_enabled(true);
+            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(schema.is_some());
             app_ui.actions_ui().open_game_content_folder().set_enabled(true);
             app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_TROY => {
-            app_ui.actions_ui().enable_logging().set_enabled(true);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().set_enabled(true);
+            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
             app_ui.actions_ui().open_game_content_folder().set_enabled(true);
             app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_THREE_KINGDOMS => {
-            app_ui.actions_ui().enable_logging().set_enabled(false);    // 3K doesn't support logging by default.
-            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);    // 3K doesn't support logging by default.
+            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
             app_ui.actions_ui().open_game_content_folder().set_enabled(true);
             app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_WARHAMMER_2 => {
-            app_ui.actions_ui().enable_logging().set_enabled(true);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().set_enabled(true);
+            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
             app_ui.actions_ui().open_game_content_folder().set_enabled(true);
             app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_WARHAMMER => {
-            app_ui.actions_ui().enable_logging().set_enabled(false);    // Warhammer 1 doesn't support logging by default.
-            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);    // Warhammer 1 doesn't support logging by default.
+            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
             app_ui.actions_ui().open_game_content_folder().set_enabled(true);
             app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_THRONES_OF_BRITANNIA => {
-            app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
             app_ui.actions_ui().open_game_content_folder().set_enabled(true);
             app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_ATTILA => {
-            app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
             app_ui.actions_ui().open_game_content_folder().set_enabled(true);
             app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_ROME_2 => {
-            app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
             app_ui.actions_ui().open_game_content_folder().set_enabled(true);
             app_ui.actions_ui().save_combobox().set_enabled(true);
         },
         KEY_SHOGUN_2 => {
-            app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
             app_ui.actions_ui().open_game_content_folder().set_enabled(true);
             app_ui.actions_ui().save_combobox().set_enabled(false);
         },
         KEY_NAPOLEON => {
-            app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
             app_ui.actions_ui().open_game_content_folder().set_enabled(false);
             app_ui.actions_ui().save_combobox().set_enabled(false);
         },
         KEY_EMPIRE => {
-            app_ui.actions_ui().enable_logging().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
             app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
             app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
             app_ui.actions_ui().open_game_content_folder().set_enabled(false);
             app_ui.actions_ui().save_combobox().set_enabled(false);
@@ -237,12 +237,12 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
     }
 
     // Disable this until I figure out how to fix the performance problems, and I change the pack to be on /data
-    app_ui.actions_ui().merge_all_mods().set_enabled(false);
+    app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(false);
 
     // Update the launch options for the new game.
-    app_ui.actions_ui().enable_logging().set_checked(setting_bool(&format!("enable_logging_{}", game.key())));
-    app_ui.actions_ui().enable_skip_intro().set_checked(setting_bool(&format!("enable_skip_intros_{}", game.key())));
-    app_ui.actions_ui().merge_all_mods().set_checked(setting_bool(&format!("merge_all_mods_{}", game.key())));
+    app_ui.actions_ui().enable_logging_checkbox().set_checked(setting_bool(&format!("enable_logging_{}", game.key())));
+    app_ui.actions_ui().enable_skip_intro_checkbox().set_checked(setting_bool(&format!("enable_skip_intros_{}", game.key())));
+    app_ui.actions_ui().merge_all_mods_checkbox().set_checked(setting_bool(&format!("merge_all_mods_{}", game.key())));
     app_ui.actions_ui().unit_multiplier_spinbox().set_value({
         let value = setting_f32(&format!("unit_multiplier_{}", game.key()));
         if value == 0.00 {
@@ -277,10 +277,10 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
     }
 
     // Unblock all blocked signals.
-    app_ui.actions_ui().enable_logging().block_signals(false);
-    app_ui.actions_ui().enable_skip_intro().block_signals(false);
+    app_ui.actions_ui().enable_logging_checkbox().block_signals(false);
+    app_ui.actions_ui().enable_skip_intro_checkbox().block_signals(false);
     app_ui.actions_ui().enable_translations_combobox().block_signals(false);
-    app_ui.actions_ui().merge_all_mods().block_signals(false);
+    app_ui.actions_ui().merge_all_mods_checkbox().block_signals(false);
     app_ui.actions_ui().unit_multiplier_spinbox().block_signals(false);
     app_ui.actions_ui().save_combobox().block_signals(false);
     app_ui.actions_ui().open_game_content_folder().block_signals(false);
@@ -314,7 +314,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
 }
 
 pub unsafe fn prepare_script_logging(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack) -> Result<()> {
-    if app_ui.actions_ui().enable_logging().is_enabled() && app_ui.actions_ui().enable_logging().is_checked() {
+    if app_ui.actions_ui().enable_logging_checkbox().is_enabled() && app_ui.actions_ui().enable_logging_checkbox().is_checked() {
         match game.key() {
             KEY_PHARAOH => pharaoh::prepare_script_logging(reserved_pack),
             KEY_WARHAMMER_3 => warhammer_3::prepare_script_logging(reserved_pack),
@@ -336,7 +336,7 @@ pub unsafe fn prepare_script_logging(app_ui: &AppUI, game: &GameInfo, reserved_p
 }
 
 pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack) -> Result<()> {
-    if app_ui.actions_ui().enable_skip_intro().is_enabled() && app_ui.actions_ui().enable_skip_intro().is_checked() {
+    if app_ui.actions_ui().enable_skip_intro_checkbox().is_enabled() && app_ui.actions_ui().enable_skip_intro_checkbox().is_checked() {
         match game.key() {
             KEY_PHARAOH => match *SCHEMA.read().unwrap() {
                 Some(ref schema) => pharaoh::prepare_skip_intro_videos(app_ui, game, game_path, reserved_pack, schema),

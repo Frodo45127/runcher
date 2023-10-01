@@ -451,9 +451,9 @@ impl AppUI {
 
     pub unsafe fn set_connections(&self, slots: &AppUISlots) {
         self.actions_ui().play_button().released().connect(slots.launch_game());
-        self.actions_ui().enable_logging().toggled().connect(slots.toggle_logging());
-        self.actions_ui().enable_skip_intro().toggled().connect(slots.toggle_skip_intros());
-        self.actions_ui().merge_all_mods().toggled().connect(slots.toggle_merge_all_mods());
+        self.actions_ui().enable_logging_checkbox().toggled().connect(slots.toggle_logging());
+        self.actions_ui().enable_skip_intro_checkbox().toggled().connect(slots.toggle_skip_intros());
+        self.actions_ui().merge_all_mods_checkbox().toggled().connect(slots.toggle_merge_all_mods());
         self.actions_ui().enable_translations_combobox().current_text_changed().connect(slots.toggle_enable_translations());
         self.actions_ui().unit_multiplier_spinbox().value_changed().connect(slots.change_unit_multiplier());
         self.actions_ui().settings_button().released().connect(slots.open_settings());
@@ -919,8 +919,8 @@ impl AppUI {
         let data_path = game.data_path(&game_path)?;
 
         // We only use the reserved pack if we need to.
-        if (self.actions_ui().enable_logging().is_enabled() && self.actions_ui().enable_logging().is_checked()) ||
-            (self.actions_ui().enable_skip_intro().is_enabled() && self.actions_ui().enable_skip_intro().is_checked()) ||
+        if (self.actions_ui().enable_logging_checkbox().is_enabled() && self.actions_ui().enable_logging_checkbox().is_checked()) ||
+            (self.actions_ui().enable_skip_intro_checkbox().is_enabled() && self.actions_ui().enable_skip_intro_checkbox().is_checked()) ||
             (self.actions_ui().enable_translations_combobox().is_enabled() && self.actions_ui().enable_translations_combobox().current_index() != 0) ||
             (self.actions_ui().unit_multiplier_spinbox().is_enabled() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00) {
 
@@ -963,7 +963,7 @@ impl AppUI {
         }
 
         // If we have "merge all mods" checked, we need to load the entire load order into a single pack, and load that pack instead of the entire load order.
-        if self.actions_ui().merge_all_mods().is_enabled() && self.actions_ui().merge_all_mods().is_checked() {
+        if self.actions_ui().merge_all_mods_checkbox().is_enabled() && self.actions_ui().merge_all_mods_checkbox().is_checked() {
             let temp_path_file_name = format!("{}_{}.pack", MERGE_ALL_PACKS_PACK_NAME, self.game_selected().read().unwrap().key());
             let temp_path = data_path.join(&temp_path_file_name);
             pack_list.push_str(&format!("mod \"{}\";", temp_path_file_name));
