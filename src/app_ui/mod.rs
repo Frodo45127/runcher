@@ -47,7 +47,7 @@ use std::collections::HashMap;
 use std::env::{args, current_exe};
 use std::fs::{copy, DirBuilder, File};
 use std::io::{BufWriter, Read, Write};
-#[cfg(target_os = "windows")] use std::os::windows::{prelude::MetadataExt, process::CommandExt};
+#[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command as SystemCommand, exit};
 use std::rc::Rc;
@@ -1142,11 +1142,7 @@ impl AppUI {
                             if let Ok(metadata) = file.metadata() {
 
                                 // Vanilla launcher is about 50mb, bouncer is less than one.
-                                if cfg!(target_os = "windows") {
-                                    metadata.file_size() > 1_000_000
-                                } else {
-                                    metadata.len() > 1_000_000
-                                }
+                                metadata.len() > 1_000_000
                             } else {
                                 true
                             }
