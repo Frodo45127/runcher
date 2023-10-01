@@ -16,7 +16,7 @@ use qt_core::QBox;
 use qt_core::{SlotNoArgs, SlotOfQString};
 
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::rc::Rc;
 
 use rpfm_ui_common::clone;
 
@@ -46,7 +46,7 @@ pub struct ModListUISlots {
 //-------------------------------------------------------------------------------//
 
 impl ModListUISlots {
-    pub unsafe fn new(view: &Arc<ModListUI>) -> Self {
+    pub unsafe fn new(view: &Rc<ModListUI>) -> Self {
 
         let filter_line_edit = SlotOfQString::new(&view.tree_view, clone!(
             view => move |_| {

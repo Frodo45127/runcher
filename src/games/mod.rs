@@ -382,15 +382,14 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
                 pack_paths.reverse();
 
                 // If we need to merge the localisation.loc file if found to the translations.
-                let use_old_multilanguage_logic = match game.key() {
+                let use_old_multilanguage_logic = matches!(game.key(),
                     KEY_THRONES_OF_BRITANNIA |
                     KEY_ATTILA |
                     KEY_ROME_2 |
                     KEY_SHOGUN_2 |
                     KEY_NAPOLEON |
-                    KEY_EMPIRE => true,
-                    _ => false,
-                };
+                    KEY_EMPIRE
+                );
 
                 let mut loc = Loc::new();
                 let mut loc_data = vec![];
@@ -437,7 +436,7 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
                             let locs_split_ref = locs_split.iter().collect::<Vec<_>>();
 
                             let mut merged_loc = Loc::merge(&locs_split_ref)?;
-                            loc_data.append(&mut merged_loc.data_mut());
+                            loc_data.append(merged_loc.data_mut());
                         }
                     }
                 }
@@ -448,7 +447,7 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
                     let mut pack = Pack::read_and_merge_ca_packs(game, &game_path)?;
                     if let Some(vanilla_loc) = pack.file_mut(TRANSLATED_PATH_OLD, false) {
                         if let Ok(Some(RFileDecoded::Loc(mut loc))) = vanilla_loc.decode(&None, false, true) {
-                            loc_data.append(&mut loc.data_mut());
+                            loc_data.append(loc.data_mut());
                         }
                     }
                 }

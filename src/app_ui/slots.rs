@@ -18,7 +18,7 @@ use qt_core::SlotOfBool;
 use qt_core::SlotOfDouble;
 use qt_core::SlotOfQString;
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use rpfm_ui_common::clone;
 
@@ -76,7 +76,7 @@ pub struct AppUISlots {
 //-------------------------------------------------------------------------------//
 
 impl AppUISlots {
-    pub unsafe fn new(view: &Arc<AppUI>) -> Self {
+    pub unsafe fn new(view: &Rc<AppUI>) -> Self {
 
         let launch_game = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {

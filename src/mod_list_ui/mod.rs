@@ -46,7 +46,7 @@ use anyhow::Result;
 use getset::*;
 use time::OffsetDateTime;
 
-use std::sync::Arc;
+use std::rc::Rc;
 use std::time::UNIX_EPOCH;
 
 use rpfm_lib::games::pfh_file_type::PFHFileType;
@@ -110,7 +110,7 @@ pub struct ModListUI {
 
 impl ModListUI {
 
-    pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Arc<Self>> {
+    pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Rc<Self>> {
         let layout: QPtr<QGridLayout> = parent.layout().static_downcast();
 
         // Load the UI Template.
@@ -148,7 +148,7 @@ impl ModListUI {
         context_menu.insert_separator(&category_new);
         context_menu.insert_separator(&open_in_explorer);
 
-        let list = Arc::new(Self {
+        let list = Rc::new(Self {
             tree_view,
             model,
             filter,

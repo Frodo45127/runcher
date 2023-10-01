@@ -11,7 +11,7 @@
 use qt_core::QBox;
 use qt_core::{SlotNoArgs, SlotOfQString};
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use rpfm_ui_common::clone;
 
@@ -34,7 +34,7 @@ pub struct PackListUISlots {
 //-------------------------------------------------------------------------------//
 
 impl PackListUISlots {
-    pub unsafe fn new(view: &Arc<PackListUI>) -> Self {
+    pub unsafe fn new(view: &Rc<PackListUI>) -> Self {
 
         let filter_line_edit = SlotOfQString::new(&view.tree_view, clone!(
             view => move |_| {

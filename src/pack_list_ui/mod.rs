@@ -34,8 +34,8 @@ use cpp_core::CppBox;
 use anyhow::Result;
 use getset::*;
 
-use std::sync::Arc;
 use std::path::Path;
+use std::rc::Rc;
 
 use rpfm_lib::files::pack::Pack;
 use rpfm_lib::games::GameInfo;
@@ -74,7 +74,7 @@ pub struct PackListUI {
 
 impl PackListUI {
 
-    pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Arc<Self>> {
+    pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Rc<Self>> {
         let layout: QPtr<QGridLayout> = parent.layout().static_downcast();
 
         // Load the UI Template.
@@ -97,7 +97,7 @@ impl PackListUI {
 
         layout.add_widget_5a(&main_widget, 1, 0, 1, 1);
 
-        let list = Arc::new(Self {
+        let list = Rc::new(Self {
             tree_view,
             model,
             filter,

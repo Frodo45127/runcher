@@ -147,17 +147,17 @@ pub struct AppUI {
     //-------------------------------------------------------------------------------//
     // `Actions` section.
     //-------------------------------------------------------------------------------//
-    actions_ui: Arc<ActionsUI>,
+    actions_ui: Rc<ActionsUI>,
 
     //-------------------------------------------------------------------------------//
     // `Mod List` section.
     //-------------------------------------------------------------------------------//
-    mod_list_ui: Arc<ModListUI>,
+    mod_list_ui: Rc<ModListUI>,
 
     //-------------------------------------------------------------------------------//
     // `Pack List` section.
     //-------------------------------------------------------------------------------//
-    pack_list_ui: Arc<PackListUI>,
+    pack_list_ui: Rc<PackListUI>,
 
     //-------------------------------------------------------------------------------//
     // Extra stuff
@@ -180,7 +180,7 @@ pub struct AppUI {
 impl AppUI {
 
     /// This function creates an entire `AppUI` struct. Used to create the entire UI at start.
-    pub unsafe fn new() -> Result<Arc<Self>> {
+    pub unsafe fn new() -> Result<Rc<Self>> {
 
         // Initialize and configure the main window.
         let main_window = launcher_window_safe(setting_bool("dark_mode"));
@@ -285,7 +285,7 @@ impl AppUI {
         //-------------------------------------------------------------------------------//
         let pack_list_ui = PackListUI::new(&right_widget)?;
 
-        let app_ui = Arc::new(Self {
+        let app_ui = Rc::new(Self {
 
             //-------------------------------------------------------------------------------//
             // Main Window.
@@ -786,8 +786,8 @@ impl AppUI {
                             .filter(|path| {
                                 if let Ok(canon_path) = std::fs::canonicalize(path) {
                                     !vanilla_packs.contains(&canon_path) &&
-                                        canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(|| String::new()) != RESERVED_PACK_NAME &&
-                                        canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(|| String::new()) != RESERVED_PACK_NAME_ALTERNATIVE
+                                        canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(String::new) != RESERVED_PACK_NAME &&
+                                        canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(String::new) != RESERVED_PACK_NAME_ALTERNATIVE
                                 } else {
                                     false
                                 }
@@ -930,11 +930,11 @@ impl AppUI {
             // Support for add_working_directory seems to be only present in rome 2 and newer games. For older games, we drop the pack into /data.
             let temp_path = if *game.raw_db_version() >= 2 {
                 let temp_packs_folder = temp_packs_folder(&game)?;
-                let temp_path = temp_packs_folder.join(&reserved_pack_name);
+                let temp_path = temp_packs_folder.join(reserved_pack_name);
                 folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_packs_folder.to_string_lossy()));
                 temp_path
             } else {
-                data_path.join(&reserved_pack_name)
+                data_path.join(reserved_pack_name)
             };
 
             // Generate the reserved pack.
@@ -1652,7 +1652,7 @@ impl AppUI {
         Ok(())
     }
 
-    pub unsafe fn generate_move_to_category_submenu(app_ui: &Arc<AppUI>) {
+    pub unsafe fn generate_move_to_category_submenu(app_ui: &Rc<AppUI>) {
         app_ui.mod_list_ui().categories_send_to_menu().clear();
 
         let categories = app_ui.mod_list_ui().categories();

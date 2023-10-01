@@ -8,15 +8,16 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use qt_widgets::QMainWindow;
+
 use qt_core::QBox;
 use qt_core::QPtr;
 use qt_core::SlotNoArgs;
 
 use getset::*;
-use qt_widgets::QMainWindow;
 
 use std::collections::{BTreeMap, HashMap};
-use std::sync::Arc;
+use std::rc::Rc;
 
 use rpfm_ui_common::clone;
 use rpfm_ui_common::settings::*;
@@ -42,7 +43,7 @@ pub struct SettingsUISlots {
 
 impl SettingsUISlots {
 
-    pub unsafe fn new(ui: &Arc<SettingsUI>, main_window: QPtr<QMainWindow>) -> Self {
+    pub unsafe fn new(ui: &Rc<SettingsUI>, main_window: QPtr<QMainWindow>) -> Self {
         let restore_default = SlotNoArgs::new(&ui.dialog, clone!(
             ui => move || {
 

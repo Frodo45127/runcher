@@ -39,7 +39,7 @@ use std::collections::BTreeMap;
 use std::fs::{DirBuilder, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::rc::Rc;
 
 use rpfm_lib::games::{GameInfo, supported_games::{KEY_ARENA, KEY_SHOGUN_2, KEY_WARHAMMER_3}};
 
@@ -108,7 +108,7 @@ impl SettingsUI {
         }
     }
 
-    pub unsafe fn new_with_parent(main_window: &QBox<QMainWindow>) -> Result<Arc<Self>> {
+    pub unsafe fn new_with_parent(main_window: &QBox<QMainWindow>) -> Result<Rc<Self>> {
 
         // Load the UI Template.
         let template_path = if cfg!(debug_assertions) { VIEW_DEBUG } else { VIEW_RELEASE };
@@ -183,7 +183,7 @@ impl SettingsUI {
         let accept_button: QPtr<QPushButton> = button_box.button(StandardButton::Ok);
         let cancel_button: QPtr<QPushButton> = button_box.button(StandardButton::Cancel);
 
-        Ok(Arc::new(Self {
+        Ok(Rc::new(Self {
             dialog,
             paths_games_line_edits,
             paths_games_buttons,

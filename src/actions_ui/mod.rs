@@ -29,7 +29,7 @@ use qt_core::QString;
 use anyhow::Result;
 use getset::*;
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::utils::*;
@@ -90,7 +90,7 @@ impl ActionsUI {
         checkbox
     }
 
-    pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Arc<Self>> {
+    pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Rc<Self>> {
         let layout: QPtr<QGridLayout> = parent.layout().static_downcast();
 
         // Load the UI Template.
@@ -168,7 +168,7 @@ impl ActionsUI {
 
         layout.add_widget_5a(&main_widget, 0, 0, 1, 1);
 
-        let ui = Arc::new(Self {
+        let ui = Rc::new(Self {
             play_button,
             enable_logging_checkbox,
             enable_skip_intro_checkbox,
