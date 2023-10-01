@@ -79,15 +79,47 @@ pub struct ActionsUI {
 
 impl ActionsUI {
 
-    pub unsafe fn new_launch_option_checkbox(menu: &QBox<QMenu>, text_key: &str) -> QBox<QCheckBox> {
+    pub unsafe fn new_launch_option(menu: &QBox<QMenu>, text_key: &str, icon_key: &str, base_widget: &QBox<QWidget>, option_widget: &QPtr<QWidget>) {
         let action = QWidgetAction::new(menu);
-        let widget = QWidget::new_1a(menu);
-        let checkbox = QCheckBox::from_q_string_q_widget(&qtr(text_key), &widget);
-        let layout = create_grid_layout(widget.static_upcast());
-        layout.add_widget_5a(&checkbox, 0, 0, 2, 1);
-        action.set_default_widget(&widget);
+        let icon = QIcon::from_theme_1a(&QString::from_std_str(icon_key));
+        let label_icon = QLabel::from_q_widget(base_widget);
+        label_icon.set_pixmap(&icon.pixmap_2_int(22, 22));
+        label_icon.set_maximum_width(22);
+
+        let label_text = QLabel::from_q_string_q_widget(&qtr(text_key), base_widget);
+        label_text.set_fixed_height(26);
+
+        let label_fill = QLabel::from_q_widget(base_widget);
+        let layout = create_grid_layout(base_widget.static_upcast());
+
+        layout.add_widget_5a(&label_icon, 0, 0, 1, 1);
+        layout.add_widget_5a(&label_text, 0, 1, 1, 1);
+        layout.add_widget_5a(&label_fill, 0, 2, 1, 1);
+        layout.add_widget_5a(option_widget, 0, 3, 1, 1);
+        layout.set_column_stretch(2, 10);
+        action.set_default_widget(base_widget);
         menu.add_action(&action);
+    }
+
+    pub unsafe fn new_launch_option_checkbox(menu: &QBox<QMenu>, text_key: &str, icon_key: &str) -> QBox<QCheckBox> {
+        let widget = QWidget::new_1a(menu);
+        let checkbox = QCheckBox::from_q_widget(&widget);
+        Self::new_launch_option(menu, text_key, icon_key, &widget, &checkbox.static_upcast());
         checkbox
+    }
+
+    pub unsafe fn new_launch_option_doublespinbox(menu: &QBox<QMenu>, text_key: &str, icon_key: &str) -> QBox<QDoubleSpinBox> {
+        let widget = QWidget::new_1a(menu);
+        let spinbox = QDoubleSpinBox::new_1a(&widget);
+        Self::new_launch_option(menu, text_key, icon_key, &widget, &spinbox.static_upcast());
+        spinbox
+    }
+
+    pub unsafe fn new_launch_option_combobox(menu: &QBox<QMenu>, text_key: &str, icon_key: &str) -> QBox<QComboBox> {
+        let widget = QWidget::new_1a(menu);
+        let combobox = QComboBox::new_1a(&widget);
+        Self::new_launch_option(menu, text_key, icon_key, &widget, &combobox.static_upcast());
+        combobox
     }
 
     pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Rc<Self>> {
@@ -99,33 +131,13 @@ impl ActionsUI {
 
         let play_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "play_button")?;
         let play_menu = QMenu::from_q_widget(&play_button);
-        let enable_logging_checkbox = Self::new_launch_option_checkbox(&play_menu, "enable_logging");
-        let enable_skip_intro_checkbox = Self::new_launch_option_checkbox(&play_menu, "enable_skip_intro");
-
-        // Note: this is populated on game change, by detecting the languages available as locale packs.
-        let enable_translations = QWidgetAction::new(&play_menu);
-        let enable_translations_widget = QWidget::new_1a(&play_menu);
-        let enable_translations_label = QLabel::from_q_string_q_widget(&qtr("enable_translations"), &enable_translations_widget);
-        let enable_translations_combobox = QComboBox::new_1a(&enable_translations_widget);
-        let enable_translations_layout = create_grid_layout(enable_translations_widget.static_upcast());
-        enable_translations_layout.add_widget_5a(&enable_translations_label, 0, 0, 1, 1);
-        enable_translations_layout.add_widget_5a(&enable_translations_combobox, 0, 1, 1, 1);
+        let enable_logging_checkbox = Self::new_launch_option_checkbox(&play_menu, "enable_logging", "verb");
+        let enable_skip_intro_checkbox = Self::new_launch_option_checkbox(&play_menu, "enable_skip_intro", "kdenlive-hide-video");
+        let enable_translations_combobox = Self::new_launch_option_combobox(&play_menu, "enable_translations", "language-chooser");
+        let merge_all_mods_checkbox = Self::new_launch_option_checkbox(&play_menu, "merge_all_mods", "merge");
+        let unit_multiplier_spinbox = Self::new_launch_option_doublespinbox(&play_menu, "unit_multiplier", "view-time-schedule-calculus");
         enable_translations_combobox.set_current_index(0);
-        enable_translations.set_default_widget(&enable_translations_widget);
-        play_menu.add_action(&enable_translations);
-
-        let merge_all_mods_checkbox = Self::new_launch_option_checkbox(&play_menu, "merge_all_mods");
-
-        let unit_multiplier = QWidgetAction::new(&play_menu);
-        let unit_multiplier_widget = QWidget::new_1a(&play_menu);
-        let unit_multiplier_label = QLabel::from_q_string_q_widget(&qtr("unit_multiplier"), &unit_multiplier_widget);
-        let unit_multiplier_spinbox = QDoubleSpinBox::new_1a(&unit_multiplier_widget);
-        let unit_multiplier_layout = create_grid_layout(unit_multiplier_widget.static_upcast());
-        unit_multiplier_layout.add_widget_5a(&unit_multiplier_label, 0, 0, 1, 1);
-        unit_multiplier_layout.add_widget_5a(&unit_multiplier_spinbox, 0, 1, 1, 1);
         unit_multiplier_spinbox.set_value(1.00);
-        unit_multiplier.set_default_widget(&unit_multiplier_widget);
-        play_menu.add_action(&unit_multiplier);
 
         play_button.set_menu(play_menu.into_raw_ptr());
         play_button.set_popup_mode(ToolButtonPopupMode::MenuButtonPopup);
