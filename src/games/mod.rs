@@ -125,119 +125,119 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
     // Only set enabled the launch options that work for the current game.
     match game.key() {
         KEY_PHARAOH => {
-            app_ui.actions_ui().enable_logging_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
-            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
-            app_ui.actions_ui().save_combobox().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().save_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
         },
         KEY_WARHAMMER_3 => {
             let schema = SCHEMA.read().unwrap();
-            app_ui.actions_ui().enable_logging_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
-            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(schema.is_some());
-            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
-            app_ui.actions_ui().save_combobox().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(schema.is_some());
+            app_ui.actions_ui().open_game_content_folder().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().save_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
         },
         KEY_TROY => {
-            app_ui.actions_ui().enable_logging_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
-            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
-            app_ui.actions_ui().save_combobox().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().save_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
         },
         KEY_THREE_KINGDOMS => {
-            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);    // 3K doesn't support logging by default.
-            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
-            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
-            app_ui.actions_ui().save_combobox().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);    // 3K doesn't support logging by default.
+            app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().save_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
         },
         KEY_WARHAMMER_2 => {
-            app_ui.actions_ui().enable_logging_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
-            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
-            app_ui.actions_ui().save_combobox().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().save_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
         },
         KEY_WARHAMMER => {
-            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);    // Warhammer 1 doesn't support logging by default.
-            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
-            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
-            app_ui.actions_ui().save_combobox().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);    // Warhammer 1 doesn't support logging by default.
+            app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().save_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
         },
         KEY_THRONES_OF_BRITANNIA => {
-            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
-            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
-            app_ui.actions_ui().save_combobox().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().save_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
         },
         KEY_ATTILA => {
-            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
-            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
-            app_ui.actions_ui().save_combobox().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().save_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
         },
         KEY_ROME_2 => {
-            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
-            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
-            app_ui.actions_ui().save_combobox().set_enabled(true);
+            app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().save_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
         },
         KEY_SHOGUN_2 => {
-            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
-            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-            app_ui.actions_ui().open_game_content_folder().set_enabled(true);
-            app_ui.actions_ui().save_combobox().set_enabled(false);
+            app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().save_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
         },
         KEY_NAPOLEON => {
-            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
-            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-            app_ui.actions_ui().open_game_content_folder().set_enabled(false);
-            app_ui.actions_ui().save_combobox().set_enabled(false);
+            app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().save_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
         },
         KEY_EMPIRE => {
-            app_ui.actions_ui().enable_logging_checkbox().set_enabled(false);
-            app_ui.actions_ui().enable_skip_intro_checkbox().set_enabled(true);
-            app_ui.actions_ui().enable_translations_combobox().set_enabled(true);
-            app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(true);
-            app_ui.actions_ui().unit_multiplier_spinbox().set_enabled(false);
-            app_ui.actions_ui().open_game_content_folder().set_enabled(false);
-            app_ui.actions_ui().save_combobox().set_enabled(false);
+            app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+            app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().open_game_content_folder().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+            app_ui.actions_ui().save_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
         }
         &_ => {},
     }
 
     // Disable this until I figure out how to fix the performance problems, and I change the pack to be on /data
-    app_ui.actions_ui().merge_all_mods_checkbox().set_enabled(false);
+    app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
 
     // Update the launch options for the new game.
     app_ui.actions_ui().enable_logging_checkbox().set_checked(setting_bool(&format!("enable_logging_{}", game.key())));
