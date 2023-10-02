@@ -57,6 +57,9 @@ mod slots;
 const VIEW_DEBUG: &str = "ui_templates/settings_dialog.ui";
 const VIEW_RELEASE: &str = "ui/settings_dialog.ui";
 
+pub const SLASH_DMY_DATE_FORMAT_STR: &str = "[day]/[month]/[year]";
+pub const SLASH_MDY_DATE_FORMAT_STR: &str = "[month]/[day]/[year]";
+
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
 //-------------------------------------------------------------------------------//
@@ -75,6 +78,7 @@ pub struct SettingsUI {
     language_combobox: QPtr<QComboBox>,
     default_game_combobox: QPtr<QComboBox>,
     update_chanel_combobox: QPtr<QComboBox>,
+    date_format_combobox: QPtr<QComboBox>,
     check_updates_on_start_checkbox: QPtr<QCheckBox>,
     check_schema_updates_on_start_checkbox: QPtr<QCheckBox>,
     dark_mode_checkbox: QPtr<QCheckBox>,
@@ -119,6 +123,7 @@ impl SettingsUI {
         let language_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "language_label")?;
         let default_game_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "default_game_label")?;
         let update_chanel_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "update_chanel_label")?;
+        let date_format_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "date_format_label")?;
         let steam_user_id_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "steam_user_id_label")?;
         let steam_api_key_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "steam_api_key_label")?;
         let check_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_updates_on_start_label")?;
@@ -127,6 +132,7 @@ impl SettingsUI {
         let language_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "language_combobox")?;
         let default_game_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "default_game_combobox")?;
         let update_chanel_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "update_chanel_combobox")?;
+        let date_format_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "date_format_combobox")?;
         let steam_user_id_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "steam_user_id_line_edit")?;
         let steam_api_key_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "steam_api_key_line_edit")?;
         let check_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_updates_on_start_checkbox")?;
@@ -135,11 +141,14 @@ impl SettingsUI {
         let paths_layout: QPtr<QGridLayout> = paths_groupbox.layout().static_downcast();
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(STABLE));
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(BETA));
+        date_format_combobox.add_item_q_string(&QString::from_std_str(&SLASH_DMY_DATE_FORMAT_STR));
+        date_format_combobox.add_item_q_string(&QString::from_std_str(&SLASH_MDY_DATE_FORMAT_STR));
 
         paths_groupbox.set_title(&qtr("game_paths"));
         language_label.set_text(&qtr("language"));
         default_game_label.set_text(&qtr("default_game"));
         update_chanel_label.set_text(&qtr("update_channel"));
+        date_format_label.set_text(&qtr("date_format"));
         steam_user_id_label.set_text(&qtr("steam_user_id"));
         steam_api_key_label.set_text(&qtr("steam_api_key"));
         check_updates_on_start_label.set_text(&qtr("check_updates_on_start"));
@@ -192,6 +201,7 @@ impl SettingsUI {
             language_combobox,
             default_game_combobox,
             update_chanel_combobox,
+            date_format_combobox,
             check_updates_on_start_checkbox,
             check_schema_updates_on_start_checkbox,
             dark_mode_checkbox,
@@ -220,6 +230,14 @@ impl SettingsUI {
         for (index, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
             if game.key() == default_game {
                 self.default_game_combobox.set_current_index(index as i32);
+                break;
+            }
+        }
+
+        let date_format = setting_string_from_q_setting(&q_settings, "date_format");
+        for (index, format) in [SLASH_DMY_DATE_FORMAT_STR, SLASH_MDY_DATE_FORMAT_STR].iter().enumerate() {
+            if format == &date_format {
+                self.date_format_combobox.set_current_index(index as i32);
                 break;
             }
         }
@@ -272,6 +290,7 @@ impl SettingsUI {
         }
 
         set_setting_string_to_q_setting(&q_settings, "update_channel", &self.update_chanel_combobox.current_text().to_std_string());
+        set_setting_string_to_q_setting(&q_settings, "date_format", &self.date_format_combobox.current_text().to_std_string());
         set_setting_string_to_q_setting(&q_settings, "steam_user_id", &self.steam_user_id_line_edit().text().to_std_string());
         set_setting_string_to_q_setting(&q_settings, "steam_api_key", &self.steam_api_key_line_edit().text().to_std_string());
         set_setting_bool_to_q_setting(&q_settings, "dark_mode", self.dark_mode_checkbox().is_checked());
@@ -371,6 +390,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_string(&q_settings, "default_game", KEY_WARHAMMER_3);
     set_setting_if_new_string(&q_settings, "update_channel", "stable");
     set_setting_if_new_string(&q_settings, "language", "English_en");
+    set_setting_if_new_string(&q_settings, "date_format", SLASH_DMY_DATE_FORMAT_STR);
     set_setting_if_new_bool(&q_settings, "check_updates_on_start", true);
     set_setting_if_new_bool(&q_settings, "check_schema_updates_on_start", true);
     set_setting_if_new_bool(&q_settings, "dark_mode", false);

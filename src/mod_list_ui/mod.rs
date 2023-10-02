@@ -51,7 +51,6 @@ use std::time::UNIX_EPOCH;
 
 use rpfm_lib::games::pfh_file_type::PFHFileType;
 
-use rpfm_ui_common::SLASH_DMY_DATE_FORMAT;
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
@@ -192,6 +191,9 @@ impl ModListUI {
     pub unsafe fn load(&self, game_config: &GameConfig) -> Result<()> {
         self.model().clear();
 
+        let date_format_str = setting_string("date_format");
+        let date_format = time::format_description::parse(&date_format_str).unwrap();
+
         for modd in game_config.mods().values() {
 
             if !modd.paths().is_empty() {
@@ -232,7 +234,6 @@ impl ModListUI {
                     let item_time_updated = QStandardItem::new();
                     let item_last_check = QStandardItem::new();
 
-                    // TODO: make this use <b> and <i>
                     let mod_name = if modd.name() != modd.id() {
                         if !modd.file_name().is_empty() {
                             format!("<b>{}</b> <i>({} - {})</i>", modd.name(), modd.file_name().split('/').last().unwrap(), modd.id())
@@ -252,14 +253,14 @@ impl ModListUI {
                     };
 
                     let time_created = if *modd.time_created() != 0 {
-                        OffsetDateTime::from_unix_timestamp(*modd.time_created() as i64)?.format(&SLASH_DMY_DATE_FORMAT)?
+                        OffsetDateTime::from_unix_timestamp(*modd.time_created() as i64)?.format(&date_format)?
                     } else {
                         let date = modd.paths()[0].metadata()?.created()?.duration_since(UNIX_EPOCH)?;
-                        OffsetDateTime::from_unix_timestamp(date.as_secs() as i64)?.format(&SLASH_DMY_DATE_FORMAT)?
+                        OffsetDateTime::from_unix_timestamp(date.as_secs() as i64)?.format(&date_format)?
                     };
 
                     let time_updated = if *modd.time_updated() != 0 {
-                        OffsetDateTime::from_unix_timestamp(*modd.time_updated() as i64)?.format(&SLASH_DMY_DATE_FORMAT)?.to_string()
+                        OffsetDateTime::from_unix_timestamp(*modd.time_updated() as i64)?.format(&date_format)?.to_string()
                     } else {
                         "-".to_string()
                     };

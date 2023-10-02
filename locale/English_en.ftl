@@ -114,3 +114,4 @@ discord_link = Open "The Modding Den" discord channel
 patreon_link = Support me on Patreon
 
 translation_download_error = Error while trying to download the latest mod translations: {"{"}{"}"}. Using previously downloaded/local translations only instead.
+date_format = Date Format
