@@ -13,6 +13,10 @@
 # Packs created on launch.
 /temp_packs/
 
+# Translation folders.
+/translations_local/
+/translations_remote/
+
 # Linux built Qt extensions lib.
 /3rdparty/builds/libqt_runcher_extensions.a
 

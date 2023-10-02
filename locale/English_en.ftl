@@ -112,3 +112,5 @@ enable_translations = Enable Translations
 github_link = Open Runcher's Github Page
 discord_link = Open "The Modding Den" discord channel
 patreon_link = Support me on Patreon
+
+translation_download_error = Error while trying to download the latest mod translations: {"{"}{"}"}. Using previously downloaded/local translations only instead.

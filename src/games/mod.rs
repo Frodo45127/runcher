@@ -10,7 +10,7 @@
 
 use qt_core::QString;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 
 use std::path::{PathBuf, Path};
 
@@ -18,12 +18,17 @@ use rpfm_extensions::translator::*;
 
 use rpfm_lib::files::{Container, FileType, loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
 use rpfm_lib::games::{*, supported_games::*};
+use rpfm_lib::integrations::git::GitResponse;
 
+use rpfm_ui_common::locale::tre;
 use rpfm_ui_common::settings::*;
+use rpfm_ui_common::utils::show_dialog;
 
 use crate::app_ui::AppUI;
+use crate::CENTRAL_COMMAND;
+use crate::communications::*;
 use crate::SCHEMA;
-use crate::translations_local_path;
+use crate::settings_ui::{translations_local_path, translations_remote_path};
 
 const EMPTY_CA_VP8: [u8; 595] = [
     0x43, 0x41, 0x4d, 0x56, 0x01, 0x00, 0x29, 0x00, 0x56, 0x50, 0x38, 0x30, 0x80, 0x02, 0xe0, 0x01, 0x55, 0x55,
@@ -93,6 +98,10 @@ const EMPTY_BIK: [u8; 520] = [
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x4B, 0xFC, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x1F, 0x58, 0x22, 0x02,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA0, 0xE0, 0xFF, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x00,
 ];
+
+pub const TRANSLATIONS_REPO: &str = "https://github.com/Frodo45127/total_war_translation_hub";
+pub const TRANSLATIONS_REMOTE: &str = "origin";
+pub const TRANSLATIONS_BRANCH: &str = "master";
 
 mod attila;
 mod empire;
@@ -237,6 +246,7 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
     }
 
     // Disable this until I figure out how to fix the performance problems, and I change the pack to be on /data
+    app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_visible(false);
     app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
 
     // Update the launch options for the new game.
@@ -370,31 +380,71 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
 
     // TODO: Troy has a weird translation system. Check that it works, and check pharaoh too.
     if app_ui.actions_ui().enable_translations_combobox().is_enabled() && app_ui.actions_ui().enable_translations_combobox().current_index() != 0 {
-        match translations_local_path() {
-            Ok(path) => {
-                let language = app_ui.actions_ui().enable_translations_combobox().current_text().to_std_string();
-                let mut pack_paths = (0..app_ui.pack_list_ui().model().row_count_0a())
-                    .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
-                    .collect::<Vec<_>>();
 
-                // Reversed so we just get the higher priority stuff at the end, overwriting the rest.
-                pack_paths.sort();
-                pack_paths.reverse();
+        // Check if the repo needs updating, and update it if so.
+        let receiver = CENTRAL_COMMAND.send_network(Command::CheckTranslationsUpdates);
+        let response_thread = CENTRAL_COMMAND.recv_try(&receiver);
+        match response_thread {
+            Response::APIResponseGit(ref response) => {
+                match response {
+                    GitResponse::NewUpdate |
+                    GitResponse::NoLocalFiles |
+                    GitResponse::Diverged => {
+                        let receiver = CENTRAL_COMMAND.send_background(Command::UpdateTranslations);
+                        let response_thread = CENTRAL_COMMAND.recv_try(&receiver);
 
-                // If we need to merge the localisation.loc file if found to the translations.
-                let use_old_multilanguage_logic = matches!(game.key(),
-                    KEY_THRONES_OF_BRITANNIA |
-                    KEY_ATTILA |
-                    KEY_ROME_2 |
-                    KEY_SHOGUN_2 |
-                    KEY_NAPOLEON |
-                    KEY_EMPIRE
-                );
+                        // Show the error, but continue anyway.
+                        if let Response::Error(error) = response_thread {
+                            show_dialog(app_ui.main_window(), tre("translation_download_error", &[&error.to_string()]), false);
+                        }
+                    }
+                    GitResponse::NoUpdate => {}
+                }
+            }
 
-                let mut loc = Loc::new();
-                let mut loc_data = vec![];
-                for pack_path in &pack_paths {
-                    if let Some(ref pack_name) = pack_path.file_name().map(|name| name.to_string_lossy().to_string()) {
+            Response::Error(error) => {
+                show_dialog(app_ui.main_window(), tre("translation_download_error", &[&error.to_string()]), false);
+            }
+            _ => panic!("{THREADS_COMMUNICATION_ERROR}{response_thread:?}"),
+        }
+
+        // Get the paths. Local has priority over remote, so it goes first.
+        let mut paths = vec![];
+        if let Ok(path) = translations_local_path() {
+            paths.push(path);
+        }
+
+        if let Ok(path) = translations_remote_path() {
+            paths.push(path);
+        }
+
+        if !paths.is_empty() {
+            let language = app_ui.actions_ui().enable_translations_combobox().current_text().to_std_string();
+            let mut pack_paths = (0..app_ui.pack_list_ui().model().row_count_0a())
+                .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
+                .collect::<Vec<_>>();
+
+            // Reversed so we just get the higher priority stuff at the end, overwriting the rest.
+            pack_paths.sort();
+            pack_paths.reverse();
+
+            // If we need to merge the localisation.loc file if found to the translations.
+            let use_old_multilanguage_logic = matches!(game.key(),
+                KEY_THRONES_OF_BRITANNIA |
+                KEY_ATTILA |
+                KEY_ROME_2 |
+                KEY_SHOGUN_2 |
+                KEY_NAPOLEON |
+                KEY_EMPIRE
+            );
+
+            let mut loc = Loc::new();
+            let mut loc_data = vec![];
+            for pack_path in &pack_paths {
+                if let Some(ref pack_name) = pack_path.file_name().map(|name| name.to_string_lossy().to_string()) {
+                    let mut translation_found = false;
+
+                    for path in &paths {
                         if let Ok(tr) = PackTranslation::load(&path, pack_name, game.key(), &language) {
                             for tr in tr.translations().values() {
 
@@ -416,61 +466,60 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
                                     ]);
                                 }
                             }
-                        }
 
-                        // If there's no translation data, just merge their locs.
-                        else {
-                            let mut pack = Pack::read_and_merge(&[pack_path.to_path_buf()], true, false)?;
-
-                            let mut locs = pack.files_by_type_mut(&[FileType::Loc]);
-                            locs.sort_by(|a, b| a.path_in_container_raw().cmp(b.path_in_container_raw()));
-
-                            let locs_split = locs.iter_mut()
-                                .filter_map(|loc| if let Ok(Some(RFileDecoded::Loc(loc))) = loc.decode(&None, false, true) {
-                                    Some(loc)
-                                } else {
-                                    None
-                                })
-                                .collect::<Vec<_>>();
-
-                            let locs_split_ref = locs_split.iter().collect::<Vec<_>>();
-
-                            let mut merged_loc = Loc::merge(&locs_split_ref)?;
-                            loc_data.append(merged_loc.data_mut());
+                            translation_found = true;
                         }
                     }
-                }
 
-                // If the game uses the old multilanguage logic, we need to get the most updated version of localisation.loc from the game and append it to our loc.
-                if use_old_multilanguage_logic {
-                    let game_path = setting_path(game.key());
-                    let mut pack = Pack::read_and_merge_ca_packs(game, &game_path)?;
-                    if let Some(vanilla_loc) = pack.file_mut(TRANSLATED_PATH_OLD, false) {
-                        if let Ok(Some(RFileDecoded::Loc(mut loc))) = vanilla_loc.decode(&None, false, true) {
-                            loc_data.append(loc.data_mut());
-                        }
+                    // If there's no translation data, just merge their locs.
+                    if !translation_found {
+                        let mut pack = Pack::read_and_merge(&[pack_path.to_path_buf()], true, false)?;
+
+                        let mut locs = pack.files_by_type_mut(&[FileType::Loc]);
+                        locs.sort_by(|a, b| a.path_in_container_raw().cmp(b.path_in_container_raw()));
+
+                        let locs_split = locs.iter_mut()
+                            .filter_map(|loc| if let Ok(Some(RFileDecoded::Loc(loc))) = loc.decode(&None, false, true) {
+                                Some(loc)
+                            } else {
+                                None
+                            })
+                            .collect::<Vec<_>>();
+
+                        let locs_split_ref = locs_split.iter().collect::<Vec<_>>();
+
+                        let mut merged_loc = Loc::merge(&locs_split_ref)?;
+                        loc_data.append(merged_loc.data_mut());
                     }
                 }
-
-                if !loc_data.is_empty() {
-                    loc.set_data(&loc_data)?;
-
-                    let path = if use_old_multilanguage_logic {
-                        TRANSLATED_PATH_OLD.to_string()
-                    } else {
-                        TRANSLATED_PATH.to_string()
-                    };
-
-                    let file = RFile::new_from_decoded(&RFileDecoded::Loc(loc), 0, &path);
-                    reserved_pack.files_mut().insert(path, file);
-                }
-
-                Ok(())
             }
-            Err(_) => Err(anyhow!("Failed to get local translations path. If you see this, it means I forgot to write the code to make sure that folder exists.")),
+
+            // If the game uses the old multilanguage logic, we need to get the most updated version of localisation.loc from the game and append it to our loc.
+            if use_old_multilanguage_logic {
+                let game_path = setting_path(game.key());
+                let mut pack = Pack::read_and_merge_ca_packs(game, &game_path)?;
+                if let Some(vanilla_loc) = pack.file_mut(TRANSLATED_PATH_OLD, false) {
+                    if let Ok(Some(RFileDecoded::Loc(mut loc))) = vanilla_loc.decode(&None, false, true) {
+                        loc_data.append(loc.data_mut());
+                    }
+                }
+            }
+
+            if !loc_data.is_empty() {
+                loc.set_data(&loc_data)?;
+
+                let path = if use_old_multilanguage_logic {
+                    TRANSLATED_PATH_OLD.to_string()
+                } else {
+                    TRANSLATED_PATH.to_string()
+                };
+
+                let file = RFile::new_from_decoded(&RFileDecoded::Loc(loc), 0, &path);
+                reserved_pack.files_mut().insert(path, file);
+            }
         }
-    } else {
-        Ok(())
     }
+
+    Ok(())
 }
 

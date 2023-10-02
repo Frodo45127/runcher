@@ -51,8 +51,10 @@ pub enum Command {
     Exit,
     CheckUpdates,
     UpdateMainProgram,
-    UpdateSchemas(String),
     CheckSchemaUpdates,
+    UpdateSchemas(String),
+    CheckTranslationsUpdates,
+    UpdateTranslations,
     GetStringFromLoadOrder(GameConfig),
     GetLoadOrderFromString(String),
 }

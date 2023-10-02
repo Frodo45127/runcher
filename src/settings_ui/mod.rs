@@ -413,6 +413,7 @@ pub fn init_config_path() -> Result<()> {
     DirBuilder::new().recursive(true).create(schemas_path()?)?;
 
     DirBuilder::new().recursive(true).create(translations_local_path()?)?;
+    DirBuilder::new().recursive(true).create(translations_remote_path()?)?;
 
     // Within the config path we need to create a folder to store the temp packs of each game.
     // Otherwise they interfere with each other due to being movie packs.
@@ -454,4 +455,8 @@ pub fn rpfm_config_path() -> Result<PathBuf> {
 
 pub fn translations_local_path() -> Result<PathBuf> {
     rpfm_config_path().map(|path| path.join("translations_local"))
+}
+
+pub fn translations_remote_path() -> Result<PathBuf> {
+    config_path().map(|path| path.join("translations_remote"))
 }
