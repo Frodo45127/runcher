@@ -8,14 +8,16 @@ If you're looking for the changes included in the latest beta (against the lates
 
 ## [Unreleased]
 ### Added
-- Implemented "Merge all mods" feature for all games.
 - Implemented "Enable translations" feature for all games (fixes the "no text on not-english language" bug in old games).
 - Implemented "Enable Logging" feature for:
     + Warhammer 3
     + Warhammer 2
     + Troy
 - Implemented "Skip Intro" feature for all games.
-- Implemented support for Pharaoh (Early Access).
+- Implemented "Open Game Config Folder" button.
+- Implemented github, discord and patreon buttons on the bottom right of the screen (like in RPFM).
+- Implemented support for Pharaoh.
+- Implemented setting to change date format between the logical one and the american one.
 
 ### Changed
 - Game selected menu moved to a left-side toolbar.
@@ -23,7 +25,12 @@ If you're looking for the changes included in the latest beta (against the lates
 - Runcher should no longer throw a flash grenade to you when you open it.
 - Runcher should no longer allow you to select a game you don't have installed.
 - Runcher should no longer allow you to select "Open Contents folder" and "Save" if the game doesn't support them.
-- Disabled Shogun 2 support, as I haven't found a way to bypass the launcher.
+- Reworked launch options menu to look less ugly.
+- About menu buttons have been moved to the bottom right of the screen.
+
+### Removed
+- "About Qt" button has been removed.
+- "About" menu has been removed.
 
 ### Fixed
 - Fixed Runcher not remembering the window geometry after closing it.
@@ -43,6 +50,7 @@ If you're looking for the changes included in the latest beta (against the lates
 - Fixed error when trying to launch a game with no mods while using the unit multiplier.
 - Fixed multiple issues causing all games older than warhammer to work partially or not work at all.
 - Fixed runcher trying to load mods from content for games that do not support loading mods from outside the /data folder.
+- Fixed launch options menu closing after clicking on a checkbox.
 
 ## [0.5.0]
 ### Added
