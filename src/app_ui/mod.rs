@@ -1484,12 +1484,14 @@ impl AppUI {
                 }
 
                 app_ui.github_button().set_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/github.svg", ASSETS_PATH.to_string_lossy()))));
+                app_ui.actions_ui().update_icons();
             } else {
                 QApplication::set_style_q_string(&QString::from_std_str("windowsvista"));
                 QApplication::set_palette_1a(light_palette);
                 qapp.set_style_sheet(light_style_sheet);
 
                 app_ui.github_button().set_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/github-dark.svg", ASSETS_PATH.to_string_lossy()))));
+                app_ui.actions_ui().update_icons();
             }
         }
 

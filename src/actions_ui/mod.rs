@@ -101,6 +101,33 @@ impl ActionsUI {
         menu.add_action(&action);
     }
 
+    pub unsafe fn update_icons(&self) {
+        let enable_logging_icon = QIcon::from_theme_1a(&QString::from_std_str("verb"));
+        let enable_skip_intro_icon = QIcon::from_theme_1a(&QString::from_std_str("kdenlive-hide-video"));
+        let enable_translations_icon = QIcon::from_theme_1a(&QString::from_std_str("language-chooser"));
+        let merge_all_mods_icon = QIcon::from_theme_1a(&QString::from_std_str("merge"));
+        let unit_multiplier_icon = QIcon::from_theme_1a(&QString::from_std_str("view-time-schedule-calculus"));
+
+        let menu = self.play_button().menu();
+        for index in 0..menu.actions().count_0a() {
+            let action = menu.actions().value_1a(index);
+            let widget_action = action.static_downcast::<QWidgetAction>();
+            let widget = widget_action.default_widget();
+            let layout = widget.layout().static_downcast::<QGridLayout>();
+            let child = layout.item_at_position(0, 0).widget();
+            let label = child.static_downcast::<QLabel>();
+
+            match index {
+                0 => label.set_pixmap(&enable_logging_icon.pixmap_2_int(22, 22)),
+                1 => label.set_pixmap(&enable_skip_intro_icon.pixmap_2_int(22, 22)),
+                2 => label.set_pixmap(&enable_translations_icon.pixmap_2_int(22, 22)),
+                3 => label.set_pixmap(&merge_all_mods_icon.pixmap_2_int(22, 22)),
+                4 => label.set_pixmap(&unit_multiplier_icon.pixmap_2_int(22, 22)),
+                _ => {}
+            }
+        }
+    }
+
     pub unsafe fn new_launch_option_checkbox(menu: &QBox<QMenu>, text_key: &str, icon_key: &str) -> QBox<QCheckBox> {
         let widget = QWidget::new_1a(menu);
         let checkbox = QCheckBox::from_q_widget(&widget);
