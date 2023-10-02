@@ -246,7 +246,6 @@ pub unsafe fn setup_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &
     }
 
     // Disable this until I figure out how to fix the performance problems, and I change the pack to be on /data
-    app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_visible(false);
     app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
 
     // Update the launch options for the new game.
