@@ -122,6 +122,9 @@ pub struct AppUI {
     github_button: QBox<QPushButton>,
     discord_button: QBox<QPushButton>,
     patreon_button: QBox<QPushButton>,
+    about_runcher_button: QBox<QPushButton>,
+    check_updates_button: QBox<QPushButton>,
+    check_schema_updates_button: QBox<QPushButton>,
 
     //-------------------------------------------------------------------------------//
     // `Game Selected` menu.
@@ -141,13 +144,6 @@ pub struct AppUI {
 
     game_selected_group: QBox<QActionGroup>,
 
-    //-------------------------------------------------------------------------------//
-    // `About` menu.
-    //-------------------------------------------------------------------------------//
-    about_about_qt: QPtr<QAction>,
-    about_about_runcher: QPtr<QAction>,
-    about_check_updates: QPtr<QAction>,
-    about_check_schema_updates: QPtr<QAction>,
 
     //-------------------------------------------------------------------------------//
     // `Actions` section.
@@ -206,11 +202,9 @@ impl AppUI {
 
         central_layout.add_widget_5a(splitter.into_raw_ptr(), 0, 1, 1, 1);
 
-        // Get the menu and status bars.
-        let menu_bar = main_window.menu_bar();
+        // Get the Status bar.
         let status_bar = main_window.status_bar();
         status_bar.set_size_grip_enabled(false);
-        let menu_bar_about = menu_bar.add_menu_q_string(&qtr("menu_bar_about"));
 
         let github_button = QPushButton::from_q_widget(&status_bar);
         github_button.set_flat(true);
@@ -229,6 +223,24 @@ impl AppUI {
         patreon_button.set_tool_tip(&qtr("patreon_link"));
         patreon_button.set_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/patreon.png", ASSETS_PATH.to_string_lossy()))));
         status_bar.add_permanent_widget_1a(&patreon_button);
+
+        let about_runcher_button = QPushButton::from_q_widget(&status_bar);
+        about_runcher_button.set_flat(true);
+        about_runcher_button.set_tool_tip(&qtr("about_runcher"));
+        about_runcher_button.set_icon(&QIcon::from_theme_1a(&QString::from_std_str("help-about-symbolic")));
+        status_bar.add_permanent_widget_1a(&about_runcher_button);
+
+        let check_updates_button = QPushButton::from_q_widget(&status_bar);
+        check_updates_button.set_flat(true);
+        check_updates_button.set_tool_tip(&qtr("check_updates"));
+        check_updates_button.set_icon(&QIcon::from_theme_1a(&QString::from_std_str("svn-update")));
+        status_bar.add_permanent_widget_1a(&check_updates_button);
+
+        let check_schema_updates_button = QPushButton::from_q_widget(&status_bar);
+        check_schema_updates_button.set_flat(true);
+        check_schema_updates_button.set_tool_tip(&qtr("check_schema_updates"));
+        check_schema_updates_button.set_icon(&QIcon::from_theme_1a(&QString::from_std_str("svn-update")));
+        status_bar.add_permanent_widget_1a(&check_schema_updates_button);
 
         //-----------------------------------------------//
         // `Game Selected` Menu.
@@ -285,14 +297,6 @@ impl AppUI {
 
         central_layout.add_widget_5a(game_selected_bar.into_raw_ptr(), 0, 0, 1, 1);
 
-        //-----------------------------------------------//
-        // `About` Menu.
-        //-----------------------------------------------//
-        let about_about_qt = menu_bar_about.add_action_q_string(&qtr("about_qt"));
-        let about_about_runcher = menu_bar_about.add_action_q_string(&qtr("about_runcher"));
-        let about_check_updates = menu_bar_about.add_action_q_string(&qtr("check_updates"));
-        let about_check_schema_updates = menu_bar_about.add_action_q_string(&qtr("check_schema_updates"));
-
         //-------------------------------------------------------------------------------//
         // `Actions` section.
         //-------------------------------------------------------------------------------//
@@ -318,6 +322,9 @@ impl AppUI {
             github_button,
             discord_button,
             patreon_button,
+            about_runcher_button,
+            check_updates_button,
+            check_schema_updates_button,
 
             //-------------------------------------------------------------------------------//
             // "Game Selected" menu.
@@ -336,14 +343,6 @@ impl AppUI {
             game_selected_empire,
 
             game_selected_group,
-
-            //-------------------------------------------------------------------------------//
-            // "About" menu.
-            //-------------------------------------------------------------------------------//
-            about_about_qt,
-            about_about_runcher,
-            about_check_updates,
-            about_check_schema_updates,
 
             //-------------------------------------------------------------------------------//
             // `Actions` section.
@@ -510,10 +509,9 @@ impl AppUI {
         self.game_selected_napoleon().triggered().connect(slots.change_game_selected());
         self.game_selected_empire().triggered().connect(slots.change_game_selected());
 
-        self.about_about_qt().triggered().connect(slots.about_qt());
-        self.about_about_runcher().triggered().connect(slots.about_runcher());
-        self.about_check_updates().triggered().connect(slots.check_updates());
-        self.about_check_schema_updates().triggered().connect(slots.check_schema_updates());
+        self.about_runcher_button().released().connect(slots.about_runcher());
+        self.check_updates_button().released().connect(slots.check_updates());
+        self.check_schema_updates_button().released().connect(slots.check_schema_updates());
 
         self.github_button().released().connect(slots.github_link());
         self.discord_button().released().connect(slots.discord_link());

@@ -58,7 +58,6 @@ pub struct AppUISlots {
 
     update_pack_list: QBox<SlotOfQStandardItem>,
 
-    about_qt: QBox<SlotNoArgs>,
     about_runcher: QBox<SlotNoArgs>,
     check_updates: QBox<SlotNoArgs>,
     check_schema_updates: QBox<SlotNoArgs>,
@@ -237,12 +236,6 @@ impl AppUISlots {
                 }
             }
         }));
-
-        let about_qt = SlotNoArgs::new(&view.main_window, clone!(
-            view => move || {
-                QMessageBox::about_qt_1a(&view.main_window);
-            }
-        ));
 
         let about_runcher = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
@@ -433,7 +426,6 @@ impl AppUISlots {
 
             update_pack_list,
 
-            about_qt,
             about_runcher,
             check_updates,
             check_schema_updates,
