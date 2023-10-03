@@ -792,11 +792,27 @@ impl AppUI {
                             if let Some(extension) = last_path.extension() {
 
                                 // Only copy bins which are not yet in the data folder and which are not made by the steam user.
-                                if extension.to_string_lossy() == "bin" && !modd.file_name().is_empty() {
+                                // If the game is Shogun 2, also copy packs to data. Shogun 2 doesn't support loading packs from outside /data.
+                                let legacy_mod = extension.to_string_lossy() == "bin" && !modd.file_name().is_empty();
+                                if legacy_mod || (extension.to_string_lossy() == "pack" && game.key() == KEY_SHOGUN_2) {
                                     if let Ok(mut pack) = Pack::read_and_merge(&[last_path.to_path_buf()], true, false) {
                                         if let Ok(new_path) = game.data_path(game_path) {
-                                            if let Some(name) = modd.file_name().split('/').last() {
-                                                let new_path = new_path.join(name);
+
+                                            // Filename is only populated on legacy bin files.
+                                            if legacy_mod {
+                                                if let Some(name) = modd.file_name().split('/').last() {
+                                                    let new_path = new_path.join(name);
+
+                                                    // Copy the files unless it exists and its ours.
+                                                    if (!new_path.is_file() || (new_path.is_file() && &steam_user_id != modd.creator())) && pack.save(Some(&new_path), game, &None).is_ok() {
+                                                        modd.paths_mut().insert(0, new_path);
+                                                    }
+                                                }
+                                            }
+
+                                            // Alternative logic for normal packs.
+                                            else {
+                                                let new_path = new_path.join(modd.id());
 
                                                 // Copy the files unless it exists and its ours.
                                                 if (!new_path.is_file() || (new_path.is_file() && &steam_user_id != modd.creator())) && pack.save(Some(&new_path), game, &None).is_ok() {
