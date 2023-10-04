@@ -386,9 +386,9 @@ dependencies = [
 
 [[package]]
 name = "csv"
-version = "1.2.2"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "626ae34994d3d8d668f4269922248239db4ae42d538b14c398b74a52208e8086"
+checksum = "ac574ff4d437a7b5ad237ef331c17ccca63c46479e5b5453eb8e10bb99a759fe"
 dependencies = [
  "csv-core",
  "itoa",
@@ -398,9 +398,9 @@ dependencies = [
 
 [[package]]
 name = "csv-core"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b2466559f260f48ad25fe6317b3c8dac77b5bdb5763ac7d9d6103530663bc90"
+checksum = "5efa2b3d7902f4b634a20cae3c9c4e6209dc4779feb6863329607560143efa70"
 dependencies = [
  "memchr",
 ]
@@ -1937,9 +1937,9 @@ checksum = "dbb5fb1acd8a1a18b3dd5be62d25485eb770e05afb408a9627d14d451bae12da"
 
 [[package]]
 name = "reqwest"
-version = "0.11.21"
+version = "0.11.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78fdbab6a7e1d7b13cc8ff10197f47986b41c639300cc3c8158cac7847c9bbef"
+checksum = "046cd98826c46c2ac8ddecae268eb5c2e58628688a5fc7a2643704a73faba95b"
 dependencies = [
  "base64",
  "bytes",
@@ -2022,7 +2022,7 @@ dependencies = [
 [[package]]
 name = "rpfm_extensions"
 version = "4.1.101"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#eb08939e7e5092907e766711067ed3fe19538be3"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#a7150a2e42a44bd549b23583c49cbb72456d50c8"
 dependencies = [
  "bincode",
  "caseless",
@@ -2042,7 +2042,7 @@ dependencies = [
 [[package]]
 name = "rpfm_lib"
 version = "4.1.101"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#eb08939e7e5092907e766711067ed3fe19538be3"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#a7150a2e42a44bd549b23583c49cbb72456d50c8"
 dependencies = [
  "backtrace",
  "bincode",
@@ -2084,7 +2084,7 @@ dependencies = [
 [[package]]
 name = "rpfm_ui_common"
 version = "4.1.101"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#eb08939e7e5092907e766711067ed3fe19538be3"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#a7150a2e42a44bd549b23583c49cbb72456d50c8"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -2749,9 +2749,9 @@ dependencies = [
 
 [[package]]
 name = "tinystr"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b07bb54ef1f8ff27564b08b861144d3b8d40263efe07684f64987f4c0d044e3e"
+checksum = "d5d0e245e80bdc9b4e5356fc45a72184abbc3861992603f515270e9340f5a219"
 dependencies = [
  "displaydoc",
 ]
