@@ -18,6 +18,7 @@ If you're looking for the changes included in the latest beta (against the lates
 - Implemented github, discord and patreon buttons on the bottom right of the screen (like in RPFM).
 - Implemented support for Pharaoh.
 - Implemented setting to change date format between the logical one and the american one.
+- Implemented "Update Manager", and merged all "Check XXX Updates" options into it.
 
 ### Changed
 - Game selected menu moved to a left-side toolbar.
@@ -51,6 +52,7 @@ If you're looking for the changes included in the latest beta (against the lates
 - Fixed multiple issues causing all games older than warhammer to work partially or not work at all.
 - Fixed runcher trying to load mods from content for games that do not support loading mods from outside the /data folder.
 - Fixed launch options menu closing after clicking on a checkbox.
+- Fixed Shogun 2 mods not being correctly copied from /content if they ended in .pack.
 
 ## [0.5.0]
 ### Added
