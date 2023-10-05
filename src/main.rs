@@ -63,7 +63,7 @@ mod mod_list_ui;
 mod network_thread;
 mod pack_list_ui;
 mod settings_ui;
-mod updater;
+mod updater_ui;
 
 // Statics, so we don't need to pass them everywhere to use them.
 lazy_static! {

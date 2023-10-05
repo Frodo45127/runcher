@@ -60,7 +60,6 @@ pub struct AppUISlots {
 
     about_runcher: QBox<SlotNoArgs>,
     check_updates: QBox<SlotNoArgs>,
-    check_schema_updates: QBox<SlotNoArgs>,
 
     github_link: QBox<SlotNoArgs>,
     discord_link: QBox<SlotNoArgs>,
@@ -272,13 +271,9 @@ impl AppUISlots {
 
         let check_updates = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
-                view.check_updates(true);
-            }
-        ));
-
-        let check_schema_updates = SlotNoArgs::new(&view.main_window, clone!(
-            view => move || {
-                view.check_schema_updates(true);
+                if let Err(error) = UpdaterUI::new(&view, None, None) {
+                    show_dialog(view.main_window(), error, false)
+                }
             }
         ));
 
@@ -428,7 +423,6 @@ impl AppUISlots {
 
             about_runcher,
             check_updates,
-            check_schema_updates,
 
             github_link,
             discord_link,

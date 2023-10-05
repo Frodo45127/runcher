@@ -19,7 +19,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use rpfm_lib::integrations::{log::info, git::GitResponse};
 
 use crate::mod_manager::{game_config::GameConfig, mods::ShareableMod};
-use crate::updater::APIResponse;
+use crate::updater_ui::APIResponse;
 
 /// This const is the standard message in case of message communication error. If this happens, crash the program.
 pub const THREADS_COMMUNICATION_ERROR: &str = "Error in thread communication system. Response received: ";

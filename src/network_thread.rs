@@ -19,8 +19,8 @@ use rpfm_ui_common::settings::error_path;
 use crate::CENTRAL_COMMAND;
 use crate::communications::*;
 use crate::games::{TRANSLATIONS_REPO, TRANSLATIONS_REMOTE, TRANSLATIONS_BRANCH};
-use crate::updater::check_updates_main_program;
 use crate::settings_ui::{schemas_path, translations_remote_path};
+use crate::updater_ui::check_updates_main_program;
 
 /// This is the network loop that's going to be executed in a parallel thread to the UI. No UI or "Unsafe" stuff here.
 ///

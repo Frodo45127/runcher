@@ -18,7 +18,6 @@ use qt_widgets::QMainWindow;
 use qt_widgets::QPushButton;
 use qt_widgets::QSplitter;
 use qt_widgets::QTextEdit;
-use qt_widgets::{QMessageBox, q_message_box};
 use qt_widgets::QWidget;
 
 use qt_gui::QIcon;
@@ -28,7 +27,6 @@ use qt_core::CheckState;
 use qt_core::Orientation;
 use qt_core::QBox;
 use qt_core::QCoreApplication;
-use qt_core::QFlags;
 use qt_core::QModelIndex;
 use qt_core::QPtr;
 use qt_core::QSize;
@@ -45,12 +43,12 @@ use sha256::try_digest;
 
 use std::cmp::Reverse;
 use std::collections::HashMap;
-use std::env::{args, current_exe};
+use std::env::args;
 use std::fs::{copy, DirBuilder, File};
 use std::io::{BufWriter, Read, Write};
 #[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::{Command as SystemCommand, exit};
+use std::process::Command as SystemCommand;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::time::UNIX_EPOCH;
@@ -58,14 +56,13 @@ use std::time::UNIX_EPOCH;
 use rpfm_lib::binary::WriteBytes;
 use rpfm_lib::files::{EncodeableExtraData, esf::NodeType, pack::Pack, RFile, RFileDecoded};
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
-use rpfm_lib::integrations::{git::*, log::*};
+use rpfm_lib::integrations::log::*;
 use rpfm_lib::schema::Schema;
 use rpfm_lib::utils::files_from_subdir;
 
 use rpfm_ui_common::ASSETS_PATH;
 use rpfm_ui_common::clone;
 use rpfm_ui_common::locale::*;
-use rpfm_ui_common::PROGRAM_PATH;
 use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
@@ -83,7 +80,7 @@ use crate::pack_list_ui::PackListUI;
 use crate::SCHEMA;
 use crate::settings_ui::*;
 use crate::SUPPORTED_GAMES;
-use crate::updater::*;
+use crate::updater_ui::*;
 
 use self::slots::AppUISlots;
 
@@ -124,7 +121,6 @@ pub struct AppUI {
     patreon_button: QBox<QPushButton>,
     about_runcher_button: QBox<QPushButton>,
     check_updates_button: QBox<QPushButton>,
-    check_schema_updates_button: QBox<QPushButton>,
 
     //-------------------------------------------------------------------------------//
     // `Game Selected` menu.
@@ -236,12 +232,6 @@ impl AppUI {
         check_updates_button.set_icon(&QIcon::from_theme_1a(&QString::from_std_str("svn-update")));
         status_bar.add_permanent_widget_1a(&check_updates_button);
 
-        let check_schema_updates_button = QPushButton::from_q_widget(&status_bar);
-        check_schema_updates_button.set_flat(true);
-        check_schema_updates_button.set_tool_tip(&qtr("check_schema_updates"));
-        check_schema_updates_button.set_icon(&QIcon::from_theme_1a(&QString::from_std_str("svn-update")));
-        status_bar.add_permanent_widget_1a(&check_schema_updates_button);
-
         //-----------------------------------------------//
         // `Game Selected` Menu.
         //-----------------------------------------------//
@@ -324,7 +314,6 @@ impl AppUI {
             patreon_button,
             about_runcher_button,
             check_updates_button,
-            check_schema_updates_button,
 
             //-------------------------------------------------------------------------------//
             // "Game Selected" menu.
@@ -462,15 +451,8 @@ impl AppUI {
 
         app_ui.toggle_main_window(true);
 
-        // If we have it enabled in the prefs, check if there are updates.
-        if setting_bool("check_updates_on_start") {
-            app_ui.check_updates(false);
-        }
-
-        // If we have it enabled in the prefs, check if there are schema updates.
-        if setting_bool("check_schema_updates_on_start") {
-            app_ui.check_schema_updates(false);
-        };
+        // Check for updates.
+        UpdaterUI::new_with_precheck(&app_ui)?;
 
         Ok(app_ui)
     }
@@ -511,7 +493,6 @@ impl AppUI {
 
         self.about_runcher_button().released().connect(slots.about_runcher());
         self.check_updates_button().released().connect(slots.check_updates());
-        self.check_schema_updates_button().released().connect(slots.check_schema_updates());
 
         self.github_button().released().connect(slots.github_link());
         self.discord_button().released().connect(slots.discord_link());
@@ -1288,187 +1269,6 @@ impl AppUI {
 
     pub unsafe fn mod_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
         self.mod_list_ui().mod_list_selection()
-    }
-
-    /// This function checks if there is any newer version of the app released.
-    ///
-    /// If the `use_dialog` is false, we make the checks in the background, and pop up a dialog only in case there is an update available.
-    pub unsafe fn check_updates(&self, use_dialog: bool) {
-        let receiver = CENTRAL_COMMAND.send_network(Command::CheckUpdates);
-
-        let dialog = QMessageBox::from_icon2_q_string_q_flags_standard_button_q_widget(
-            q_message_box::Icon::Information,
-            &qtr("update_checker"),
-            &qtr("update_searching"),
-            QFlags::from(q_message_box::StandardButton::Close),
-            self.main_window(),
-        );
-
-        let close_button = dialog.button(q_message_box::StandardButton::Close);
-        let update_button = dialog.add_button_q_string_button_role(&qtr("update_button"), q_message_box::ButtonRole::AcceptRole);
-        update_button.set_enabled(false);
-
-        dialog.set_modal(true);
-        if use_dialog {
-            dialog.show();
-        }
-
-        let response = CENTRAL_COMMAND.recv_try(&receiver);
-        let message = match response {
-            Response::APIResponse(response) => {
-                match response {
-                    APIResponse::NewStableUpdate(last_release) => {
-                        update_button.set_enabled(true);
-                        qtre("api_response_success_new_stable_update", &[&last_release])
-                    }
-                    APIResponse::NewBetaUpdate(last_release) => {
-                        update_button.set_enabled(true);
-                        qtre("api_response_success_new_beta_update", &[&last_release])
-                    }
-                    APIResponse::NewUpdateHotfix(last_release) => {
-                        update_button.set_enabled(true);
-                        qtre("api_response_success_new_update_hotfix", &[&last_release])
-                    }
-                    APIResponse::NoUpdate => {
-                        if !use_dialog { return; }
-                        qtr("api_response_success_no_update")
-                    }
-                    APIResponse::UnknownVersion => {
-                        if !use_dialog { return; }
-                        qtr("api_response_success_unknown_version")
-                    }
-                }
-            }
-
-            Response::Error(error) => {
-                if !use_dialog { return; }
-                qtre("api_response_error", &[&error.to_string()])
-            }
-            _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
-        };
-
-        dialog.set_text(&message);
-        if dialog.exec() == 0 {
-            let receiver = CENTRAL_COMMAND.send_background(Command::UpdateMainProgram);
-
-            dialog.show();
-            dialog.set_text(&qtr("update_in_prog"));
-            update_button.set_enabled(false);
-            close_button.set_enabled(false);
-
-            let response = CENTRAL_COMMAND.recv_try(&receiver);
-            match response {
-                Response::Success => {
-                    let restart_button = dialog.add_button_q_string_button_role(&qtr("restart_button"), q_message_box::ButtonRole::ApplyRole);
-
-                    let changelog_path = PROGRAM_PATH.join(CHANGELOG_FILE);
-                    dialog.set_text(&qtre("update_success_main_program", &[&changelog_path.to_string_lossy()]));
-                    restart_button.set_enabled(true);
-                    close_button.set_enabled(true);
-
-                    // This closes the program and triggers a restart.
-                    if dialog.exec() == 1 {
-
-                        // Make sure we close both threads and the window. In windows the main window doesn't get closed for some reason.
-                        CENTRAL_COMMAND.send_background(Command::Exit);
-                        CENTRAL_COMMAND.send_network(Command::Exit);
-                        QApplication::close_all_windows();
-
-                        let rpfm_exe_path = current_exe().unwrap();
-                        SystemCommand::new(rpfm_exe_path).spawn().unwrap();
-                        exit(10);
-                    }
-                },
-                Response::Error(error) => {
-                    dialog.set_text(&QString::from_std_str(error.to_string()));
-                    close_button.set_enabled(true);
-                }
-                _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
-            }
-        }
-    }
-
-    /// This function checks if there is any newer version of RPFM's schemas released.
-    ///
-    /// If the `use_dialog` is false, we only show a dialog in case of update available. Useful for checks at start.
-    pub unsafe fn check_schema_updates(&self, use_dialog: bool) {
-        let receiver = CENTRAL_COMMAND.send_network(Command::CheckSchemaUpdates);
-
-        // Create the dialog to show the response and configure it.
-        let dialog = QMessageBox::from_icon2_q_string_q_flags_standard_button_q_widget(
-            q_message_box::Icon::Information,
-            &qtr("update_schema_checker"),
-            &qtr("update_searching"),
-            QFlags::from(q_message_box::StandardButton::Close),
-            self.main_window(),
-        );
-
-        let close_button = dialog.button(q_message_box::StandardButton::Close);
-        let update_button = dialog.add_button_q_string_button_role(&qtr("update_button"), q_message_box::ButtonRole::AcceptRole);
-        update_button.set_enabled(false);
-
-        dialog.set_modal(true);
-        if use_dialog {
-            dialog.show();
-        }
-
-        // When we get a response, act depending on the kind of response we got.
-        let response_thread = CENTRAL_COMMAND.recv_try(&receiver);
-        let message = match response_thread {
-            Response::APIResponseGit(ref response) => {
-                match response {
-                    GitResponse::NewUpdate |
-                    GitResponse::Diverged => {
-                        update_button.set_enabled(true);
-                        qtr("schema_new_update")
-                    }
-                    GitResponse::NoUpdate => {
-                        if !use_dialog { return; }
-                        qtr("schema_no_update")
-                    }
-                    GitResponse::NoLocalFiles => {
-                        update_button.set_enabled(true);
-                        qtr("update_no_local_schema")
-                    }
-                }
-            }
-
-            Response::Error(error) => {
-                if !use_dialog { return; }
-                qtre("api_response_error", &[&error.to_string()])
-            }
-            _ => panic!("{THREADS_COMMUNICATION_ERROR}{response_thread:?}"),
-        };
-
-        // If we hit "Update", try to update the schemas.
-        dialog.set_text(&message);
-        if dialog.exec() == 0 {
-            let receiver = CENTRAL_COMMAND.send_background(Command::UpdateSchemas(self.game_selected().read().unwrap().schema_file_name().to_owned()));
-
-            dialog.show();
-            dialog.set_text(&qtr("update_in_prog"));
-            update_button.set_enabled(false);
-            close_button.set_enabled(false);
-
-            let response = CENTRAL_COMMAND.recv_try(&receiver);
-            match response {
-                Response::Success => {
-
-                    // We need to reload the game in question, so stuff that depends on schemas existing actually works.
-                    if let Err(error) = self.change_game_selected(true) {
-                        show_dialog(&dialog, error, false);
-                    }
-
-                    dialog.set_text(&qtr("schema_update_success"));
-                    close_button.set_enabled(true);
-                },
-                Response::Error(error) => {
-                    dialog.set_text(&QString::from_std_str(error.to_string()));
-                    close_button.set_enabled(true);
-                }
-                _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
-            }
-        }
     }
 
     /// This function creates the stylesheet used for the dark theme in windows.

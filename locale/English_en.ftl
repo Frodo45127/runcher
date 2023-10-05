@@ -115,3 +115,34 @@ patreon_link = Support me on Patreon
 
 translation_download_error = Error while trying to download the latest mod translations: {"{"}{"}"}. Using previously downloaded/local translations only instead.
 date_format = Date Format
+
+updater_title = Update Manager
+updater_info_title = Info
+updater_info = <p>This is the central update manager for Runcher. What each button means:</p>
+    <ul>
+        <li>
+            <b>Program Updates</b>: Updates to the program itself. After updating it, you can click it again to restart into the updated program. Some notes on these updates:<ul>
+                <li>To see the changes, after updating you can <a href='file:///{"{"}{"}"}'>click here</a> or you can open the CHANGELOG.md file in Runcher's folder.</li>
+                <li>Note that there are two update channels: beta and stable. <b>You're currently on the {"{"}{"}"} channel</b>. You can change the channel in the settings.</li>
+                <li>If you select "Stable" channel and you're in a beta, the latest Stable will be always shown as an available update, EVEN IF IT'S OLDER THAN YOUR BETA. This is to allow rollbacks. So if you want to use betas, make sure to select the "Beta" channel.</li>
+            </ul>
+        </li>
+        <li><b>Schema Updates</b>: These files are required for some of the launch options. If you don't have them, some of the options may not work.</li>
+    </ul>
+
+updater_update_schemas = Schema Updates:
+updater_update_program = Program Updates:
+updater_update_schemas_checking = Checking, pls wait...
+updater_update_program_checking = Checking, pls wait...
+
+updater_update_program_available = Update {"{"}{"}"} available!
+updater_update_program_no_updates = No updates found.
+
+updater_update_schemas_available = Update available!
+updater_update_schemas_no_updates = No update found.
+
+updater_update_schemas_error = Error updating schemas.
+updater_update_schemas_updated = Schemas updated!
+
+updater_update_program_error = Error updating Runcher.
+updater_update_program_updated = Runcher updated! Click here to restart it.

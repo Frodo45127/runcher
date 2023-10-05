@@ -48,7 +48,7 @@ use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::SUPPORTED_GAMES;
-use crate::updater::*;
+use crate::updater_ui::*;
 
 use self::slots::SettingsUISlots;
 

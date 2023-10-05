@@ -49,7 +49,7 @@ pub fn background_loop() {
             Command::Exit => return,
 
             Command::UpdateMainProgram => {
-                match crate::updater::update_main_program() {
+                match crate::updater_ui::update_main_program() {
                     Ok(_) => CentralCommand::send_back(&sender, Response::Success),
                     Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
                 }
