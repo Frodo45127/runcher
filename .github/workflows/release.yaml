@@ -224,6 +224,9 @@ jobs:
           cp E:\runner_runcher\_work\runcher\runcher/target/release/runcher.exe ${{ matrix.DDISK }}:\deploy\runcher-release-assets
           cp E:\runner_runcher\_work\runcher\runcher/target/release/runcher.pdb ${{ matrix.DDISK }}:\deploy\runcher-release-assets
 
+          # Bouncer's exe, for shogun 2.
+          cp E:\runner_runcher\_work\runcher\runcher/3rdparty/builds/bouncer.exe ${{ matrix.DDISK }}:\deploy\runcher-release-assets
+
           # Here we copy assets from the repo.
           mkdir icons
           mkdir locale
