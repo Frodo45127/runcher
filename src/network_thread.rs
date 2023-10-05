@@ -28,7 +28,7 @@ use crate::updater_ui::check_updates_main_program;
 pub fn network_loop() {
 
     // Initalize background sentry guard. This should, in theory, register crashes on the background thread.
-    let _sentry_guard = Logger::init(&error_path().unwrap_or_else(|_| PathBuf::from(".")), true, false);
+    let _sentry_guard = Logger::init(&error_path().unwrap_or_else(|_| PathBuf::from(".")), true, false, release_name!());
 
     //---------------------------------------------------------------------------------------//
     // Looping forever and ever...

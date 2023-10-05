@@ -33,7 +33,7 @@ use crate::SCHEMA;
 pub fn background_loop() {
 
     // Initalize background sentry guard. This should, in theory, register crashes on the background thread.
-    let _sentry_guard = Logger::init(&error_path().unwrap_or_else(|_| PathBuf::from(".")), true, false);
+    let _sentry_guard = Logger::init(&error_path().unwrap_or_else(|_| PathBuf::from(".")), true, false, release_name!());
 
     //---------------------------------------------------------------------------------------//
     // Looping forever and ever...

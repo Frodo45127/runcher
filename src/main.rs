@@ -79,7 +79,7 @@ lazy_static! {
     static ref SENTRY_GUARD: Arc<RwLock<ClientInitGuard>> = Arc::new(RwLock::new(Logger::init(&{
         init_config_path().expect("Error while trying to initialize config path. We're fucked.");
         error_path().unwrap_or_else(|_| PathBuf::from("."))
-    }, true, true).unwrap()));
+    }, true, true, release_name!()).unwrap()));
 
     /// Light stylesheet.
     static ref LIGHT_STYLE_SHEET: AtomicPtr<QString> = unsafe {

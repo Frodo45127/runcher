@@ -2022,7 +2022,7 @@ dependencies = [
 [[package]]
 name = "rpfm_extensions"
 version = "4.1.101"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#a7150a2e42a44bd549b23583c49cbb72456d50c8"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#5cc77be545c4ac41c5b47e9de7bbeef8206600a2"
 dependencies = [
  "bincode",
  "caseless",
@@ -2042,7 +2042,7 @@ dependencies = [
 [[package]]
 name = "rpfm_lib"
 version = "4.1.101"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#a7150a2e42a44bd549b23583c49cbb72456d50c8"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#5cc77be545c4ac41c5b47e9de7bbeef8206600a2"
 dependencies = [
  "backtrace",
  "bincode",
@@ -2084,7 +2084,7 @@ dependencies = [
 [[package]]
 name = "rpfm_ui_common"
 version = "4.1.101"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#a7150a2e42a44bd549b23583c49cbb72456d50c8"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#5cc77be545c4ac41c5b47e9de7bbeef8206600a2"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -2162,9 +2162,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.38.15"
+version = "0.38.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2f9da0cbd88f9f09e7814e388301c8414c51c62aa6ce1e4b5c551d49d96e531"
+checksum = "f25469e9ae0f3d0047ca8b93fc56843f38e6774f0914a107ff8b41be8be8e0b7"
 dependencies = [
  "bitflags 2.4.0",
  "errno",
