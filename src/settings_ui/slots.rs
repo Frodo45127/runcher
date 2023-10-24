@@ -8,6 +8,8 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use qt_widgets::QApplication;
+use qt_widgets::QFontDialog;
 use qt_widgets::QMainWindow;
 
 use qt_core::QBox;
@@ -33,6 +35,7 @@ use crate::settings_ui::SettingsUI;
 #[derive(Debug, Getters)]
 #[getset(get = "pub")]
 pub struct SettingsUISlots {
+    font_settings: QBox<SlotNoArgs>,
     restore_default: QBox<SlotNoArgs>,
     select_game_paths: BTreeMap<String, QBox<SlotNoArgs>>,
 }
@@ -44,6 +47,15 @@ pub struct SettingsUISlots {
 impl SettingsUISlots {
 
     pub unsafe fn new(ui: &Rc<SettingsUI>, main_window: QPtr<QMainWindow>) -> Self {
+        let font_settings = SlotNoArgs::new(&ui.dialog, clone!(mut ui => move || {
+            let font_changed: *mut bool = &mut false;
+            let current_font = QApplication::font();
+            let new_font = QFontDialog::get_font_bool_q_font_q_widget(font_changed, current_font.as_ref(), &ui.dialog);
+            if *font_changed {
+                *ui.font_data.borrow_mut() = (new_font.family().to_std_string(), new_font.point_size());
+            }
+        }));
+
         let restore_default = SlotNoArgs::new(&ui.dialog, clone!(
             ui => move || {
 
@@ -59,13 +71,13 @@ impl SettingsUISlots {
 
                 // Fonts are a bit special. Init picks them up from the running app, not from a fixed value,
                 // so we need to manually overwrite them here before init_settings gets triggered.
-                //let original_font_name = setting_string("original_font_name");
-                //let original_font_size = setting_int("original_font_size");
+                let original_font_name = setting_string("original_font_name");
+                let original_font_size = setting_int("original_font_size");
 
                 q_settings.clear();
 
-                //set_setting_string_to_q_setting(&q_settings, "font_name", &original_font_name);
-                //set_setting_int_to_q_setting(&q_settings, "font_size", original_font_size);
+                set_setting_string_to_q_setting(&q_settings, "font_name", &original_font_name);
+                set_setting_int_to_q_setting(&q_settings, "font_size", original_font_size);
 
                 q_settings.sync();
 
@@ -105,6 +117,7 @@ impl SettingsUISlots {
         }
 
         Self {
+            font_settings,
             restore_default,
             select_game_paths,
         }

@@ -146,3 +146,5 @@ updater_update_schemas_updated = Schemas updated!
 
 updater_update_program_error = Error updating Runcher.
 updater_update_program_updated = Runcher updated! Click here to restart it.
+
+settings_font_title = Font Settings

@@ -8,11 +8,12 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use qt_widgets::QApplication;
 use qt_widgets::QCheckBox;
 use qt_widgets::QComboBox;
 use qt_widgets::QDialog;
 use qt_widgets::QDialogButtonBox;
-use qt_widgets::q_dialog_button_box::StandardButton;
+use qt_widgets::q_dialog_button_box::{ButtonRole, StandardButton};
 use qt_widgets::{QFileDialog, q_file_dialog::{FileMode, Option as QFileDialogOption}};
 use qt_widgets::QGridLayout;
 use qt_widgets::QGroupBox;
@@ -35,6 +36,7 @@ use directories::ProjectDirs;
 use getset::*;
 use regex::Regex;
 
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::fs::{DirBuilder, File};
 use std::io::Read;
@@ -69,6 +71,8 @@ pub const SLASH_MDY_DATE_FORMAT_STR: &str = "[month]/[day]/[year]";
 pub struct SettingsUI {
     dialog: QPtr<QDialog>,
 
+    font_data: Rc<RefCell<(String, i32)>>,
+
     paths_games_line_edits: BTreeMap<String, QBox<QLineEdit>>,
     paths_games_buttons: BTreeMap<String, QBox<QToolButton>>,
 
@@ -83,6 +87,7 @@ pub struct SettingsUI {
     check_schema_updates_on_start_checkbox: QPtr<QCheckBox>,
     dark_mode_checkbox: QPtr<QCheckBox>,
 
+    font_button: QBox<QPushButton>,
     restore_default_button: QPtr<QPushButton>,
     accept_button: QPtr<QPushButton>,
     cancel_button: QPtr<QPushButton>,
@@ -188,12 +193,17 @@ impl SettingsUI {
         }
 
         let button_box: QPtr<QDialogButtonBox> = find_widget(&main_widget.static_upcast(), "button_box")?;
+        let font_button = QPushButton::from_q_string_q_widget(&qtr("settings_font_title"), &button_box);
+        button_box.add_button_q_abstract_button_button_role(&font_button, ButtonRole::ResetRole);
+
         let restore_default_button: QPtr<QPushButton> = button_box.button(StandardButton::RestoreDefaults);
         let accept_button: QPtr<QPushButton> = button_box.button(StandardButton::Ok);
         let cancel_button: QPtr<QPushButton> = button_box.button(StandardButton::Cancel);
 
         Ok(Rc::new(Self {
             dialog,
+            font_data: Rc::new(RefCell::new((String::new(), -1))),
+
             paths_games_line_edits,
             paths_games_buttons,
             steam_user_id_line_edit,
@@ -206,6 +216,7 @@ impl SettingsUI {
             check_schema_updates_on_start_checkbox,
             dark_mode_checkbox,
 
+            font_button,
             restore_default_button,
             accept_button,
             cancel_button,
@@ -258,6 +269,8 @@ impl SettingsUI {
             }
         }
 
+        *self.font_data.borrow_mut() = (setting_string_from_q_setting(&q_settings, "font_name"), setting_int_from_q_setting(&q_settings, "font_size"));
+
         self.steam_user_id_line_edit().set_text(&QString::from_std_str(setting_string_from_q_setting(&q_settings, "steam_user_id")));
         self.steam_api_key_line_edit().set_text(&QString::from_std_str(setting_string_from_q_setting(&q_settings, "steam_api_key")));
         self.dark_mode_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "dark_mode"));
@@ -289,6 +302,9 @@ impl SettingsUI {
             set_setting_string_to_q_setting(&q_settings, "language", &file_name);
         }
 
+        set_setting_string_to_q_setting(&q_settings, "font_name", &self.font_data.borrow().0);
+        set_setting_int_to_q_setting(&q_settings, "font_size", self.font_data.borrow().1);
+
         set_setting_string_to_q_setting(&q_settings, "update_channel", &self.update_chanel_combobox.current_text().to_std_string());
         set_setting_string_to_q_setting(&q_settings, "date_format", &self.date_format_combobox.current_text().to_std_string());
         set_setting_string_to_q_setting(&q_settings, "steam_user_id", &self.steam_user_id_line_edit().text().to_std_string());
@@ -308,6 +324,7 @@ impl SettingsUI {
             button.released().connect(&slots.select_game_paths()[key]);
         }
 
+        self.font_button.released().connect(slots.font_settings());
         self.restore_default_button.released().connect(slots.restore_default());
         self.accept_button.released().connect(self.dialog.slot_accept());
         self.cancel_button.released().connect(self.dialog.slot_close());
@@ -384,6 +401,14 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     } else {
         String::new()
     };
+
+    let font = QApplication::font();
+    let font_name = font.family().to_std_string();
+    let font_size = font.point_size();
+    set_setting_if_new_string(&q_settings, "font_name", &font_name);
+    set_setting_if_new_int(&q_settings, "font_size", font_size);
+    set_setting_if_new_string(&q_settings, "original_font_name", &font_name);
+    set_setting_if_new_int(&q_settings, "original_font_size", font_size);
 
     set_setting_if_new_string(&q_settings, "steam_user_id", &steam_user_id);
     set_setting_if_new_string(&q_settings, "steam_api_key", "");

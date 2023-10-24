@@ -20,6 +20,7 @@ use qt_widgets::QSplitter;
 use qt_widgets::QTextEdit;
 use qt_widgets::QWidget;
 
+use qt_gui::QFont;
 use qt_gui::QIcon;
 use qt_gui::QStandardItem;
 
@@ -393,6 +394,12 @@ impl AppUI {
         // Apply last ui state.
         app_ui.main_window().restore_geometry(&setting_byte_array("geometry"));
         app_ui.main_window().restore_state_1a(&setting_byte_array("windowState"));
+
+        // Apply the font.
+        let font_name = setting_string("font_name");
+        let font_size = setting_int("font_size");
+        let font = QFont::from_q_string_int(&QString::from_std_str(font_name), font_size);
+        QApplication::set_font_1a(&font);
 
         // Show the Main Window.
         app_ui.main_window().show();
@@ -891,6 +898,8 @@ impl AppUI {
         let game_key = game_selected.key();
         let game_path_old = setting_path(game_key);
         let dark_theme_old = setting_bool("dark_mode");
+        let font_name_old = setting_string("font_name");
+        let font_size_old = setting_int("font_size");
 
         match SettingsUI::new(self.main_window()) {
             Ok(saved) => {
@@ -928,6 +937,16 @@ impl AppUI {
                     if dark_theme_old != dark_theme_new {
                         self.reload_theme();
                     }
+
+                    // If we detect a change in the saved font, trigger a font change.
+                    let font_name = setting_string("font_name");
+                    let font_size = setting_int("font_size");
+                    if font_name_old != font_name || font_size_old != font_size {
+                        let font = QFont::from_q_string_int(&QString::from_std_str(&font_name), font_size);
+                        QApplication::set_font_1a(&font);
+                    }
+
+                    // If we detect a factory reset, reset the window's geometry and state.
                     let factory_reset = setting_bool("factoryReset");
                     if factory_reset {
                         self.main_window().restore_geometry(&setting_byte_array("originalGeometry"));
