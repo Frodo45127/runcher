@@ -444,7 +444,7 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
                     let mut translation_found = false;
 
                     for path in &paths {
-                        if let Ok(tr) = PackTranslation::load(&path, pack_name, game.key(), &language) {
+                        if let Ok(tr) = PackTranslation::load(path, pack_name, game.key(), &language) {
                             for tr in tr.translations().values() {
 
                                 // Only add entries for values we actually have translated and up to date.

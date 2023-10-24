@@ -141,8 +141,8 @@ impl SettingsUI {
         let paths_layout: QPtr<QGridLayout> = paths_groupbox.layout().static_downcast();
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(STABLE));
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(BETA));
-        date_format_combobox.add_item_q_string(&QString::from_std_str(&SLASH_DMY_DATE_FORMAT_STR));
-        date_format_combobox.add_item_q_string(&QString::from_std_str(&SLASH_MDY_DATE_FORMAT_STR));
+        date_format_combobox.add_item_q_string(&QString::from_std_str(SLASH_DMY_DATE_FORMAT_STR));
+        date_format_combobox.add_item_q_string(&QString::from_std_str(SLASH_MDY_DATE_FORMAT_STR));
 
         paths_groupbox.set_title(&qtr("game_paths"));
         language_label.set_text(&qtr("language"));
