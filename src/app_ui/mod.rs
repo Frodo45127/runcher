@@ -388,7 +388,7 @@ impl AppUI {
         }
 
         // Load the correct theme.
-        Self::reload_theme(&app_ui);
+        app_ui.reload_theme();
 
         // Apply last ui state.
         app_ui.main_window().restore_geometry(&setting_byte_array("geometry"));
@@ -890,6 +890,7 @@ impl AppUI {
         let game_selected = self.game_selected().read().unwrap();
         let game_key = game_selected.key();
         let game_path_old = setting_path(game_key);
+        let dark_theme_old = setting_bool("dark_mode");
 
         match SettingsUI::new(self.main_window()) {
             Ok(saved) => {
@@ -922,7 +923,11 @@ impl AppUI {
                         }
                     }
 
-                    // If we detect a factory reset, reset the window's geometry and state, and the font.
+                    // If we detect a change in theme, reload it.
+                    let dark_theme_new = setting_bool("dark_mode");
+                    if dark_theme_old != dark_theme_new {
+                        self.reload_theme();
+                    }
                     let factory_reset = setting_bool("factoryReset");
                     if factory_reset {
                         self.main_window().restore_geometry(&setting_byte_array("originalGeometry"));
@@ -1280,7 +1285,7 @@ impl AppUI {
     }
 
     /// This function is used to load/reload a theme live.
-    pub unsafe fn reload_theme(app_ui: &AppUI) {
+    pub unsafe fn reload_theme(&self) {
         let app = QCoreApplication::instance();
         let qapp = app.static_downcast::<QApplication>();
         let use_dark_theme = setting_bool("dark_mode");
@@ -1299,15 +1304,15 @@ impl AppUI {
                     qapp.set_style_sheet(&QString::from_std_str(dark_stylesheet));
                 }
 
-                app_ui.github_button().set_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/github.svg", ASSETS_PATH.to_string_lossy()))));
-                app_ui.actions_ui().update_icons();
+                self.github_button().set_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/github.svg", ASSETS_PATH.to_string_lossy()))));
+                self.actions_ui().update_icons();
             } else {
                 QApplication::set_style_q_string(&QString::from_std_str("windowsvista"));
                 QApplication::set_palette_1a(light_palette);
                 qapp.set_style_sheet(light_style_sheet);
 
-                app_ui.github_button().set_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/github-dark.svg", ASSETS_PATH.to_string_lossy()))));
-                app_ui.actions_ui().update_icons();
+                self.github_button().set_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/github-dark.svg", ASSETS_PATH.to_string_lossy()))));
+                self.actions_ui().update_icons();
             }
         }
 
