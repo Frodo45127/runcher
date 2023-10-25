@@ -334,7 +334,7 @@ impl AppUISlots {
 
         let load_profile = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
-                if let Err(error) = view.load_profile() {
+                if let Err(error) = view.load_profile(None) {
                     show_dialog(view.main_window(), error, false);
                 }
             }

@@ -44,12 +44,11 @@ use sha256::try_digest;
 
 use std::cmp::Reverse;
 use std::collections::HashMap;
-use std::env::args;
 use std::fs::{copy, DirBuilder, File};
 use std::io::{BufWriter, Read, Write};
 #[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::Command as SystemCommand;
+use std::process::{Command as SystemCommand, exit};
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::time::UNIX_EPOCH;
@@ -69,6 +68,7 @@ use rpfm_ui_common::utils::*;
 
 use crate::actions_ui::ActionsUI;
 use crate::CENTRAL_COMMAND;
+use crate::cli::Cli;
 use crate::communications::*;
 use crate::DARK_PALETTE;
 use crate::ffi::launcher_window_safe;
@@ -401,62 +401,20 @@ impl AppUI {
         let font = QFont::from_q_string_int(&QString::from_std_str(font_name), font_size);
         QApplication::set_font_1a(&font);
 
-        // Show the Main Window.
-        app_ui.main_window().show();
-        app_ui.toggle_main_window(false);
-        log_to_status_bar(app_ui.main_window().status_bar(), "Initializing, please wait...");
-
-        // Trigger an event loop cycle so the window is shown, then we do the expensive stuff.
-        let event_loop = qt_core::QEventLoop::new_0a();
-        event_loop.process_events_0a();
-
-        // Set the game selected based on the default game. If we passed a game through an argument, use that one.
+        // Initialization logic. This takes care of parsing args for stuff like profile shortcuts,
+        // or setting the game selected.
         //
-        // Note: set_checked does *NOT* trigger the slot for changing game selected. We need to trigger that one manually.
-        let mut default_game = setting_string("default_game");
-        let args = args().collect::<Vec<String>>();
-        if args.len() == 2 {
-            match &*args[1] {
-                KEY_PHARAOH |
-                KEY_WARHAMMER_3 |
-                KEY_TROY |
-                KEY_THREE_KINGDOMS |
-                KEY_WARHAMMER_2 |
-                KEY_WARHAMMER |
-                KEY_THRONES_OF_BRITANNIA |
-                KEY_ATTILA |
-                KEY_ROME_2 |
-                KEY_SHOGUN_2 |
-                KEY_NAPOLEON |
-                KEY_EMPIRE => default_game = args[1].to_string(),
-                _ => {},
-            }
+        // NOTE: This exists if autostart param is passed, or if you pass invalid params,
+        // so we don't need to load anything regarthing the UI.
+        match Cli::parse_args(&app_ui) {
+            Ok(autostart) => if autostart {
+                exit(0);
+            },
+            Err(error) => {
+                show_dialog(app_ui.main_window(), error, false);
+                exit(1);
+            },
         }
-
-        match &*default_game {
-            KEY_PHARAOH => app_ui.game_selected_pharaoh().set_checked(true),
-            KEY_WARHAMMER_3 => app_ui.game_selected_warhammer_3().set_checked(true),
-            KEY_TROY => app_ui.game_selected_troy().set_checked(true),
-            KEY_THREE_KINGDOMS => app_ui.game_selected_three_kingdoms().set_checked(true),
-            KEY_WARHAMMER_2 => app_ui.game_selected_warhammer_2().set_checked(true),
-            KEY_WARHAMMER => app_ui.game_selected_warhammer().set_checked(true),
-            KEY_THRONES_OF_BRITANNIA => app_ui.game_selected_thrones_of_britannia().set_checked(true),
-            KEY_ATTILA => app_ui.game_selected_attila().set_checked(true),
-            KEY_ROME_2 => app_ui.game_selected_rome_2().set_checked(true),
-            KEY_SHOGUN_2 => app_ui.game_selected_shogun_2().set_checked(true),
-            KEY_NAPOLEON => app_ui.game_selected_napoleon().set_checked(true),
-            KEY_EMPIRE => app_ui.game_selected_empire().set_checked(true),
-            _ => app_ui.game_selected_warhammer_3().set_checked(true),
-        }
-
-        // This may fail for path problems.
-        //
-        // Also, the game we already have loaded is arena. We don't need to force a manual reload with that one.
-        if let Err(error) = app_ui.change_game_selected(false) {
-            show_dialog(app_ui.main_window(), error, false);
-        }
-
-        app_ui.toggle_main_window(true);
 
         // Check for updates.
         UpdaterUI::new_with_precheck(&app_ui)?;
@@ -1224,8 +1182,13 @@ impl AppUI {
         }
     }
 
-    pub unsafe fn load_profile(&self) -> Result<()> {
-        let profile_name = self.actions_ui().profile_combobox().current_text().to_std_string();
+    pub unsafe fn load_profile(&self, profile_name: Option<String>) -> Result<()> {
+        let profile_name = if let Some(profile_name) = profile_name {
+            profile_name
+        } else {
+            self.actions_ui().profile_combobox().current_text().to_std_string()
+        };
+
         if profile_name.is_empty() {
             return Err(anyhow!("Profile name is empty."));
         }

@@ -55,6 +55,7 @@ use crate::settings_ui::*;
 mod actions_ui;
 mod app_ui;
 mod background_thread;
+mod cli;
 mod communications;
 mod ffi;
 mod games;
