@@ -596,6 +596,12 @@ impl AppUI {
                 for save_path in &saves_paths {
                     let mut save = RFile::new_from_file_path(save_path)?;
                     save.guess_file_type()?;
+
+                    let mut save = Save::default();
+                    save.set_path(save_path.to_path_buf());
+                    save.set_name(save_path.file_name().unwrap().to_string_lossy().to_string());
+
+                    /*
                     if let Some(RFileDecoded::ESF(file)) = save.decode(&None, false, true)? {
                         let mut save = Save::default();
                         save.set_path(save_path.to_path_buf());
@@ -633,11 +639,12 @@ impl AppUI {
 
                         save.set_mods(mods);
 
-                        let item = QStandardItem::from_q_string(&QString::from_std_str(save.name()));
-                        self.actions_ui().save_model().append_row_q_standard_item(item.into_ptr());
 
-                        game_saves.push(save);
-                    }
+                    }*/
+                    let item = QStandardItem::from_q_string(&QString::from_std_str(save.name()));
+                    self.actions_ui().save_model().append_row_q_standard_item(item.into_ptr());
+
+                    game_saves.push(save);
                 }
             }
         }
