@@ -137,7 +137,7 @@ impl GameConfig {
     pub fn create_category(&mut self, category: &str) {
         self.categories_mut().insert(category.to_owned(), vec![]);
 
-        let pos = if self.categories_order().len() > 0 {
+        let pos = if !self.categories_order().is_empty() {
             self.categories_order().len() - 1
         } else {
             0
