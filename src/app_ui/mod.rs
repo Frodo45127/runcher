@@ -1371,7 +1371,7 @@ impl AppUI {
                 let cats_to_move = selection.iter().map(|x| x.data_0a().to_string().to_std_string()).collect::<Vec<_>>();
                 let offset = cats_to_move.iter()
                     .filter_map(|cat| game_config.categories_order().iter().position(|cat2| cat == cat2))
-                    .filter(|pos| pos <= &(dest_row as usize))
+                    .filter(|pos| pos < &(dest_row as usize))
                     .count();
 
                 game_config.categories_order_mut().retain(|x| !cats_to_move.contains(x));
@@ -1401,6 +1401,13 @@ impl AppUI {
                     category_index.as_ref()
                 };
 
+                // If we have no parent (dropping in the category) add at the start.
+                let dest_row_final = if dest_parent.is_valid() {
+                    dest_row
+                } else {
+                    0
+                };
+
                 let category_index_logical = self.mod_list_ui().filter().map_to_source(category_index_visual);
                 let dest_category = category_index_logical.data_0a().to_string().to_std_string();
                 let mut offset = 0;
@@ -1408,7 +1415,7 @@ impl AppUI {
                     offset = mods_to_move.iter()
                         .filter(|mod_id| dest_mods.contains(mod_id))
                         .filter_map(|mod_id| dest_mods.iter().position(|mod_id2| mod_id == mod_id2))
-                        .filter(|pos| pos <= &(dest_row as usize))
+                        .filter(|pos| pos < &(dest_row_final as usize))
                         .count();
                 }
 
@@ -1418,13 +1425,7 @@ impl AppUI {
 
                 if let Some(dest_mods) = game_config.categories_mut().get_mut(&dest_category) {
                     for (index, mod_id) in mods_to_move.iter().enumerate() {
-                        let mut pos: i32 = index as i32 - offset as i32;
-
-                        // Only apply this if we're inserting in a list.
-                        if dest_parent.is_valid() {
-                            pos += dest_row;
-                        }
-
+                        let pos: i32 = dest_row_final + index as i32 - offset as i32;
                         dest_mods.insert(pos as usize, mod_id.to_owned());
                     }
                 }
@@ -1433,13 +1434,7 @@ impl AppUI {
                 let rows = selection.iter().rev().map(|x| self.mod_list_ui().model().item_from_index(&x.parent()).take_row(x.row())).rev().collect::<Vec<_>>();
                 let dest_item = self.mod_list_ui().model().item_from_index(&category_index_logical);
                 for (index, row) in rows.iter().enumerate() {
-                    let mut pos: i32 = index as i32 - offset as i32;
-
-                    // Only apply this if we're inserting in a list.
-                    if dest_parent.is_valid() {
-                        pos += dest_row;
-                    }
-
+                    let pos: i32 = dest_row_final + index as i32 - offset as i32;
                     if pos == dest_item.row_count() {
                         dest_item.append_row_q_list_of_q_standard_item(row);
                     } else {
