@@ -205,7 +205,7 @@ impl AppUISlots {
 
         let change_game_selected = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
-                if let Err(error) = view.change_game_selected(false) {
+                if let Err(error) = view.change_game_selected(false, false) {
                     show_dialog(view.main_window(), error, false);
                 }
             }
@@ -327,7 +327,7 @@ impl AppUISlots {
             view => move || {
 
                 // We just re-use the game selected logic
-                if let Err(error) = view.change_game_selected(true) {
+                if let Err(error) = view.change_game_selected(true, false) {
                     show_dialog(view.main_window(), error, false);
                 }
             }

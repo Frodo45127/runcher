@@ -195,7 +195,6 @@ impl ModListUI {
 
         // This loads mods per category, meaning all installed mod have to be in the categories list!!!!
         for category in game_config.categories_order() {
-            dbg!(&category);
             let item = QStandardItem::from_q_string(&QString::from_std_str(category));
             item.set_data_2a(&QVariant::from_bool(true), VALUE_IS_CATEGORY);
             item.set_editable(false);

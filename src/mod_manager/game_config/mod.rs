@@ -161,7 +161,7 @@ impl GameConfig {
         self.categories_order_mut().retain(|x| x != category);
     }
 
-    pub fn update_mod_list(&mut self, game: &GameInfo, game_path: &Path) -> Result<()> {
+    pub fn update_mod_list(&mut self, game: &GameInfo, game_path: &Path, skip_network_update: bool) -> Result<()> {
 
         // Get the modified date of the game's exe, to check if a mod is outdated or not.
         let last_update_date = if let Some(exe_path) = game.executable_path(game_path) {
@@ -243,7 +243,9 @@ impl GameConfig {
                 }
 
                 // Ignore network population errors for now.
-                let _ = populate_mods(self.mods_mut(), &steam_ids, last_update_date);
+                if !skip_network_update {
+                    let _ = populate_mods(self.mods_mut(), &steam_ids, last_update_date);
+                }
 
                 // If any of the mods has a .bin file, we need to copy it to /data and turn it into a Pack.
                 // All the if lets are because we only want to do all this if nothing files and ignore failures.

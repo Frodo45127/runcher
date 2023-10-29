@@ -118,7 +118,9 @@ impl Cli {
         // This may fail for path problems.
         //
         // Also, the game we already have loaded is arena. We don't need to force a manual reload with that one.
-        app_ui.change_game_selected(false)?;
+        //
+        // Note: if we're autostarting, skip the network update to start the game 1-5 seconds faster.
+        app_ui.change_game_selected(false, cli.autostart)?;
 
         // If we're not autostarting, enable the UI here.
         if !cli.autostart {

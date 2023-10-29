@@ -507,7 +507,7 @@ impl AppUI {
         }
     }
 
-    pub unsafe fn change_game_selected(&self, reload_same_game: bool) -> Result<()> {
+    pub unsafe fn change_game_selected(&self, reload_same_game: bool, skip_network_update: bool) -> Result<()> {
 
         // Get the new `Game Selected` and clean his name up, so it ends up like "x_y".
         let mut new_game_selected = self.game_selected_group.checked_action().text().to_std_string();
@@ -518,13 +518,13 @@ impl AppUI {
         //
         // This works because by default, the initially stored game selected is arena, and that one can never set manually.
         if reload_same_game || new_game_selected != self.game_selected().read().unwrap().key() {
-            self.load_data(&new_game_selected)?;
+            self.load_data(&new_game_selected, skip_network_update)?;
         }
 
         Ok(())
     }
 
-    pub unsafe fn load_data(&self, game: &str) -> Result<()> {
+    pub unsafe fn load_data(&self, game: &str, skip_network_update: bool) -> Result<()> {
 
         // We may receive invalid games here, so rule out the invalid ones.
         match SUPPORTED_GAMES.game(game) {
@@ -564,7 +564,7 @@ impl AppUI {
                 }
 
                 // Load the mods to the UI.
-                if let Err(error) = self.load_mods_to_ui(game, &game_path) {
+                if let Err(error) = self.load_mods_to_ui(game, &game_path, skip_network_update) {
                     show_dialog(self.main_window(), error, false);
                 }
 
@@ -643,10 +643,10 @@ impl AppUI {
         Ok(())
     }
 
-    pub unsafe fn load_mods_to_ui(&self, game: &GameInfo, game_path: &Path) -> Result<()> {
+    pub unsafe fn load_mods_to_ui(&self, game: &GameInfo, game_path: &Path, skip_network_update: bool) -> Result<()> {
         let mut mods = self.game_config().write().unwrap();
         if let Some(ref mut mods) = *mods {
-            mods.update_mod_list(game, game_path)?;
+            mods.update_mod_list(game, game_path, skip_network_update)?;
 
             self.mod_list_ui().load(mods)?;
             self.pack_list_ui().load(mods, game, game_path)?;

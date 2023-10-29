@@ -93,7 +93,7 @@ impl UpdaterUISlots {
                     Response::Success => {
 
                         // We need to reload the game in question, so stuff that depends on schemas existing actually works.
-                        if let Err(error) = app_ui.change_game_selected(true) {
+                        if let Err(error) = app_ui.change_game_selected(true, false) {
                             show_dialog(ui.dialog(), error, false);
                             ui.update_schemas_button.set_text(&qtr("updater_update_schemas_error"));
                         } else {
