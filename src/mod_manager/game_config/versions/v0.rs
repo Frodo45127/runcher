@@ -34,10 +34,10 @@ impl GameConfigV0 {
     pub fn update(game_name: &str) -> Result<()> {
         let games = SupportedGames::default();
         if let Some(game_info) = games.game(game_name) {
-            let config = Self::load(game_info, false)?;
-
-            let mut config_new = GameConfigV1::from(&config);
-            config_new.save(game_info)?;
+            if let Ok(config) = Self::load(game_info, false) {
+                let mut config_new = GameConfigV1::from(&config);
+                config_new.save(game_info)?;
+            }
         }
 
         Ok(())

@@ -73,6 +73,7 @@ pub struct AppUISlots {
 
     enable_selected: QBox<SlotNoArgs>,
     disable_selected: QBox<SlotNoArgs>,
+    category_create: QBox<SlotNoArgs>,
     category_delete: QBox<SlotNoArgs>,
     category_rename: QBox<SlotNoArgs>,
     mod_list_context_menu_open: QBox<SlotNoArgs>,
@@ -376,6 +377,14 @@ impl AppUISlots {
             }
         ));
 
+        let category_create = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                if let Err(error) = view.create_category() {
+                    show_dialog(view.main_window(), error, false);
+                }
+            }
+        ));
+
         let category_delete = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 if let Err(error) = view.delete_category() {
@@ -437,6 +446,7 @@ impl AppUISlots {
 
             enable_selected,
             disable_selected,
+            category_create,
             category_delete,
             category_rename,
             mod_list_context_menu_open,

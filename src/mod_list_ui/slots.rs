@@ -36,7 +36,6 @@ pub struct ModListUISlots {
     context_menu: QBox<SlotOfQPoint>,
     context_menu_enabler: QBox<SlotNoArgs>,
 
-    category_new: QBox<SlotNoArgs>,
     open_in_explorer: QBox<SlotNoArgs>,
     open_in_steam: QBox<SlotNoArgs>,
 }
@@ -82,18 +81,6 @@ impl ModListUISlots {
             view.open_in_steam.set_enabled(all_mods);
         }));
 
-        let category_new = SlotNoArgs::new(&view.tree_view, clone!(
-            view => move || {
-            match view.category_new_dialog(false) {
-                Ok(name) => if let Some(name) = name {
-                    let item = QStandardItem::from_q_string(&QString::from_std_str(name));
-                    item.set_data_2a(&QVariant::from_bool(true), VALUE_IS_CATEGORY);
-                    view.model().append_row_q_standard_item(item.into_ptr().as_mut_raw_ptr());
-                },
-                Err(error) => show_dialog(view.tree_view(), error, false),
-            }
-        }));
-
         let open_in_explorer = SlotNoArgs::new(&view.tree_view, clone!(
             view => move || {
             let selection = view.mod_list_selection();
@@ -122,7 +109,6 @@ impl ModListUISlots {
 
             context_menu,
             context_menu_enabler,
-            category_new,
             open_in_explorer,
             open_in_steam,
         }

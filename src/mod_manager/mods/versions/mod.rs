@@ -8,8 +8,9 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
-use super::Mod as ModV3;
+use super::Mod as ModV4;
 
 pub mod v0;
 pub mod v1;
 pub mod v2;
+pub mod v3;

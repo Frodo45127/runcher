@@ -20,9 +20,9 @@ use std::io::{BufReader, BufWriter, Read, Write};
 use rpfm_lib::games::{GameInfo, supported_games::SupportedGames};
 
 use crate::game_config_path;
-use crate::mod_manager::mods::{Mod as ModV3, versions::v2::ModV2};
+use crate::mod_manager::mods::versions::{v2::ModV2, v3::ModV3};
 
-use super::GameConfigV3;
+use super::v3::GameConfigV3;
 
 #[derive(Clone, Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
 #[getset(get = "pub", get_mut = "pub", set = "pub")]
@@ -35,10 +35,10 @@ impl GameConfigV2 {
     pub fn update(game_name: &str) -> Result<()> {
         let games = SupportedGames::default();
         if let Some(game_info) = games.game(game_name) {
-            let config = Self::load(game_info, false)?;
-
-            let mut config_new = GameConfigV3::from(&config);
-            config_new.save(game_info)?;
+            if let Ok(config) = Self::load(game_info, false) {
+                let mut config_new = GameConfigV3::from(&config);
+                config_new.save(game_info)?;
+            }
         }
 
         Ok(())

@@ -15,10 +15,10 @@ use std::path::PathBuf;
 
 use rpfm_lib::games::pfh_file_type::PFHFileType;
 
-use super::v3::ModV3;
+use super::ModV4;
 
 #[derive(Clone, Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
-pub struct ModV2 {
+pub struct ModV3 {
     pub name: String,
     pub id: String,
     pub steam_id: Option<String>,
@@ -28,6 +28,7 @@ pub struct ModV2 {
     pub paths: Vec<PathBuf>,
     pub creator: String,
     pub creator_name: String,
+    pub file_name: String,
     pub file_size: u64,
     pub file_url: String,
     pub preview_url: String,
@@ -38,14 +39,13 @@ pub struct ModV2 {
     pub last_check: u64,
 }
 
-impl From<&ModV2> for ModV3 {
-    fn from(value: &ModV2) -> Self {
+impl From<&ModV3> for ModV4 {
+    fn from(value: &ModV3) -> Self {
         Self {
             name: value.name.to_owned(),
             id: value.id.to_owned(),
             steam_id: value.steam_id.to_owned(),
             enabled: value.enabled,
-            category: value.category.to_owned(),
             paths: value.paths.to_owned(),
             creator: value.creator.to_owned(),
             creator_name: value.creator_name.to_owned(),

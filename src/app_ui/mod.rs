@@ -39,7 +39,6 @@ use cpp_core::CppBox;
 
 use anyhow::{anyhow, Result};
 use getset::Getters;
-use rayon::prelude::*;
 use sha256::try_digest;
 
 use std::cmp::Reverse;
@@ -51,7 +50,6 @@ use std::path::{Path, PathBuf};
 use std::process::{Command as SystemCommand, exit};
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
-use std::time::UNIX_EPOCH;
 
 use rpfm_lib::binary::WriteBytes;
 use rpfm_lib::files::{EncodeableExtraData, esf::NodeType, pack::Pack, RFile, RFileDecoded};
@@ -73,7 +71,7 @@ use crate::communications::*;
 use crate::DARK_PALETTE;
 use crate::ffi::launcher_window_safe;
 use crate::games::*;
-use crate::mod_manager::{game_config::GameConfig, mods::{Mod, ShareableMod}, profiles::Profile, saves::Save, integrations::*};
+use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, mods::ShareableMod, profiles::Profile, saves::Save};
 use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::*;
@@ -93,8 +91,8 @@ pub mod slots;
 const LOAD_ORDER_STRING_VIEW_DEBUG: &str = "ui_templates/load_order_string_dialog.ui";
 const LOAD_ORDER_STRING_VIEW_RELEASE: &str = "ui/load_order_string_dialog.ui";
 
-const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
-const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
+pub const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
+pub const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
 const MERGE_ALL_PACKS_PACK_NAME: &str = "merge_me_sideways_honey";
 
 #[allow(dead_code)] const VANILLA_MOD_LIST_FILE_NAME: &str = "used_mods.txt";
@@ -467,6 +465,7 @@ impl AppUI {
         self.mod_list_ui().context_menu().about_to_show().connect(slots.mod_list_context_menu_open());
         self.mod_list_ui().enable_selected().triggered().connect(slots.enable_selected());
         self.mod_list_ui().disable_selected().triggered().connect(slots.disable_selected());
+        self.mod_list_ui().category_new().triggered().connect(slots.category_create());
         self.mod_list_ui().category_delete().triggered().connect(slots.category_delete());
         self.mod_list_ui().category_rename().triggered().connect(slots.category_rename());
     }
@@ -537,7 +536,8 @@ impl AppUI {
                 *self.game_selected().write().unwrap() = game.clone();
 
                 // Trigger an update of all game configs, just in case one needs update.
-                let _ = GameConfig::update(game.key());
+                // This somehow is reseting the file. Disable it until it's needed.
+                //let _ = GameConfig::update(game.key());
 
                 // Load the game's config.
                 *self.game_config().write().unwrap() = Some(GameConfig::load(game, true)?);
@@ -644,205 +644,9 @@ impl AppUI {
     }
 
     pub unsafe fn load_mods_to_ui(&self, game: &GameInfo, game_path: &Path) -> Result<()> {
-
-        // Get the modified date of the game's exe, to check if a mod is outdated or not.
-        let last_update_date = if let Some(exe_path) = game.executable_path(game_path) {
-            if let Ok(exe) = File::open(exe_path) {
-                exe.metadata()?.created()?.duration_since(UNIX_EPOCH)?.as_secs()
-            } else {
-                0
-            }
-        } else {
-            0
-        };
-
         let mut mods = self.game_config().write().unwrap();
         if let Some(ref mut mods) = *mods {
-
-            // Clear the mod paths, just in case a failure while loading them leaves them unclean.
-            mods.mods_mut().values_mut().for_each(|modd| modd.paths_mut().clear());
-
-            // If we have a path, load all the mods to the UI.
-            if game_path.components().count() > 1 && game_path.is_dir() {
-
-                // Vanilla paths may fail if the game path is incorrect, or the game is not properly installed.
-                // In that case, we assume there are no packs nor mods to load to avoid further errors.
-                if let Ok(vanilla_packs) = game.ca_packs_paths(game_path) {
-                    let data_paths = game.data_packs_paths(game_path);
-                    let content_paths = game.content_packs_paths(game_path);
-
-                    let mut steam_ids = vec![];
-
-                    // Initialize the mods in the contents folders first.
-                    //
-                    // These have less priority.
-                    if let Some(ref paths) = content_paths {
-                        let packs = paths.par_iter()
-                            .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false)))
-                            .collect::<Vec<_>>();
-
-                        for (path, pack) in packs {
-                            let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                            if let Ok(pack) = pack {
-                                if pack.pfh_file_type() == PFHFileType::Mod || pack.pfh_file_type() == PFHFileType::Movie {
-                                    match mods.mods_mut().get_mut(&pack_name) {
-                                        Some(modd) => {
-                                            if !modd.paths().contains(path) {
-                                                modd.paths_mut().push(path.to_path_buf());
-                                            }
-
-                                            // Get the steam id from the path, if possible.
-                                            let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
-                                            steam_ids.push(steam_id.to_owned());
-                                            modd.set_steam_id(Some(steam_id));
-                                            modd.set_pack_type(pack.pfh_file_type());
-
-                                            let metadata = modd.paths().last().unwrap().metadata()?;
-                                            modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                            modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                            modd.set_outdated(last_update_date > *modd.time_updated() as u64);
-                                        }
-                                        None => {
-                                            let mut modd = Mod::default();
-                                            modd.set_name(pack_name.to_owned());
-                                            modd.set_id(pack_name.to_owned());
-                                            modd.set_paths(vec![path.to_path_buf()]);
-                                            modd.set_pack_type(pack.pfh_file_type());
-
-                                            let metadata = modd.paths()[0].metadata()?;
-                                            modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                            modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                            modd.set_outdated(last_update_date > *modd.time_updated() as u64);
-
-                                            // Get the steam id from the path, if possible.
-                                            let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
-                                            steam_ids.push(steam_id.to_owned());
-                                            modd.set_steam_id(Some(steam_id));
-
-                                            mods.mods_mut().insert(pack_name, modd);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Ignore network population errors for now.
-                    let _ = populate_mods(mods.mods_mut(), &steam_ids, last_update_date);
-
-                    // If any of the mods has a .bin file, we need to copy it to /data and turn it into a Pack.
-                    // All the if lets are because we only want to do all this if nothing files and ignore failures.
-                    let steam_user_id = setting_string("steam_user_id");
-                    for modd in mods.mods_mut().values_mut() {
-                        if let Some(last_path) = modd.paths().last() {
-                            if let Some(extension) = last_path.extension() {
-
-                                // Only copy bins which are not yet in the data folder and which are not made by the steam user.
-                                // If the game is Shogun 2, also copy packs to data. Shogun 2 doesn't support loading packs from outside /data.
-                                let legacy_mod = extension.to_string_lossy() == "bin" && !modd.file_name().is_empty();
-                                if legacy_mod || (extension.to_string_lossy() == "pack" && game.key() == KEY_SHOGUN_2) {
-                                    if let Ok(mut pack) = Pack::read_and_merge(&[last_path.to_path_buf()], true, false) {
-                                        if let Ok(new_path) = game.data_path(game_path) {
-
-                                            // Filename is only populated on legacy bin files.
-                                            if legacy_mod {
-                                                if let Some(name) = modd.file_name().split('/').last() {
-                                                    let new_path = new_path.join(name);
-
-                                                    // Copy the files unless it exists and its ours.
-                                                    if (!new_path.is_file() || (new_path.is_file() && &steam_user_id != modd.creator())) && pack.save(Some(&new_path), game, &None).is_ok() {
-                                                        modd.paths_mut().insert(0, new_path);
-                                                    }
-                                                }
-                                            }
-
-                                            // Alternative logic for normal packs.
-                                            else {
-                                                let new_path = new_path.join(modd.id());
-
-                                                // Copy the files unless it exists and its ours.
-                                                if (!new_path.is_file() || (new_path.is_file() && &steam_user_id != modd.creator())) && pack.save(Some(&new_path), game, &None).is_ok() {
-                                                    modd.paths_mut().insert(0, new_path);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if let Some(ref paths) = data_paths {
-                        let paths = paths.iter()
-                            .filter(|path| {
-                                if let Ok(canon_path) = std::fs::canonicalize(path) {
-                                    !vanilla_packs.contains(&canon_path) &&
-                                        canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(String::new) != RESERVED_PACK_NAME &&
-                                        canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(String::new) != RESERVED_PACK_NAME_ALTERNATIVE
-                                } else {
-                                    false
-                                }
-                            })
-                            .collect::<Vec<_>>();
-
-                        let packs = paths.par_iter()
-                            .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false)))
-                            .collect::<Vec<_>>();
-
-                        for (path, pack) in packs {
-                            let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                            if let Ok(pack) = pack {
-                                if pack.pfh_file_type() == PFHFileType::Mod || pack.pfh_file_type() == PFHFileType::Movie {
-
-                                    // Check if the pack corresponds to a bin.
-                                    if let Some((_, modd)) = mods.mods_mut().iter_mut().find(|(_, modd)| !modd.file_name().is_empty() && modd.file_name().split('/').last().unwrap() == pack_name) {
-                                        if !modd.paths().contains(path) {
-                                            modd.paths_mut().insert(0, path.to_path_buf());
-                                        }
-
-                                        let metadata = modd.paths()[0].metadata()?;
-                                        modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                        modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                        modd.set_outdated(last_update_date > *modd.time_updated() as u64);
-                                    } else {
-                                        match mods.mods_mut().get_mut(&pack_name) {
-                                            Some(modd) => {
-                                                if !modd.paths().contains(path) {
-                                                    modd.paths_mut().insert(0, path.to_path_buf());
-                                                }
-                                                modd.set_pack_type(pack.pfh_file_type());
-
-                                                let metadata = modd.paths()[0].metadata()?;
-                                                modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                                modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                                modd.set_outdated(last_update_date > *modd.time_updated() as u64);
-                                            }
-                                            None => {
-                                                let mut modd = Mod::default();
-                                                modd.set_name(pack_name.to_owned());
-                                                modd.set_id(pack_name.to_owned());
-                                                modd.set_paths(vec![path.to_path_buf()]);
-                                                modd.set_pack_type(pack.pfh_file_type());
-
-                                                let metadata = modd.paths()[0].metadata()?;
-                                                modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                                modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                                modd.set_outdated(last_update_date > *modd.time_updated() as u64);
-                                                mods.mods_mut().insert(pack_name, modd);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Save the GameConfig or we may lost the population.
-                    if let Err(error) = mods.save(game) {
-                        show_dialog(self.main_window(), format!("Error while saving the mods info to disk: {}", error), false);
-                    }
-                }
-            }
+            mods.update_mod_list(game, game_path)?;
 
             self.mod_list_ui().load(mods)?;
             self.pack_list_ui().load(mods, game, game_path)?;
@@ -1409,30 +1213,58 @@ impl AppUI {
         Ok(())
     }
 
+    pub unsafe fn create_category(&self) -> Result<()> {
+        if let Some(name) = self.mod_list_ui().category_new_dialog(false)? {
+            let item = QStandardItem::from_q_string(&QString::from_std_str(&name));
+            item.set_data_2a(&QVariant::from_bool(true), VALUE_IS_CATEGORY);
+
+            // New categories go second last, after the default category.
+            let pos = self.mod_list_ui().model().row_count_0a() - 1;
+            if pos == -1 {
+                self.mod_list_ui().model().append_row_q_standard_item(item.into_ptr().as_mut_raw_ptr());
+            } else {
+                self.mod_list_ui().model().insert_row_int_q_standard_item(pos, item.into_ptr().as_mut_raw_ptr());
+            }
+
+            if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
+                game_config.create_category(&name);
+
+                let game = self.game_selected().read().unwrap();
+                game_config.save(&game)?;
+            }
+        }
+
+        Ok(())
+    }
+
     pub unsafe fn delete_category(&self) -> Result<()> {
         let mut selection = self.mod_list_selection();
         selection.sort_by_key(|b| Reverse(b.row()));
 
-        if selection.iter().any(|index| index.data_1a(2).to_string().to_std_string() == "Unassigned") {
-            return Err(anyhow!("Dude, did you just tried to delete the Unassigned category?!! You monster!!!"));
+        if selection.iter().any(|index| index.data_1a(2).to_string().to_std_string() == DEFAULT_CATEGORY) {
+            return Err(anyhow!("Dude, did you just tried to delete the {} category?!! You monster!!!", DEFAULT_CATEGORY));
         }
 
         for cat_to_delete in &selection {
-            let mods_to_reassign = (0..self.mod_list_ui().model().row_count_1a(cat_to_delete))
-                .map(|index| cat_to_delete.child(index, 0).data_1a(VALUE_MOD_ID).to_string().to_std_string())
-                .collect::<Vec<_>>();
 
+            // Update the backend.
             if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
-                game_config.mods_mut()
-                    .iter_mut()
-                    .for_each(|(id, modd)| if mods_to_reassign.contains(id) {
-                        modd.set_category(None);
-                    });
+                if let Some(default_cat) = game_config.categories_mut().get_mut(DEFAULT_CATEGORY) {
+                    let mut mods_to_reassign = (0..self.mod_list_ui().model().row_count_1a(cat_to_delete))
+                        .map(|index| cat_to_delete.child(index, 0).data_1a(VALUE_MOD_ID).to_string().to_std_string())
+                        .collect::<Vec<_>>();
+
+                    default_cat.append(&mut mods_to_reassign);
+                }
+
+                // Delete the category from both, mod list and order list.
+                let cat_to_delete_string = cat_to_delete.data_1a(2).to_string().to_std_string();
+                game_config.delete_category(&cat_to_delete_string);
             }
 
-            // Find the unassigned category.
+            // Update the frontend.
             let mut unassigned_item = None;
-            let unassigned = QString::from_std_str("Unassigned");
+            let unassigned = QString::from_std_str(DEFAULT_CATEGORY);
             for index in 0..self.mod_list_ui().model().row_count_0a() {
                 let item = self.mod_list_ui().model().item_1a(index);
                 if !item.is_null() && item.text().compare_q_string(&unassigned) == 0 {
@@ -1465,21 +1297,21 @@ impl AppUI {
             let selection = self.mod_list_selection();
             let cat_index = &selection[0];
             let old_cat_name = cat_index.data_1a(2).to_string().to_std_string();
-            if old_cat_name == "Unassigned" {
-                return Err(anyhow!("Dude, did you just tried to rename the Unassigned category?!! You cannot rename perfection!!!"));
+            if old_cat_name == DEFAULT_CATEGORY {
+                return Err(anyhow!("Dude, did you just tried to rename the {} category?!! You cannot rename perfection!!!", DEFAULT_CATEGORY));
             }
 
             let cat_item = self.mod_list_ui().model().item_from_index(cat_index);
             cat_item.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(&new_cat_name)), 2);
 
             if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
-                game_config.mods_mut()
-                    .values_mut()
-                    .for_each(|modd| if let Some(ref mut old_cat) = modd.category_mut() {
-                        if *old_cat == old_cat_name {
-                            *old_cat = new_cat_name.to_owned();
-                        }
-                    });
+                if let Some(cat) = game_config.categories_mut().remove(&old_cat_name) {
+                    game_config.categories_mut().insert(new_cat_name.to_owned(), cat);
+
+                    if let Some(pos) = game_config.categories_order_mut().iter().position(|x| x == &old_cat_name) {
+                        game_config.categories_order_mut()[pos] = new_cat_name.to_owned();
+                    }
+                }
             }
 
             let game_info = self.game_selected().read().unwrap();
@@ -1491,41 +1323,47 @@ impl AppUI {
     }
 
     pub unsafe fn generate_move_to_category_submenu(app_ui: &Rc<AppUI>) {
-        app_ui.mod_list_ui().categories_send_to_menu().clear();
+        if let Some(ref game_config) = *app_ui.game_config().read().unwrap() {
+            app_ui.mod_list_ui().categories_send_to_menu().clear();
 
-        let categories = app_ui.mod_list_ui().categories();
-        for category in &categories {
+            for category in game_config.categories_order() {
+                if let Some(item) = app_ui.mod_list_ui().category_item(category) {
+                    let action = app_ui.mod_list_ui().categories_send_to_menu().add_action_q_string(&QString::from_std_str(category));
+                    let slot = SlotNoArgs::new(app_ui.mod_list_ui().categories_send_to_menu(), clone!(
+                        category,
+                        app_ui => move || {
+                            let mut selection = app_ui.mod_list_selection();
+                            selection.sort_by_key(|b| Reverse(b.row()));
 
-            let item = app_ui.mod_list_ui().category_item(category);
-            if let Some(item) = item {
-                let action = app_ui.mod_list_ui().categories_send_to_menu().add_action_q_string(&QString::from_std_str(category));
-                let slot = SlotNoArgs::new(app_ui.mod_list_ui().categories_send_to_menu(), clone!(
-                    category,
-                    app_ui => move || {
-                        let mut selection = app_ui.mod_list_selection();
-                        selection.sort_by_key(|b| Reverse(b.row()));
+                            for mod_item in &selection {
+                                let current_cat = mod_item.parent();
+                                let mod_id = mod_item.data_1a(VALUE_MOD_ID).to_string().to_std_string();
+                                let taken = app_ui.mod_list_ui().model().item_from_index(&current_cat).take_row(mod_item.row()).into_ptr();
+                                item.append_row_q_list_of_q_standard_item(taken.as_ref().unwrap());
 
-                        for mod_item in &selection {
-                            let current_cat = mod_item.parent();
-                            let mod_id = mod_item.data_1a(VALUE_MOD_ID).to_string().to_std_string();
-                            let taken = app_ui.mod_list_ui().model().item_from_index(&current_cat).take_row(mod_item.row()).into_ptr();
-                            item.append_row_q_list_of_q_standard_item(taken.as_ref().unwrap());
+                                if let Some(ref mut game_config) = *app_ui.game_config().write().unwrap() {
+                                    let curr_cat = game_config.category_for_mod(&mod_id);
+                                    if let Some(ids) = game_config.categories_mut().get_mut(&curr_cat) {
+                                        if let Some(pos) = ids.iter().position(|x| x == &mod_id) {
+                                            ids.remove(pos);
+                                        }
+                                    }
 
-                            if let Some(ref mut game_config) = *app_ui.game_config().write().unwrap() {
-                                if let Some(ref mut modd) = game_config.mods_mut().get_mut(&mod_id) {
-                                    modd.set_category(Some(category.to_string()));
-                                }
+                                    if let Some(ids) = game_config.categories_mut().get_mut(&category) {
+                                        ids.push(mod_id);
+                                    }
 
-                                let game_info = app_ui.game_selected().read().unwrap();
-                                if let Err(error) = game_config.save(&game_info) {
-                                    show_dialog(app_ui.main_window(), error, false);
+                                    let game_info = app_ui.game_selected().read().unwrap();
+                                    if let Err(error) = game_config.save(&game_info) {
+                                        show_dialog(app_ui.main_window(), error, false);
+                                    }
                                 }
                             }
                         }
-                    }
-                ));
+                    ));
 
-                action.triggered().connect(&slot);
+                    action.triggered().connect(&slot);
+                }
             }
         }
     }

@@ -38,9 +38,6 @@ pub struct Mod {
     // If the mod is enabled or not.
     enabled: bool,
 
-    // Category of the mod.
-    category: Option<String>,
-
     // Pack Type of the mod. If there are multiple ones, this corresponds to the first path.
     pack_type: PFHFileType,
 

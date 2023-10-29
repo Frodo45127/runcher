@@ -37,7 +37,6 @@ use qt_core::QSortFilterProxyModel;
 use qt_core::QString;
 use qt_core::QTimer;
 use qt_core::QVariant;
-use qt_core::SortOrder;
 
 use cpp_core::CppBox;
 use cpp_core::Ptr;
@@ -183,168 +182,159 @@ impl ModListUI {
         self.tree_view().selection_model().selection_changed().connect(slots.context_menu_enabler());
         self.context_menu().about_to_show().connect(slots.context_menu_enabler());
 
-        self.category_new().triggered().connect(slots.category_new());
         self.open_in_explorer().triggered().connect(slots.open_in_explorer());
         self.open_in_steam().triggered().connect(slots.open_in_steam());
     }
 
     pub unsafe fn load(&self, game_config: &GameConfig) -> Result<()> {
         self.model().clear();
+        self.setup_columns();
 
         let date_format_str = setting_string("date_format");
         let date_format = time::format_description::parse(&date_format_str).unwrap();
 
-        for modd in game_config.mods().values() {
+        // This loads mods per category, meaning all installed mod have to be in the categories list!!!!
+        for category in game_config.categories_order() {
+            dbg!(&category);
+            let item = QStandardItem::from_q_string(&QString::from_std_str(category));
+            item.set_data_2a(&QVariant::from_bool(true), VALUE_IS_CATEGORY);
+            item.set_editable(false);
+            self.model().append_row_q_standard_item(item.into_ptr().as_mut_raw_ptr());
 
-            if !modd.paths().is_empty() {
-                let category = QString::from_std_str(modd.category().clone().unwrap_or("Unassigned".to_owned()));
-                let mut parent = None;
+            if let Some(mods) = game_config.categories().get(category) {
+                for mod_id in mods {
+                    if let Some(modd) = game_config.mods().get(mod_id) {
 
-                // Find the parent category.
-                for index in 0..self.model().row_count_0a() {
-                    let item = self.model().item_1a(index);
-                    if !item.is_null() && item.text().compare_q_string(&category) == 0 {
-                        parent = Some(item);
-                        break;
-                    }
-                }
+                        // Ignore registered mods with no path.
+                        if !modd.paths().is_empty() {
+                            let category = QString::from_std_str(game_config.category_for_mod(modd.id()));
+                            let mut parent = None;
 
-                // If no parent is found, create the category parent.
-                if parent.is_none() {
-                    let item = QStandardItem::from_q_string(&category);
-                    item.set_data_2a(&QVariant::from_bool(true), VALUE_IS_CATEGORY);
-                    item.set_editable(false);
-                    self.model().append_row_q_standard_item(item.into_ptr().as_mut_raw_ptr());
+                            // Find the parent category.
+                            for index in 0..self.model().row_count_0a() {
+                                let item = self.model().item_1a(index);
+                                if !item.is_null() && item.text().compare_q_string(&category) == 0 {
+                                    parent = Some(item);
+                                    break;
+                                }
+                            }
 
-                    parent = Some(self.model().item_1a(self.model().row_count_0a() - 1))
-                }
+                            if let Some(ref parent) = parent {
+                                let row = QListOfQStandardItem::new();
+                                //let pack = Pack::read_and_merge(&[modd.pack().to_path_buf()], true, false)?;
 
-                if let Some(ref parent) = parent {
-                    let row = QListOfQStandardItem::new();
-                    //let pack = Pack::read_and_merge(&[modd.pack().to_path_buf()], true, false)?;
+                                let item_mod_name = Self::new_item();
+                                let item_flags = Self::new_item();
+                                let item_creator = Self::new_item();
+                                let item_type = Self::new_item();
+                                let item_file_size = Self::new_item();
+                                let item_file_url = Self::new_item();
+                                let item_preview_url = Self::new_item();
+                                let item_time_created = Self::new_item();
+                                let item_time_updated = Self::new_item();
+                                let item_last_check = Self::new_item();
 
-                    let item_mod_name = QStandardItem::new();
-                    let item_flags = QStandardItem::new();
-                    let item_creator = QStandardItem::new();
-                    let item_type = QStandardItem::new();
-                    let item_file_size = QStandardItem::new();
-                    let item_file_url = QStandardItem::new();
-                    let item_preview_url = QStandardItem::new();
-                    let item_time_created = QStandardItem::new();
-                    let item_time_updated = QStandardItem::new();
-                    let item_last_check = QStandardItem::new();
+                                let mod_name = if modd.name() != modd.id() {
+                                    if !modd.file_name().is_empty() {
+                                        format!("<b>{}</b> <i>({} - {})</i>", modd.name(), modd.file_name().split('/').last().unwrap(), modd.id())
+                                    } else {
+                                        format!("<b>{}</b> <i>({})</i>", modd.name(), modd.id())
+                                    }
+                                } else {
+                                    format!("<i>{}</i>", modd.name())
+                                };
 
-                    let mod_name = if modd.name() != modd.id() {
-                        if !modd.file_name().is_empty() {
-                            format!("<b>{}</b> <i>({} - {})</i>", modd.name(), modd.file_name().split('/').last().unwrap(), modd.id())
-                        } else {
-                            format!("<b>{}</b> <i>({})</i>", modd.name(), modd.id())
+                                // TODO: show discrepancies between steam's reported data and real data.
+                                let mod_size = if *modd.file_size() != 0 {
+                                    format!("{:.2} MB", *modd.file_size() as f64 / 1024.0 / 1024.0)
+                                } else {
+                                    let size = modd.paths()[0].metadata()?.len();
+                                    format!("{:.2} MB", size as f64 / 1024.0 / 1024.0)
+                                };
+
+                                let time_created = if *modd.time_created() != 0 {
+                                    OffsetDateTime::from_unix_timestamp(*modd.time_created() as i64)?.format(&date_format)?
+                                } else {
+                                    let date = modd.paths()[0].metadata()?.created()?.duration_since(UNIX_EPOCH)?;
+                                    OffsetDateTime::from_unix_timestamp(date.as_secs() as i64)?.format(&date_format)?
+                                };
+
+                                let time_updated = if *modd.time_updated() != 0 {
+                                    OffsetDateTime::from_unix_timestamp(*modd.time_updated() as i64)?.format(&date_format)?.to_string()
+                                } else {
+                                    "-".to_string()
+                                };
+
+                                let mut flags_description = String::new();
+                                if *modd.outdated() {
+                                    flags_description.push_str(&tr("mod_outdated_description"));
+                                    item_flags.set_data_2a(&QVariant::from_bool(true), FLAG_MOD_IS_OUTDATED);
+                                }
+
+                                if !flags_description.is_empty() {
+                                    flags_description = tr("mod_flags_description") + "<ul>" + &flags_description + "<ul/>";
+                                    item_flags.set_tool_tip(&QString::from_std_str(&flags_description));
+                                }
+
+                                item_time_created.set_data_2a(&QVariant::from_i64(*modd.time_created() as i64), VALUE_TIMESTAMP);
+                                item_time_updated.set_data_2a(&QVariant::from_i64(*modd.time_updated() as i64), VALUE_TIMESTAMP);
+                                item_last_check.set_data_2a(&QVariant::from_i64(*modd.last_check() as i64), VALUE_TIMESTAMP);
+
+                                item_mod_name.set_text(&QString::from_std_str(mod_name));
+                                item_creator.set_text(&QString::from_std_str(modd.creator_name()));
+                                item_type.set_text(&QString::from_std_str(modd.pack_type().to_string()));
+                                item_file_size.set_text(&QString::from_std_str(&mod_size));
+                                item_file_url.set_text(&QString::from_std_str(modd.file_url()));
+                                item_preview_url.set_text(&QString::from_std_str(modd.preview_url()));
+                                item_time_created.set_text(&QString::from_std_str(&time_created));
+                                item_time_updated.set_text(&QString::from_std_str(&time_updated));
+                                item_last_check.set_text(&QString::from_std_str(modd.last_check().to_string()));
+
+                                item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.id())), VALUE_MOD_ID);
+                                item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.paths()[0].to_string_lossy())), VALUE_PACK_PATH);
+
+                                if let Some(steam_id) = modd.steam_id() {
+                                    item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(steam_id)), VALUE_MOD_STEAM_ID);
+                                }
+
+                                item_mod_name.set_data_2a(&QVariant::from_bool(false), VALUE_IS_CATEGORY);
+                                item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.pack_type().to_string())), VALUE_PACK_TYPE);
+
+                                if *modd.pack_type() == PFHFileType::Mod {
+                                    item_mod_name.set_checkable(true);
+                                }
+
+                                item_file_size.set_text_alignment(AlignmentFlag::AlignVCenter | AlignmentFlag::AlignRight);
+
+                                if *modd.enabled() && item_mod_name.is_checkable() {
+                                    item_mod_name.set_check_state(CheckState::Checked);
+                                }
+
+                                //if !modd.description().is_empty() {
+                                //    if modd.description().contains("for all regions") {
+                                //        println!("{}", parse_to_html(modd.description()));
+                                //    }
+                                //    item.set_tool_tip(&QString::from_std_str(parse_to_html(modd.description())));
+                                //}
+
+                                row.append_q_standard_item(&item_mod_name.into_ptr().as_mut_raw_ptr());
+                                row.append_q_standard_item(&item_flags.into_ptr().as_mut_raw_ptr());
+                                row.append_q_standard_item(&item_creator.into_ptr().as_mut_raw_ptr());
+                                row.append_q_standard_item(&item_type.into_ptr().as_mut_raw_ptr());
+                                row.append_q_standard_item(&item_file_size.into_ptr().as_mut_raw_ptr());
+                                row.append_q_standard_item(&item_file_url.into_ptr().as_mut_raw_ptr());
+                                row.append_q_standard_item(&item_preview_url.into_ptr().as_mut_raw_ptr());
+                                row.append_q_standard_item(&item_time_created.into_ptr().as_mut_raw_ptr());
+                                row.append_q_standard_item(&item_time_updated.into_ptr().as_mut_raw_ptr());
+                                row.append_q_standard_item(&item_last_check.into_ptr().as_mut_raw_ptr());
+                                parent.append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
+
+                            }
                         }
-                    } else {
-                        format!("<i>{}</i>", modd.name())
-                    };
-
-                    // TODO: show discrepancies between steam's reported data and real data.
-                    let mod_size = if *modd.file_size() != 0 {
-                        format!("{:.2} MB", *modd.file_size() as f64 / 1024.0 / 1024.0)
-                    } else {
-                        let size = modd.paths()[0].metadata()?.len();
-                        format!("{:.2} MB", size as f64 / 1024.0 / 1024.0)
-                    };
-
-                    let time_created = if *modd.time_created() != 0 {
-                        OffsetDateTime::from_unix_timestamp(*modd.time_created() as i64)?.format(&date_format)?
-                    } else {
-                        let date = modd.paths()[0].metadata()?.created()?.duration_since(UNIX_EPOCH)?;
-                        OffsetDateTime::from_unix_timestamp(date.as_secs() as i64)?.format(&date_format)?
-                    };
-
-                    let time_updated = if *modd.time_updated() != 0 {
-                        OffsetDateTime::from_unix_timestamp(*modd.time_updated() as i64)?.format(&date_format)?.to_string()
-                    } else {
-                        "-".to_string()
-                    };
-
-                    let mut flags_description = String::new();
-                    if *modd.outdated() {
-                        flags_description.push_str(&tr("mod_outdated_description"));
-                        item_flags.set_data_2a(&QVariant::from_bool(true), FLAG_MOD_IS_OUTDATED);
                     }
-
-                    if !flags_description.is_empty() {
-                        flags_description = tr("mod_flags_description") + "<ul>" + &flags_description + "<ul/>";
-                        item_flags.set_tool_tip(&QString::from_std_str(&flags_description));
-                    }
-
-                    item_time_created.set_data_2a(&QVariant::from_i64(*modd.time_created() as i64), VALUE_TIMESTAMP);
-                    item_time_updated.set_data_2a(&QVariant::from_i64(*modd.time_updated() as i64), VALUE_TIMESTAMP);
-                    item_last_check.set_data_2a(&QVariant::from_i64(*modd.last_check() as i64), VALUE_TIMESTAMP);
-
-                    item_mod_name.set_text(&QString::from_std_str(mod_name));
-                    item_creator.set_text(&QString::from_std_str(modd.creator_name()));
-                    item_type.set_text(&QString::from_std_str(modd.pack_type().to_string()));
-                    item_file_size.set_text(&QString::from_std_str(&mod_size));
-                    item_file_url.set_text(&QString::from_std_str(modd.file_url()));
-                    item_preview_url.set_text(&QString::from_std_str(modd.preview_url()));
-                    item_time_created.set_text(&QString::from_std_str(&time_created));
-                    item_time_updated.set_text(&QString::from_std_str(&time_updated));
-                    item_last_check.set_text(&QString::from_std_str(modd.last_check().to_string()));
-
-                    item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.id())), VALUE_MOD_ID);
-                    item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.paths()[0].to_string_lossy())), VALUE_PACK_PATH);
-
-                    if let Some(steam_id) = modd.steam_id() {
-                        item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(steam_id)), VALUE_MOD_STEAM_ID);
-                    }
-
-                    item_mod_name.set_data_2a(&QVariant::from_bool(false), VALUE_IS_CATEGORY);
-                    item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.pack_type().to_string())), VALUE_PACK_TYPE);
-
-                    if *modd.pack_type() == PFHFileType::Mod {
-                        item_mod_name.set_checkable(true);
-                    }
-
-                    item_mod_name.set_editable(false);
-                    item_flags.set_editable(false);
-                    item_creator.set_editable(false);
-                    item_type.set_editable(false);
-                    item_file_size.set_editable(false);
-                    item_file_url.set_editable(false);
-                    item_preview_url.set_editable(false);
-                    item_time_created.set_editable(false);
-                    item_time_updated.set_editable(false);
-                    item_last_check.set_editable(false);
-
-                    item_file_size.set_text_alignment(AlignmentFlag::AlignVCenter | AlignmentFlag::AlignRight);
-
-                    if *modd.enabled() && item_mod_name.is_checkable() {
-                        item_mod_name.set_check_state(CheckState::Checked);
-                    }
-
-                    //if !modd.description().is_empty() {
-                    //    if modd.description().contains("for all regions") {
-                    //        println!("{}", parse_to_html(modd.description()));
-                    //    }
-                    //    item.set_tool_tip(&QString::from_std_str(parse_to_html(modd.description())));
-                    //}
-
-                    row.append_q_standard_item(&item_mod_name.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&item_flags.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&item_creator.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&item_type.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&item_file_size.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&item_file_url.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&item_preview_url.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&item_time_created.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&item_time_updated.into_ptr().as_mut_raw_ptr());
-                    row.append_q_standard_item(&item_last_check.into_ptr().as_mut_raw_ptr());
-                    parent.append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
-
                 }
             }
         }
-
-        self.setup_columns();
 
         self.tree_view().hide_column(5);
         self.tree_view().hide_column(6);
@@ -356,13 +346,14 @@ impl ModListUI {
         }
 
         self.tree_view().expand_all();
-        self.tree_view().sort_by_column_2a(0, SortOrder::AscendingOrder);
         self.tree_view().header().resize_sections(ResizeMode::ResizeToContents);
 
         Ok(())
     }
 
     pub unsafe fn setup_columns(&self) {
+        self.model.set_column_count(10);
+
         let item_mod_name = QStandardItem::from_q_string(&qtr("mod_name"));
         let item_flags = QStandardItem::from_q_string(&qtr("flags"));
         let item_creator = QStandardItem::from_q_string(&qtr("creator"));
@@ -439,7 +430,6 @@ impl ModListUI {
             }
         }
 
-        categories.sort();
         categories
     }
 
@@ -483,5 +473,11 @@ impl ModListUI {
     pub unsafe fn delayed_updates(&self) {
         self.filter_timer.set_interval(500);
         self.filter_timer.start_0a();
+    }
+
+    unsafe fn new_item() -> CppBox<QStandardItem> {
+        let item = QStandardItem::new();
+        item.set_editable(false);
+        item
     }
 }

@@ -8,8 +8,9 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
-use super::GameConfig as GameConfigV3;
+use super::GameConfig as GameConfigV4;
 
-pub mod v0;
-pub mod v1;
-pub mod v2;
+#[allow(dead_code)] pub mod v0;
+#[allow(dead_code)] pub mod v1;
+#[allow(dead_code)] pub mod v2;
+#[allow(dead_code)] pub mod v3;
