@@ -9,12 +9,18 @@
 //---------------------------------------------------------------------------//
 
 use qt_widgets::QMainWindow;
+use qt_widgets::QTreeView;
+use qt_widgets::QWidget;
+
+use qt_gui::QStandardItemModel;
 
 use qt_core::QBox;
+use qt_core::QModelIndex;
 use qt_core::QObject;
 use qt_core::QPtr;
 use qt_core::QRegExp;
 use qt_core::QSortFilterProxyModel;
+use qt_core::Signal;
 
 use cpp_core::Ptr;
 
@@ -48,4 +54,31 @@ pub fn html_item_delegate_safe(view: &Ptr<QObject>, column: i32) {
 extern "C" { fn flags_item_delegate(view: *mut QObject, column: i32); }
 pub fn flags_item_delegate_safe(view: &Ptr<QObject>, column: i32) {
     unsafe { flags_item_delegate(view.as_mut_raw_ptr(), column) }
+}
+
+
+//---------------------------------------------------------------------------//
+// Drag&Drop stuff.
+//---------------------------------------------------------------------------//
+
+extern "C" { fn new_mod_list_model(parent: *mut QWidget) -> *mut QStandardItemModel; }
+pub fn new_mod_list_model_safe(parent: QPtr<QWidget>) -> QPtr<QStandardItemModel> {
+    unsafe { QPtr::from_raw(new_mod_list_model(parent.as_mut_raw_ptr())) }
+}
+
+// This function allow us to create a QTreeView compatible with draggable items
+extern "C" { fn new_mod_list_tree_view(parent: *mut QWidget) -> *mut QTreeView; }
+pub fn new_mod_list_tree_view_safe(parent: QPtr<QWidget>) -> QPtr<QTreeView> {
+    unsafe { QPtr::from_raw(new_mod_list_tree_view(parent.as_mut_raw_ptr())) }
+}
+
+pub fn draggable_tree_view_drop_signal(widget: QPtr<QWidget>) -> Signal<(*const QModelIndex, i32)> {
+    unsafe {
+        Signal::new(
+            ::cpp_core::Ref::from_raw(widget.as_raw_ptr()).expect("attempted to construct a null Ref"),
+            ::std::ffi::CStr::from_bytes_with_nul_unchecked(
+                b"2itemDrop(QModelIndex const &,int)\0",
+            ),
+        )
+    }
 }

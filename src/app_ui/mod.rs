@@ -36,6 +36,7 @@ use qt_core::QVariant;
 use qt_core::SlotNoArgs;
 
 use cpp_core::CppBox;
+use cpp_core::Ref;
 
 use anyhow::{anyhow, Result};
 use getset::Getters;
@@ -69,7 +70,7 @@ use crate::CENTRAL_COMMAND;
 use crate::cli::Cli;
 use crate::communications::*;
 use crate::DARK_PALETTE;
-use crate::ffi::launcher_window_safe;
+use crate::ffi::*;
 use crate::games::*;
 use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, mods::ShareableMod, profiles::Profile, saves::Save};
 use crate::LIGHT_PALETTE;
@@ -468,6 +469,7 @@ impl AppUI {
         self.mod_list_ui().category_new().triggered().connect(slots.category_create());
         self.mod_list_ui().category_delete().triggered().connect(slots.category_delete());
         self.mod_list_ui().category_rename().triggered().connect(slots.category_rename());
+        draggable_tree_view_drop_signal(self.mod_list_ui().tree_view().static_upcast()).connect(slots.category_move());
     }
 
     /// Function to toggle the main window on and off, while keeping the stupid focus from breaking.
@@ -1319,6 +1321,137 @@ impl AppUI {
                 game_config.save(&game_info)?;
             }
         }
+        Ok(())
+    }
+
+    pub unsafe fn move_category(&self, dest_parent: Ref<QModelIndex>, dest_row: i32) -> Result<()> {
+
+        // Rare case, but possible due to selection weirdness.
+        let selection = self.mod_list_selection();
+        if selection.is_empty() {
+            return Ok(());
+        }
+
+        // Limitation: we can only move together categories or mods, not both.
+        let mut cats = false;
+        let mut mods = false;
+        selection.iter()
+            .for_each(|selection| {
+                if selection.data_1a(VALUE_IS_CATEGORY).to_bool() {
+                    cats = true;
+                } else {
+                    mods = true;
+                }
+            });
+
+        if mods == cats {
+            return Err(anyhow!("You cannot move categories and mods at the same time."));
+        }
+
+        if cats && selection.iter().any(|selection| selection.data_0a().to_string().to_std_string() == DEFAULT_CATEGORY) {
+            return Err(anyhow!("Cannot move the default category {}.", DEFAULT_CATEGORY));
+        }
+
+        // dest_parent may be invalid if we're dropping between categories.
+        if cats && dest_parent.is_valid() {
+            return Ok(());
+        }
+
+        // dest_parent may be valid for mods if we're dropping inside a category. If we drop in a category item, the parent is invalid.
+        if mods && dest_parent.is_valid() && !dest_parent.data_1a(VALUE_IS_CATEGORY).to_bool() {
+            return Ok(());
+        }
+
+        if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
+
+            // Categories move.
+            //
+            // The offset is so we get the correct destination after we remove the categories that may be before the destination.
+            if cats {
+                let cats_to_move = selection.iter().map(|x| x.data_0a().to_string().to_std_string()).collect::<Vec<_>>();
+                let offset = cats_to_move.iter()
+                    .filter_map(|cat| game_config.categories_order().iter().position(|cat2| cat == cat2))
+                    .filter(|pos| pos <= &(dest_row as usize))
+                    .count();
+
+                game_config.categories_order_mut().retain(|x| !cats_to_move.contains(x));
+
+                for (index, cat) in cats_to_move.iter().enumerate() {
+                    let pos = dest_row as usize + index - offset;
+                    game_config.categories_order_mut().insert(pos, cat.to_owned());
+                }
+
+                // Visual move.
+                let rows = selection.iter().rev().map(|x| self.mod_list_ui().model().take_row(x.row())).rev().collect::<Vec<_>>();
+                for (index, row) in rows.iter().enumerate() {
+                    let pos = dest_row as usize + index - offset;
+                    self.mod_list_ui().model().insert_row_int_q_list_of_q_standard_item(pos as i32, row);
+                }
+            }
+
+            // Mods move.
+            else if mods {
+                let mods_to_move = selection.iter().map(|x| x.data_1a(VALUE_MOD_ID).to_string().to_std_string()).collect::<Vec<_>>();
+
+                // Invalid means we're dropping in a category item.
+                let category_index = self.mod_list_ui().filter().index_2a(dest_row, 0);
+                let category_index_visual = if dest_parent.is_valid() {
+                    dest_parent
+                } else {
+                    category_index.as_ref()
+                };
+
+                let category_index_logical = self.mod_list_ui().filter().map_to_source(category_index_visual);
+                let dest_category = category_index_logical.data_0a().to_string().to_std_string();
+                let mut offset = 0;
+                if let Some(dest_mods) = game_config.categories().get(&dest_category) {
+                    offset = mods_to_move.iter()
+                        .filter(|mod_id| dest_mods.contains(mod_id))
+                        .filter_map(|mod_id| dest_mods.iter().position(|mod_id2| mod_id == mod_id2))
+                        .filter(|pos| pos <= &(dest_row as usize))
+                        .count();
+                }
+
+                for mods in game_config.categories_mut().values_mut() {
+                    mods.retain(|x| !mods_to_move.contains(x));
+                }
+
+                if let Some(dest_mods) = game_config.categories_mut().get_mut(&dest_category) {
+                    for (index, mod_id) in mods_to_move.iter().enumerate() {
+                        let mut pos: i32 = index as i32 - offset as i32;
+
+                        // Only apply this if we're inserting in a list.
+                        if dest_parent.is_valid() {
+                            pos += dest_row;
+                        }
+
+                        dest_mods.insert(pos as usize, mod_id.to_owned());
+                    }
+                }
+
+                // Visual move.
+                let rows = selection.iter().rev().map(|x| self.mod_list_ui().model().item_from_index(&x.parent()).take_row(x.row())).rev().collect::<Vec<_>>();
+                let dest_item = self.mod_list_ui().model().item_from_index(&category_index_logical);
+                for (index, row) in rows.iter().enumerate() {
+                    let mut pos: i32 = index as i32 - offset as i32;
+
+                    // Only apply this if we're inserting in a list.
+                    if dest_parent.is_valid() {
+                        pos += dest_row;
+                    }
+
+                    if pos == dest_item.row_count() {
+                        dest_item.append_row_q_list_of_q_standard_item(row);
+                    } else {
+                        dest_item.insert_row_int_q_list_of_q_standard_item(pos, row);
+                    }
+                }
+            }
+
+            let game_info = self.game_selected().read().unwrap();
+            game_config.save(&game_info)?;
+        }
+
         Ok(())
     }
 

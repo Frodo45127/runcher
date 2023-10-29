@@ -18,6 +18,7 @@ use qt_core::QUrl;
 use qt_core::SlotNoArgs;
 use qt_core::SlotOfBool;
 use qt_core::SlotOfDouble;
+use qt_core::SlotOfQModelIndexInt;
 use qt_core::SlotOfQString;
 
 use std::rc::Rc;
@@ -76,6 +77,7 @@ pub struct AppUISlots {
     category_create: QBox<SlotNoArgs>,
     category_delete: QBox<SlotNoArgs>,
     category_rename: QBox<SlotNoArgs>,
+    category_move: QBox<SlotOfQModelIndexInt>,
     mod_list_context_menu_open: QBox<SlotNoArgs>,
 }
 
@@ -401,6 +403,14 @@ impl AppUISlots {
             }
         ));
 
+        let category_move = SlotOfQModelIndexInt::new(view.main_window(), clone!(
+            view => move |dest_parent, dest_row| {
+                if let Err(error) = view.move_category(dest_parent, dest_row) {
+                    show_dialog(view.main_window(), error, false);
+                }
+            }
+        ));
+
         let mod_list_context_menu_open = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 AppUI::generate_move_to_category_submenu(&view);
@@ -449,6 +459,7 @@ impl AppUISlots {
             category_create,
             category_delete,
             category_rename,
+            category_move,
             mod_list_context_menu_open,
         }
     }

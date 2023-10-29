@@ -39,6 +39,7 @@ use qt_core::QTimer;
 use qt_core::QVariant;
 
 use cpp_core::CppBox;
+use cpp_core::CppDeletable;
 use cpp_core::Ptr;
 
 use anyhow::Result;
@@ -84,7 +85,7 @@ pub const FLAG_MOD_IS_OUTDATED: i32 = 31;
 #[getset(get = "pub")]
 pub struct ModListUI {
     tree_view: QPtr<QTreeView>,
-    model: QBox<QStandardItemModel>,
+    model: QPtr<QStandardItemModel>,
     filter: QBox<QSortFilterProxyModel>,
     filter_line_edit: QPtr<QLineEdit>,
     filter_case_sensitive_button: QPtr<QToolButton>,
@@ -115,11 +116,17 @@ impl ModListUI {
         let template_path = if cfg!(debug_assertions) { VIEW_DEBUG } else { VIEW_RELEASE };
         let main_widget = load_template(parent, template_path)?;
 
-        let tree_view: QPtr<QTreeView> = find_widget(&main_widget.static_upcast(), "tree_view")?;
+        let tree_view_placeholder: QPtr<QTreeView> = find_widget(&main_widget.static_upcast(), "tree_view")?;
+        let tree_view = new_mod_list_tree_view_safe(main_widget.static_upcast());
         let filter_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "filter_line_edit")?;
         let filter_case_sensitive_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "filter_case_sensitive_button")?;
 
-        let model = QStandardItemModel::new_1a(&main_widget);
+        // Replace the placeholder widget.
+        let main_layout: QPtr<QGridLayout> = main_widget.layout().static_downcast();
+        main_layout.replace_widget_2a(&tree_view_placeholder, &tree_view);
+        tree_view_placeholder.delete();
+
+        let model = new_mod_list_model_safe(tree_view.static_upcast());
         let filter = mod_list_filter_safe(main_widget.static_upcast());
         filter.set_source_model(&model);
         model.set_parent(&tree_view);
