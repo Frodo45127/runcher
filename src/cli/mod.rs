@@ -13,9 +13,12 @@
 use anyhow::Result;
 use clap::{builder::PossibleValuesParser, Parser};
 
+#[cfg(target_os = "windows")] use std::fs::{read_dir, remove_dir_all};
+
 use rpfm_lib::games::supported_games::*;
 use rpfm_lib::integrations::log::*;
 
+#[cfg(target_os = "windows")] use rpfm_ui_common::PROGRAM_PATH;
 use rpfm_ui_common::settings::setting_string;
 use rpfm_ui_common::utils::log_to_status_bar;
 
@@ -51,6 +54,23 @@ fn game_keys() -> Vec<&'static str> {
 impl Cli {
 
     pub unsafe fn parse_args(app_ui: &AppUI) -> Result<bool> {
+
+        // Clean up folders from previous updates, if they exist. Windows-only.
+        //
+        // Done here because that way we cover executions without UI.
+        #[cfg(target_os = "windows")] {
+            if !cfg!(debug_assertions) {
+                if let Ok(folders) = read_dir(&*PROGRAM_PATH) {
+                    for folder in folders.flatten() {
+                        let folder_path = folder.path();
+                        if folder_path.is_dir() && folder_path.file_name().unwrap().to_string_lossy().starts_with("update") {
+                            let _ = remove_dir_all(&folder_path);
+                        }
+                    }
+                    info!("Update folders cleared.");
+                }
+            }
+        }
 
         // Parse the entire cli command.
         let cli = Self::parse();
