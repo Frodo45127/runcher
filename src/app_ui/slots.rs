@@ -241,7 +241,6 @@ impl AppUISlots {
                         show_dialog(view.main_window(), error, false);
                     }
 
-                    let game_info = view.game_selected().read().unwrap();
                     if let Err(error) = game_config.save(&game_info) {
                         show_dialog(view.main_window(), error, false);
                     }
@@ -363,29 +362,13 @@ impl AppUISlots {
 
         let enable_selected = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
-                let selection = view.mod_list_selection();
-                for selection in &selection {
-                    if !selection.data_1a(VALUE_IS_CATEGORY).to_bool() {
-                        let item = view.mod_list_ui().model().item_from_index(selection);
-                        if !item.is_null() && item.is_checkable() {
-                            item.set_check_state(CheckState::Checked);
-                        }
-                    }
-                }
+                view.batch_toggle_selected_mods(true);
             }
         ));
 
         let disable_selected = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
-                let selection = view.mod_list_selection();
-                for selection in &selection {
-                    if !selection.data_1a(VALUE_IS_CATEGORY).to_bool() {
-                        let item = view.mod_list_ui().model().item_from_index(selection);
-                        if !item.is_null() && item.is_checkable() {
-                            item.set_check_state(CheckState::Unchecked);
-                        }
-                    }
-                }
+                view.batch_toggle_selected_mods(false);
             }
         ));
 

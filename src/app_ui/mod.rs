@@ -1199,6 +1199,62 @@ impl AppUI {
         Ok(())
     }
 
+    pub unsafe fn batch_toggle_selected_mods(&self, toggle: bool) {
+
+        // Lock the signals for the model, until the last item, so we avoid repeating full updates of the load order.
+        self.mod_list_ui().model().block_signals(true);
+
+        let selection = self.mod_list_selection();
+        for selection in &selection {
+            if !selection.data_1a(VALUE_IS_CATEGORY).to_bool() {
+                let item = self.mod_list_ui().model().item_from_index(selection);
+                if !item.is_null() && item.is_checkable() {
+                    if toggle {
+                        item.set_check_state(CheckState::Checked);
+                    } else {
+                        item.set_check_state(CheckState::Unchecked);
+                    }
+                }
+            }
+        }
+
+        // Unlock the signals, then manually trigger a full load order rebuild.
+        self.mod_list_ui().model().block_signals(false);
+
+        if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
+            for category in 0..self.mod_list_ui().model().row_count_0a() {
+                let cat_item = self.mod_list_ui().model().item_2a(category, 0);
+                for mod_row in 0..cat_item.row_count() {
+                    let mod_item = cat_item.child_2a(mod_row, 0);
+                    if !mod_item.is_null() && mod_item.is_checkable() {
+                        let mod_id = mod_item.data_1a(VALUE_MOD_ID).to_string().to_std_string();
+                        if let Some(ref mut modd) = game_config.mods_mut().get_mut(&mod_id) {
+                            modd.set_enabled(mod_item.check_state() == CheckState::Checked);
+                        }
+                    }
+                }
+            }
+
+            // Reload the pack view.
+            let game_info = self.game_selected().read().unwrap();
+            let game_path = setting_path(game_info.key());
+            let mut load_order = self.game_load_order().write().unwrap();
+            load_order.update(game_config);
+
+            if let Err(error) = load_order.save(&game_info) {
+                show_dialog(self.main_window(), error, false);
+            }
+
+            if let Err(error) = self.pack_list_ui().load(game_config, &game_info, &game_path, &load_order) {
+                show_dialog(self.main_window(), error, false);
+            }
+
+            if let Err(error) = game_config.save(&game_info) {
+                show_dialog(self.main_window(), error, false);
+            }
+        }
+    }
+
     pub unsafe fn create_category(&self) -> Result<()> {
         if let Some(name) = self.mod_list_ui().category_new_dialog(false)? {
             let item = QStandardItem::from_q_string(&QString::from_std_str(&name));
