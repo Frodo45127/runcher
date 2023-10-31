@@ -42,7 +42,6 @@ use anyhow::{anyhow, Result};
 use getset::Getters;
 use sha256::try_digest;
 
-use std::cmp::Reverse;
 use std::collections::HashMap;
 use std::fs::{copy, DirBuilder, File};
 use std::io::{BufWriter, Read, Write};
@@ -549,6 +548,9 @@ impl AppUI {
                 *self.game_load_order().write().unwrap() = LoadOrder::load(game).unwrap_or_else(|_| Default::default());
                 *self.game_config().write().unwrap() = Some(GameConfig::load(game, true)?);
 
+                // Trigger an update of all game profiles, just in case one needs update.
+                let _ = Profile::update(&self.game_config().read().unwrap().clone().unwrap(), &game);
+
                 // Load the profile's list.
                 *self.game_profiles().write().unwrap() = Profile::profiles_for_game(game)?;
                 self.actions_ui().profile_model().clear();
@@ -964,7 +966,7 @@ impl AppUI {
         }
     }
 
-    pub unsafe fn load_profile(&self, profile_name: Option<String>) -> Result<()> {
+    pub unsafe fn load_profile(&self, profile_name: Option<String>, is_autostart: bool) -> Result<()> {
         let profile_name = if let Some(profile_name) = profile_name {
             profile_name
         } else {
@@ -978,7 +980,9 @@ impl AppUI {
         match self.game_profiles().read().unwrap().get(&profile_name) {
             Some(profile) => {
 
-                // First, disable all mods.
+                // First, disable all mods, so we return to a neutral state.
+                self.mod_list_ui().model().block_signals(true);
+
                 for cat in 0..self.mod_list_ui().model().row_count_0a() {
                     let category = self.mod_list_ui().model().item_1a(cat);
                     for row in 0..category.row_count() {
@@ -987,7 +991,9 @@ impl AppUI {
                     }
                 }
 
-                for mod_id in profile.mods() {
+
+                // Then, enable the mods from the profile in the UI.
+                for mod_id in profile.load_order().mods() {
                     let mod_id = QString::from_std_str(mod_id);
                     for cat in 0..self.mod_list_ui().model().row_count_0a() {
                         let category = self.mod_list_ui().model().item_1a(cat);
@@ -1000,9 +1006,47 @@ impl AppUI {
                     }
                 }
 
+                self.mod_list_ui().model().block_signals(false);
+
+                // Then do the same for the backend. Keep in mind that if it's an autostart we have to avoid saving these changes to disk.
+                if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
+                    game_config.mods_mut().values_mut().for_each(|modd| { modd.set_enabled(false); });
+
+                    for mod_id in profile.load_order().mods() {
+                        if let Some(ref mut modd) = game_config.mods_mut().get_mut(mod_id) {
+                            modd.set_enabled(true);
+                        }
+                    }
+
+                    // Replace the current load order with the one from the profile, and update it.
+                    *self.game_load_order().write().unwrap() = profile.load_order().clone();
+                    let mut load_order = self.game_load_order().write().unwrap();
+                    load_order.update(game_config);
+
+                    // Reload the pack list.
+                    let game_info = self.game_selected().read().unwrap();
+
+                    if !is_autostart {
+                        if let Err(error) = load_order.save(&game_info) {
+                            show_dialog(self.main_window(), error, false);
+                        }
+                    }
+
+                    let game_path = setting_path(game_info.key());
+                    if let Err(error) = self.pack_list_ui().load(game_config, &game_info, &game_path, &load_order) {
+                        show_dialog(self.main_window(), error, false);
+                    }
+
+                    if !is_autostart {
+                        if let Err(error) = game_config.save(&game_info) {
+                            show_dialog(self.main_window(), error, false);
+                        }
+                    }
+                }
+
                 Ok(())
             }
-            None => Err(anyhow!("No profile with said name found."))
+            None => Err(anyhow!("No profile with said name found for the game selected."))
         }
     }
 
@@ -1012,28 +1056,19 @@ impl AppUI {
             return Err(anyhow!("Profile name is empty."));
         }
 
-        if let Some(ref game_config) = *self.game_config().read().unwrap() {
+        let mut profile = Profile::default();
+        profile.set_id(profile_name.to_owned());
+        profile.set_game(self.game_selected().read().unwrap().key().to_string());
+        profile.set_load_order(self.game_load_order().read().unwrap().clone());
 
-            let mods = game_config.mods()
-                .values()
-                .filter_map(|modd| if *modd.enabled() { Some(modd.id().to_string()) } else { None })
-                .collect::<Vec<_>>();
+        self.game_profiles().write().unwrap().insert(profile_name.to_owned(), profile.clone());
 
-            let mut profile = Profile::default();
-            profile.set_id(profile_name.to_owned());
-            profile.set_mods(mods);
-
-            self.game_profiles().write().unwrap().insert(profile_name.to_owned(), profile.clone());
-
-            self.actions_ui().profile_model().clear();
-            for profile in self.game_profiles().read().unwrap().keys() {
-                self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
-            }
-
-            return profile.save(&self.game_selected().read().unwrap(), &profile_name);
+        self.actions_ui().profile_model().clear();
+        for profile in self.game_profiles().read().unwrap().keys() {
+            self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
         }
 
-        Ok(())
+        profile.save(&self.game_selected().read().unwrap(), &profile_name)
     }
 
     /// This returns the selection REVERSED!!!

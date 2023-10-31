@@ -147,7 +147,6 @@ impl Cli {
             app_ui.toggle_main_window(true);
         }
 
-        // NOTE: This is a ñapa until the profile rework is done.
         if game_passed {
 
             // Default profile. Only check if we have a valid game, because this needs the game to be set.
@@ -155,7 +154,7 @@ impl Cli {
                 Some(ref profile) => {
                     info!("Profile {} provided through args.", profile);
 
-                    match app_ui.load_profile(Some(profile.to_string())) {
+                    match app_ui.load_profile(Some(profile.to_string()), cli.autostart) {
                         Ok(_) => info!("Profile loaded correctly."),
                         Err(error) => error!("Error loading profile {}: {}.", profile, error),
                     }
