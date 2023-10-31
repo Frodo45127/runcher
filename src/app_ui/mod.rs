@@ -1224,8 +1224,7 @@ impl AppUI {
     }
 
     pub unsafe fn delete_category(&self) -> Result<()> {
-        let mut selection = self.mod_list_selection();
-        selection.sort_by_key(|b| Reverse(b.row()));
+        let selection = self.mod_list_selection();
 
         if selection.iter().any(|index| index.data_1a(2).to_string().to_std_string() == DEFAULT_CATEGORY) {
             return Err(anyhow!("Dude, did you just tried to delete the {} category?!! You monster!!!", DEFAULT_CATEGORY));
@@ -1281,6 +1280,8 @@ impl AppUI {
     pub unsafe fn rename_category(&self) -> Result<()> {
         if let Some(new_cat_name) = self.mod_list_ui().category_new_dialog(true)? {
             let selection = self.mod_list_selection();
+
+            // NOTE: We assume there is only one selection. This breaks with more.
             let cat_index = &selection[0];
             let old_cat_name = cat_index.data_1a(2).to_string().to_std_string();
             if old_cat_name == DEFAULT_CATEGORY {
@@ -1352,7 +1353,7 @@ impl AppUI {
             //
             // The offset is so we get the correct destination after we remove the categories that may be before the destination.
             if cats {
-                let cats_to_move = selection.iter().map(|x| x.data_0a().to_string().to_std_string()).collect::<Vec<_>>();
+                let cats_to_move = selection.iter().rev().map(|x| x.data_0a().to_string().to_std_string()).collect::<Vec<_>>();
                 let offset = cats_to_move.iter()
                     .filter_map(|cat| game_config.categories_order().iter().position(|cat2| cat == cat2))
                     .filter(|pos| pos < &(dest_row as usize))
@@ -1366,7 +1367,9 @@ impl AppUI {
                 }
 
                 // Visual move.
-                let rows = selection.iter().rev().map(|x| self.mod_list_ui().model().take_row(x.row())).rev().collect::<Vec<_>>();
+                let mut rows = selection.iter().map(|x| self.mod_list_ui().model().take_row(x.row())).collect::<Vec<_>>();
+                rows.reverse();
+
                 for (index, row) in rows.iter().enumerate() {
                     let pos = dest_row as usize + index - offset;
                     self.mod_list_ui().model().insert_row_int_q_list_of_q_standard_item(pos as i32, row);
@@ -1375,7 +1378,7 @@ impl AppUI {
 
             // Mods move.
             else if mods {
-                let mods_to_move = selection.iter().map(|x| x.data_1a(VALUE_MOD_ID).to_string().to_std_string()).collect::<Vec<_>>();
+                let mods_to_move = selection.iter().rev().map(|x| x.data_1a(VALUE_MOD_ID).to_string().to_std_string()).collect::<Vec<_>>();
 
                 // Invalid means we're dropping in a category item.
                 let category_index = self.mod_list_ui().filter().index_2a(dest_row, 0);
@@ -1415,7 +1418,9 @@ impl AppUI {
                 }
 
                 // Visual move.
-                let rows = selection.iter().rev().map(|x| self.mod_list_ui().model().item_from_index(&x.parent()).take_row(x.row())).rev().collect::<Vec<_>>();
+                let mut rows = selection.iter().map(|x| self.mod_list_ui().model().item_from_index(&x.parent()).take_row(x.row())).collect::<Vec<_>>();
+                rows.reverse();
+
                 let dest_item = self.mod_list_ui().model().item_from_index(&category_index_logical);
                 for (index, row) in rows.iter().enumerate() {
                     let pos: i32 = dest_row_final + index as i32 - offset as i32;
@@ -1445,7 +1450,7 @@ impl AppUI {
                         category,
                         app_ui => move || {
                             let mut selection = app_ui.mod_list_selection();
-                            selection.sort_by_key(|b| Reverse(b.row()));
+                            selection.reverse();
 
                             for mod_item in &selection {
                                 let current_cat = mod_item.parent();

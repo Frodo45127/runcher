@@ -83,7 +83,9 @@ impl ModListUISlots {
 
         let open_in_explorer = SlotNoArgs::new(&view.tree_view, clone!(
             view => move || {
-            let selection = view.mod_list_selection();
+            let mut selection = view.mod_list_selection();
+            selection.reverse();
+
             for selection in &selection {
                 let mut folder_path = PathBuf::from(selection.data_1a(VALUE_PACK_PATH).to_string().to_std_string());
                 folder_path.pop();
@@ -93,7 +95,9 @@ impl ModListUISlots {
 
         let open_in_steam = SlotNoArgs::new(&view.tree_view, clone!(
             view => move || {
-            let selection = view.mod_list_selection();
+            let mut selection = view.mod_list_selection();
+            selection.reverse();
+
             for selection in &selection {
                 let url = selection.data_1a(VALUE_MOD_STEAM_ID).to_string().to_std_string();
                 if !url.is_empty() {
