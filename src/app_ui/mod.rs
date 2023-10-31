@@ -1488,7 +1488,16 @@ impl AppUI {
             return Ok(());
         }
 
+        // Do NOT allow moving movie packs.
+        if selection.iter().any(|x| self.pack_list_ui().model().index_2a(x.row(), 1).data_0a().to_string().to_std_string() != PFHFileType::Mod.to_string()) {
+            return Ok(());
+        }
+
+        // Do NOT allow placing a mod pack under a movie pack.
         let mut load_order = self.game_load_order().write().unwrap();
+        if !load_order.movies().is_empty() && new_position as usize > load_order.mods().len() {
+            return Ok(());
+        }
 
         // This one is easier than with categories: we just calculate the offset, take the items at selected positions, then re-add them in their new position.
         let packs_to_move = selection.iter().rev().map(|x| x.data_1a(VALUE_MOD_ID).to_string().to_std_string()).collect::<Vec<_>>();
