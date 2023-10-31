@@ -153,3 +153,6 @@ game_config_error = Game config not loaded. Please configure the game correctly 
 automatic_mode_tooltip = Automatic Mode
 
     If this is enabled, the load order is automatically generated. If you want to manually edit it, disable this.
+
+updater_update_program_updating = Updating, pls wait...
+updater_update_schemas_updating = Updating, pls wait...

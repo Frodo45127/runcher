@@ -50,7 +50,7 @@ impl UpdaterUISlots {
         let update_program = SlotNoArgs::new(ui.main_widget(), clone!(
             ui => move || {
                 let receiver = CENTRAL_COMMAND.send_background(Command::UpdateMainProgram);
-                ui.update_program_button.set_text(&qtr("updater_update_program_checking"));
+                ui.update_program_button.set_text(&qtr("updater_update_schemas_updating"));
                 ui.update_program_button.set_enabled(false);
 
                 let response = CENTRAL_COMMAND.recv_try(&receiver);
@@ -85,7 +85,7 @@ impl UpdaterUISlots {
             app_ui,
             ui => move || {
                 let receiver = CENTRAL_COMMAND.send_background(Command::UpdateSchemas(app_ui.game_selected().read().unwrap().schema_file_name().to_owned()));
-                ui.update_schemas_button.set_text(&qtr("updater_update_schemas_checking"));
+                ui.update_schemas_button.set_text(&qtr("updater_update_schemas_updating"));
                 ui.update_schemas_button.set_enabled(false);
 
                 let response = CENTRAL_COMMAND.recv_try(&receiver);
