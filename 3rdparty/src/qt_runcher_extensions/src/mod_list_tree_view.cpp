@@ -33,7 +33,7 @@ ModListTreeView::ModListTreeView(QWidget *parent) : QTreeView(parent) {
 }
 
 void ModListTreeView::dragEnterEvent(QDragEnterEvent *event) {
-    event->acceptProposedAction();
+    QTreeView::dragEnterEvent(event);
 }
 
 void ModListTreeView::dragMoveEvent(QDragMoveEvent *event) {
