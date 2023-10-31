@@ -541,8 +541,7 @@ impl AppUI {
                 *self.game_selected().write().unwrap() = game.clone();
 
                 // Trigger an update of all game configs, just in case one needs update.
-                // This somehow is reseting the file. Disable it until it's needed.
-                //let _ = GameConfig::update(game.key());
+                let _ = GameConfig::update(game.key());
 
                 // Load the game's config and last known load order.
                 *self.game_load_order().write().unwrap() = LoadOrder::load(game).unwrap_or_else(|_| Default::default());

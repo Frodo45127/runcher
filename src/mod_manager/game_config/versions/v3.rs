@@ -37,9 +37,13 @@ impl GameConfigV3 {
         let games = SupportedGames::default();
         if let Some(game_info) = games.game(game_name) {
             if let Ok(config) = Self::load(game_info, false) {
-                let mut config_new = GameConfigV4::from(&config);
-                dbg!(1);
-                config_new.save(game_info)?;
+
+                // Check that it fails with v4, because v4 files for some reason are readable with v3.
+                if GameConfigV4::load(game_info, false).is_err() {
+                    dbg!(1);
+                    let mut config_new = GameConfigV4::from(&config);
+                    config_new.save(game_info)?;
+                }
             }
         }
 

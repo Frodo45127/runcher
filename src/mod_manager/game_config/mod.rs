@@ -104,9 +104,9 @@ impl GameConfig {
 
     #[allow(dead_code)]
     pub fn update(game_name: &str) -> Result<()> {
-        let _ = versions::v0::GameConfigV0::update(game_name);
-        let _ = versions::v1::GameConfigV1::update(game_name);
-        let _ = versions::v2::GameConfigV2::update(game_name);
+        //let _ = versions::v0::GameConfigV0::update(game_name);
+        //let _ = versions::v1::GameConfigV1::update(game_name);
+        //let _ = versions::v2::GameConfigV2::update(game_name);
         let _ = versions::v3::GameConfigV3::update(game_name);
 
         Ok(())
