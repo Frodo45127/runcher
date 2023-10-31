@@ -40,6 +40,7 @@ use cpp_core::Ref;
 
 use anyhow::{anyhow, Result};
 use getset::Getters;
+use itertools::Itertools;
 use sha256::try_digest;
 
 use std::collections::HashMap;
@@ -551,10 +552,13 @@ impl AppUI {
                 let _ = Profile::update(&self.game_config().read().unwrap().clone().unwrap(), &game);
 
                 // Load the profile's list.
-                *self.game_profiles().write().unwrap() = Profile::profiles_for_game(game)?;
-                self.actions_ui().profile_model().clear();
+                match Profile::profiles_for_game(game) {
+                    Ok(profiles) => *self.game_profiles().write().unwrap() = profiles,
+                    Err(error) => show_dialog(self.main_window(), format!("Error loading profiles: {}", error), false),
+                }
 
-                for profile in self.game_profiles().read().unwrap().keys() {
+                self.actions_ui().profile_model().clear();
+                for profile in self.game_profiles().read().unwrap().keys().sorted() {
                     self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
                 }
 
