@@ -72,6 +72,17 @@ pub fn new_mod_list_tree_view_safe(parent: QPtr<QWidget>) -> QPtr<QTreeView> {
     unsafe { QPtr::from_raw(new_mod_list_tree_view(parent.as_mut_raw_ptr())) }
 }
 
+extern "C" { fn new_pack_list_model(parent: *mut QWidget) -> *mut QStandardItemModel; }
+pub fn new_pack_list_model_safe(parent: QPtr<QWidget>) -> QPtr<QStandardItemModel> {
+    unsafe { QPtr::from_raw(new_pack_list_model(parent.as_mut_raw_ptr())) }
+}
+
+// This function allow us to create a QTreeView compatible with draggable items
+extern "C" { fn new_pack_list_tree_view(parent: *mut QWidget) -> *mut QTreeView; }
+pub fn new_pack_list_tree_view_safe(parent: QPtr<QWidget>) -> QPtr<QTreeView> {
+    unsafe { QPtr::from_raw(new_pack_list_tree_view(parent.as_mut_raw_ptr())) }
+}
+
 pub fn draggable_tree_view_drop_signal(widget: QPtr<QWidget>) -> Signal<(*const QModelIndex, i32)> {
     unsafe {
         Signal::new(

@@ -53,7 +53,7 @@ use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
 use rpfm_lib::binary::WriteBytes;
-use rpfm_lib::files::{EncodeableExtraData, esf::NodeType, pack::Pack, RFile, RFileDecoded};
+use rpfm_lib::files::{EncodeableExtraData, pack::Pack, RFile};
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::log::*;
 use rpfm_lib::schema::Schema;
@@ -72,7 +72,7 @@ use crate::communications::*;
 use crate::DARK_PALETTE;
 use crate::ffi::*;
 use crate::games::*;
-use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, mods::ShareableMod, profiles::Profile, saves::Save};
+use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, load_order::LoadOrder, mods::ShareableMod, profiles::Profile, saves::Save};
 use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::*;
@@ -140,7 +140,6 @@ pub struct AppUI {
 
     game_selected_group: QBox<QActionGroup>,
 
-
     //-------------------------------------------------------------------------------//
     // `Actions` section.
     //-------------------------------------------------------------------------------//
@@ -163,6 +162,7 @@ pub struct AppUI {
     disabled_counter: Rc<RwLock<u32>>,
 
     game_config: Arc<RwLock<Option<GameConfig>>>,
+    game_load_order: Arc<RwLock<LoadOrder>>,
     game_profiles: Arc<RwLock<HashMap<String, Profile>>>,
     game_saves: Arc<RwLock<Vec<Save>>>,
 
@@ -354,6 +354,7 @@ impl AppUI {
             focused_widget: Rc::new(RwLock::new(None)),
             disabled_counter: Rc::new(RwLock::new(0)),
             game_config: Arc::new(RwLock::new(None)),
+            game_load_order: Arc::new(RwLock::new(LoadOrder::default())),
             game_profiles: Arc::new(RwLock::new(HashMap::new())),
             game_saves: Arc::new(RwLock::new(vec![])),
 
@@ -470,6 +471,9 @@ impl AppUI {
         self.mod_list_ui().category_delete().triggered().connect(slots.category_delete());
         self.mod_list_ui().category_rename().triggered().connect(slots.category_rename());
         draggable_tree_view_drop_signal(self.mod_list_ui().tree_view().static_upcast()).connect(slots.category_move());
+
+        self.pack_list_ui().automatic_order_button().toggled().connect(slots.pack_toggle_auto_sorting());
+        draggable_tree_view_drop_signal(self.pack_list_ui().tree_view().static_upcast()).connect(slots.pack_move());
     }
 
     /// Function to toggle the main window on and off, while keeping the stupid focus from breaking.
@@ -541,7 +545,8 @@ impl AppUI {
                 // This somehow is reseting the file. Disable it until it's needed.
                 //let _ = GameConfig::update(game.key());
 
-                // Load the game's config.
+                // Load the game's config and last known load order.
+                *self.game_load_order().write().unwrap() = LoadOrder::load(game).unwrap_or_else(|_| Default::default());
                 *self.game_config().write().unwrap() = Some(GameConfig::load(game, true)?);
 
                 // Load the profile's list.
@@ -655,10 +660,11 @@ impl AppUI {
     pub unsafe fn load_mods_to_ui(&self, game: &GameInfo, game_path: &Path, skip_network_update: bool) -> Result<()> {
         let mut mods = self.game_config().write().unwrap();
         if let Some(ref mut mods) = *mods {
-            mods.update_mod_list(game, game_path, skip_network_update)?;
+            let mut load_order = self.game_load_order().write().unwrap();
+            mods.update_mod_list(game, game_path, &mut load_order, skip_network_update)?;
 
             self.mod_list_ui().load(mods)?;
-            self.pack_list_ui().load(mods, game, game_path)?;
+            self.pack_list_ui().load(mods, game, game_path, &load_order)?;
         }
 
         Ok(())
@@ -784,84 +790,47 @@ impl AppUI {
         }
 
         // If we have "merge all mods" checked, we need to load the entire load order into a single pack, and load that pack instead of the entire load order.
+        //
+        // TODO: Review this before re-enabling merged mods. This pretty sure breaks on older games.
         if self.actions_ui().merge_all_mods_checkbox().is_enabled() && self.actions_ui().merge_all_mods_checkbox().is_checked() {
             let temp_path_file_name = format!("{}_{}.pack", MERGE_ALL_PACKS_PACK_NAME, self.game_selected().read().unwrap().key());
             let temp_path = data_path.join(&temp_path_file_name);
             pack_list.push_str(&format!("mod \"{}\";", temp_path_file_name));
 
             // Generate the merged pack.
-            let pack_paths = (0..self.pack_list_ui().model().row_count_0a())
-                .filter_map(|index| {
-                    let item_type = self.pack_list_ui().model().item_2a(index, 1);
-                    let item_path = self.pack_list_ui().model().item_2a(index, 2);
+            let load_order = self.game_load_order().read().unwrap();
+            if let Some(ref game_config) = *self.game_config().read().unwrap() {
 
-                    if item_type.text().to_std_string() == "Mod" {
-                        let path = PathBuf::from(item_path.text().to_std_string());
-
-                        // Canonicalization is required due to some issues with the game not loading not properly formatted paths.
-                        std::fs::canonicalize(path).ok()
-                    } else {
-                        None
-                    }
-                })
+                let pack_paths = load_order.mods().iter()
+                    .filter_map(|mod_id| {
+                        let modd = game_config.mods().get(mod_id)?;
+                        std::fs::canonicalize(modd.paths().first()?).ok()
+                    })
                 .collect::<Vec<_>>();
 
-            if !pack_paths.is_empty() {
-                let mut reserved_pack = Pack::read_and_merge(&pack_paths, true, false)?;
-                let pack_version = game.pfh_version_by_file_type(PFHFileType::Mod);
-                reserved_pack.set_pfh_version(pack_version);
+                if !pack_paths.is_empty() {
+                    let mut reserved_pack = Pack::read_and_merge(&pack_paths, true, false)?;
+                    let pack_version = game.pfh_version_by_file_type(PFHFileType::Mod);
+                    reserved_pack.set_pfh_version(pack_version);
 
-                let mut encode_data = EncodeableExtraData::default();
-                encode_data.set_nullify_dates(true);
+                    let mut encode_data = EncodeableExtraData::default();
+                    encode_data.set_nullify_dates(true);
 
-                reserved_pack.save(Some(&temp_path), &game, &Some(encode_data))?;
+                    reserved_pack.save(Some(&temp_path), &game, &Some(encode_data))?;
+                }
+            } else {
+                return Err(anyhow!(tr("game_config_error")));
             }
         }
 
         // Otherwise, just add the packs from the load order to the text file.
         else {
 
-            // TODO: Replace this with the load order list once it's made global.
-            pack_list.push_str(&(0..self.pack_list_ui().model().row_count_0a())
-                .filter_map(|index| {
-                    let mut string = String::new();
-                    let item = self.pack_list_ui().model().item_1a(index);
-                    let item_type = self.pack_list_ui().model().item_2a(index, 1);
-                    let item_path = self.pack_list_ui().model().item_2a(index, 2);
-                    let item_location = self.pack_list_ui().model().item_2a(index, 4);
-                    let item_steam_id = self.pack_list_ui().model().item_2a(index, 5);
-
-                    if item_type.text().to_std_string() == "Mod" {
-                        let steam_id = item_steam_id.text().to_std_string();
-
-                        // Loading packs from outside /data is only supported on rome 2 and newer games.
-                        if item_location.text().to_std_string().starts_with("Content") && *game.raw_db_version() >= 2 && !steam_id.is_empty() {
-                            let mut path = PathBuf::from(item_path.text().to_std_string());
-                            path.pop();
-
-                            // Canonicalization is required due to some issues with the game not loading not properly formatted paths.
-                            if let Ok(path) = std::fs::canonicalize(path) {
-                                let mut path_str = path.to_string_lossy().to_string();
-                                if path_str.starts_with("\\\\?\\") {
-                                    path_str = path_str[4..].to_string();
-                                }
-
-                                folder_list.push_str(&format!("add_working_directory \"{}\";\n", path_str));
-                            } else {
-                                return None;
-                            }
-                        }
-
-                        string.push_str(&format!("mod \"{}\";", item.text().to_std_string()));
-                        Some(string)
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join("\n"));
+            if let Some(ref game_config) = *self.game_config().read().unwrap() {
+                let load_order = self.game_load_order().read().unwrap();
+                load_order.build_load_order_string(game_config, &game, &data_path, &mut pack_list, &mut folder_list);
+            }
         }
-
 
         // Check if we are loading a save. First option is no save load. Any index above that is a save.
         let mut extra_args = vec![];
@@ -1067,8 +1036,14 @@ impl AppUI {
         Ok(())
     }
 
+    /// This returns the selection REVERSED!!!
     pub unsafe fn mod_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
         self.mod_list_ui().mod_list_selection()
+    }
+
+    /// This returns the selection REVERSED!!!
+    pub unsafe fn pack_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
+        self.pack_list_ui().pack_list_selection()
     }
 
     /// This function creates the stylesheet used for the dark theme in windows.
@@ -1211,10 +1186,12 @@ impl AppUI {
                 show_dialog(self.main_window(), message, false);
             }
 
+            // TODO: This is wrong!!!! the load order from shared lists needs a rework.
             let game = self.game_selected().read().unwrap();
             let game_path = setting_path(game.key());
+            let load_order = self.game_load_order().read().unwrap();
             self.mod_list_ui().load(game_config)?;
-            self.pack_list_ui().load(game_config, &game, &game_path)?;
+            self.pack_list_ui().load(game_config, &game, &game_path, &load_order)?;
 
             game_config.save(&game)?;
         }
@@ -1501,5 +1478,50 @@ impl AppUI {
                 }
             }
         }
+    }
+
+    pub unsafe fn move_pack(&self, new_position: i32) -> Result<()> {
+
+        // Rare case, but possible due to selection weirdness.
+        let selection = self.pack_list_selection();
+        if selection.is_empty() {
+            return Ok(());
+        }
+
+        let mut load_order = self.game_load_order().write().unwrap();
+
+        // This one is easier than with categories: we just calculate the offset, take the items at selected positions, then re-add them in their new position.
+        let packs_to_move = selection.iter().rev().map(|x| x.data_1a(VALUE_MOD_ID).to_string().to_std_string()).collect::<Vec<_>>();
+        let offset = load_order.mods().iter()
+            .enumerate()
+            .filter(|(index, mod_id)| (index < &(new_position as usize) && packs_to_move.contains(&mod_id)))
+            .count();
+
+        load_order.mods_mut().retain(|mod_id| !packs_to_move.contains(&mod_id));
+        for (index, mod_id) in packs_to_move.iter().enumerate() {
+            let pos: i32 = new_position + index as i32 - offset as i32;
+            load_order.mods_mut().insert(pos as usize, mod_id.to_owned());
+        }
+        let game_info = self.game_selected().read().unwrap();
+        load_order.save(&game_info)?;
+
+        // Visual move.
+        let mut rows = selection.iter().map(|x| self.pack_list_ui().model().take_row(x.row()).into_ptr()).collect::<Vec<_>>();
+        rows.reverse();
+
+        for (index, row) in rows.iter().enumerate() {
+            let pos = new_position as usize + index - offset;
+            self.pack_list_ui().model().insert_row_int_q_list_of_q_standard_item(pos as i32, row.as_ref().unwrap());
+        }
+
+        for row in 0..self.pack_list_ui().model().row_count_0a() {
+            let item = self.pack_list_ui().model().item_2a(row, 3);
+            if !item.is_null() {
+                item.set_data_2a(&QVariant::from_int(row as i32), 2);
+            }
+        }
+
+        Ok(())
+
     }
 }

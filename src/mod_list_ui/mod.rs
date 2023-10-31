@@ -455,10 +455,15 @@ impl ModListUI {
 
     pub unsafe fn mod_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
         let indexes_visual = self.tree_view().selection_model().selection().indexes();
-        let indexes_visual = (0..indexes_visual.count_0a()).rev()
+        let mut indexes_visual = (0..indexes_visual.count_0a())
             .filter(|x| indexes_visual.at(*x).column() == 0)
             .map(|x| indexes_visual.at(x))
             .collect::<Vec<_>>();
+
+        // Manually sort the selection, because if the user selects with ctrl from bottom to top, this breaks hard.
+        indexes_visual.sort_by_key(|index| index.row());
+        indexes_visual.reverse();
+
         indexes_visual.iter().map(|x| self.filter().map_to_source(*x)).collect::<Vec<_>>()
     }
 

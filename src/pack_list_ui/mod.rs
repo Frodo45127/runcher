@@ -21,15 +21,16 @@ use qt_gui::QStandardItemModel;
 
 use qt_core::CaseSensitivity;
 use qt_core::QBox;
+use qt_core::QModelIndex;
 use qt_core::QPtr;
 use qt_core::QRegExp;
 use qt_core::QSortFilterProxyModel;
 use qt_core::QString;
 use qt_core::QTimer;
 use qt_core::QVariant;
-use qt_core::SortOrder;
 
 use cpp_core::CppBox;
+use cpp_core::CppDeletable;
 
 use anyhow::Result;
 use getset::*;
@@ -43,15 +44,16 @@ use rpfm_lib::games::GameInfo;
 use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::utils::*;
 
-use crate::mod_manager::game_config::GameConfig;
-use crate::mod_manager::load_order::LoadOrder;
+use crate::ffi::*;
+use crate::mod_list_ui::VALUE_MOD_ID;
+use crate::mod_manager::{game_config::GameConfig, load_order::LoadOrder};
 
 use self::slots::PackListUISlots;
 
 mod slots;
 
-const VIEW_DEBUG: &str = "ui_templates/filterable_tree_widget.ui";
-const VIEW_RELEASE: &str = "ui/filterable_tree_widget.ui";
+const VIEW_DEBUG: &str = "ui_templates/pack_list_widget.ui";
+const VIEW_RELEASE: &str = "ui/pack_list_widget.ui";
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -61,11 +63,13 @@ const VIEW_RELEASE: &str = "ui/filterable_tree_widget.ui";
 #[getset(get = "pub")]
 pub struct PackListUI {
     tree_view: QPtr<QTreeView>,
-    model: QBox<QStandardItemModel>,
+    model: QPtr<QStandardItemModel>,
     filter: QBox<QSortFilterProxyModel>,
     filter_line_edit: QPtr<QLineEdit>,
     filter_case_sensitive_button: QPtr<QToolButton>,
     filter_timer: QBox<QTimer>,
+
+    automatic_order_button: QPtr<QToolButton>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -81,11 +85,19 @@ impl PackListUI {
         let template_path = if cfg!(debug_assertions) { VIEW_DEBUG } else { VIEW_RELEASE };
         let main_widget = load_template(parent, template_path)?;
 
-        let tree_view: QPtr<QTreeView> = find_widget(&main_widget.static_upcast(), "tree_view")?;
+        let tree_view_placeholder: QPtr<QTreeView> = find_widget(&main_widget.static_upcast(), "tree_view")?;
+        let tree_view = new_pack_list_tree_view_safe(main_widget.static_upcast());
         let filter_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "filter_line_edit")?;
         let filter_case_sensitive_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "filter_case_sensitive_button")?;
+        let automatic_order_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "automatic_order_button")?;
+        automatic_order_button.set_tool_tip(&qtr("automatic_mode_tooltip"));
 
-        let model = QStandardItemModel::new_1a(&main_widget);
+        // Replace the placeholder widget.
+        let main_layout: QPtr<QGridLayout> = main_widget.layout().static_downcast();
+        main_layout.replace_widget_2a(&tree_view_placeholder, &tree_view);
+        tree_view_placeholder.delete();
+
+        let model = new_pack_list_model_safe(tree_view.static_upcast());
         let filter = QSortFilterProxyModel::new_1a(&main_widget);
         filter.set_source_model(&model);
         model.set_parent(&tree_view);
@@ -104,6 +116,7 @@ impl PackListUI {
             filter_line_edit,
             filter_case_sensitive_button,
             filter_timer,
+            automatic_order_button,
         });
 
         let slots = PackListUISlots::new(&list);
@@ -118,15 +131,15 @@ impl PackListUI {
         self.filter_timer().timeout().connect(slots.filter_trigger());
     }
 
-    pub unsafe fn load(&self, game_config: &GameConfig, game_info: &GameInfo, game_path: &Path) -> Result<()> {
+    pub unsafe fn load(&self, game_config: &GameConfig, game_info: &GameInfo, game_path: &Path, load_order: &LoadOrder) -> Result<()> {
         self.model().clear();
-
-        let mut load_order = LoadOrder::default();
-        load_order.generate(game_config);
 
         if !game_path.to_string_lossy().is_empty() {
             if let Ok(game_data_folder) = game_info.data_path(game_path) {
-                for (index, mod_id) in load_order.mods().iter().enumerate() {
+
+                // Chain so movie packs are always last.
+                let mods = load_order.mods().iter().chain(load_order.movies().iter());
+                for (index, mod_id) in mods.enumerate() {
                     if let Some(modd) = game_config.mods().get(mod_id) {
 
                         let row = QListOfQStandardItem::new();
@@ -141,6 +154,7 @@ impl PackListUI {
                         let steam_id = Self::new_item();
 
                         item_name.set_text(&QString::from_std_str(&pack_name));
+                        item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(mod_id)), VALUE_MOD_ID);
                         item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str((pack.pfh_file_type() as u32).to_string() + &pack_name)), 20);
                         item_type.set_text(&QString::from_std_str(&modd.pack_type().to_string()));
                         item_path.set_text(&QString::from_std_str(&modd.paths()[0].to_string_lossy()));
@@ -175,8 +189,11 @@ impl PackListUI {
         self.tree_view().hide_column(5);
 
         self.setup_columns();
-        self.tree_view().sort_by_column_2a(3, SortOrder::AscendingOrder);
         self.tree_view().header().resize_sections(ResizeMode::ResizeToContents);
+
+        self.automatic_order_button().block_signals(true);
+        self.automatic_order_button().set_checked(*load_order.automatic());
+        self.automatic_order_button().block_signals(false);
 
         Ok(())
     }
@@ -195,6 +212,21 @@ impl PackListUI {
         self.model.set_horizontal_header_item(3, load_order.into_ptr());
         self.model.set_horizontal_header_item(4, location.into_ptr());
         self.model.set_horizontal_header_item(5, steam_id.into_ptr());
+    }
+
+    /// This returns the selection REVERSED, FROM BOTTOM TO TOP.
+    pub unsafe fn pack_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
+        let indexes_visual = self.tree_view().selection_model().selection().indexes();
+        let mut indexes_visual = (0..indexes_visual.count_0a())
+            .filter(|x| indexes_visual.at(*x).column() == 0)
+            .map(|x| indexes_visual.at(x))
+            .collect::<Vec<_>>();
+
+        // Manually sort the selection, because if the user selects with ctrl from bottom to top, this breaks hard.
+        indexes_visual.sort_by_key(|index| index.row());
+        indexes_visual.reverse();
+
+        indexes_visual.iter().map(|x| self.filter().map_to_source(*x)).collect::<Vec<_>>()
     }
 
     pub unsafe fn filter_list(&self) {

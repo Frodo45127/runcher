@@ -29,7 +29,7 @@ use rpfm_lib::integrations::log::error;
 use rpfm_ui_common::settings::setting_string;
 
 use crate::app_ui::{RESERVED_PACK_NAME, RESERVED_PACK_NAME_ALTERNATIVE};
-use crate::mod_manager::{integrations::populate_mods, mods::Mod};
+use crate::mod_manager::{integrations::populate_mods, load_order::LoadOrder, mods::Mod};
 use crate::settings_ui::*;
 
 mod versions;
@@ -84,9 +84,9 @@ impl GameConfig {
         let mut data = Vec::with_capacity(file.get_ref().metadata()?.len() as usize);
         file.read_to_end(&mut data)?;
 
-        let profile: Self = serde_json::from_slice(&data)?;
+        let config: Self = serde_json::from_slice(&data)?;
 
-        Ok(profile)
+        Ok(config)
     }
 
     pub fn save(&mut self, game: &GameInfo) -> Result<()> {
@@ -161,7 +161,7 @@ impl GameConfig {
         self.categories_order_mut().retain(|x| x != category);
     }
 
-    pub fn update_mod_list(&mut self, game: &GameInfo, game_path: &Path, skip_network_update: bool) -> Result<()> {
+    pub fn update_mod_list(&mut self, game: &GameInfo, game_path: &Path, load_order: &mut LoadOrder, skip_network_update: bool) -> Result<()> {
 
         // Get the modified date of the game's exe, to check if a mod is outdated or not.
         let last_update_date = if let Some(exe_path) = game.executable_path(game_path) {
@@ -384,6 +384,10 @@ impl GameConfig {
                 }
             }
         }
+
+        // Update the current load order to reflect any change related to mods no longer being installed or being added as new.
+        load_order.update(self);
+        load_order.save(game)?;
 
         // Save the GameConfig or we may lost the population.
         self.save(game)

@@ -31,6 +31,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    src/pack_list_model.cpp \
+    src/pack_list_tree_view.cpp \
     src/mod_list_model.cpp \
     src/mod_list_tree_view.cpp \
     src/flags_item_delegate.cpp \
@@ -39,6 +41,8 @@ SOURCES += \
     src/mod_list_filter.cpp
 
 HEADERS += \
+    src/pack_list_model.h \
+    src/pack_list_tree_view.h \
     src/mod_list_model.h \
     src/mod_list_tree_view.h \
     src/flags_item_delegate.h \

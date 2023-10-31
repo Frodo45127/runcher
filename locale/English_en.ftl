@@ -148,3 +148,8 @@ updater_update_program_error = Error updating Runcher.
 updater_update_program_updated = Runcher updated! Click here to restart it.
 
 settings_font_title = Font Settings
+edit_load_order_with_auto_on = Automatic load order mode is enabled. Disable it if you want to manually edit the load order.
+game_config_error = Game config not loaded. Please configure the game correctly and try again.
+automatic_mode_tooltip = Automatic Mode
+
+    If this is enabled, the load order is automatically generated. If you want to manually edit it, disable this.

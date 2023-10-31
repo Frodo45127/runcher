@@ -79,6 +79,9 @@ pub struct AppUISlots {
     category_rename: QBox<SlotNoArgs>,
     category_move: QBox<SlotOfQModelIndexInt>,
     mod_list_context_menu_open: QBox<SlotNoArgs>,
+
+    pack_toggle_auto_sorting: QBox<SlotOfBool>,
+    pack_move: QBox<SlotOfQModelIndexInt>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -227,7 +230,14 @@ impl AppUISlots {
                     // Reload the pack view.
                     let game_info = view.game_selected().read().unwrap();
                     let game_path = setting_path(game_info.key());
-                    if let Err(error) = view.pack_list_ui().load(game_config, &game_info, &game_path) {
+                    let mut load_order = view.game_load_order().write().unwrap();
+                    load_order.update(game_config);
+
+                    if let Err(error) = load_order.save(&game_info) {
+                        show_dialog(view.main_window(), error, false);
+                    }
+
+                    if let Err(error) = view.pack_list_ui().load(game_config, &game_info, &game_path, &load_order) {
                         show_dialog(view.main_window(), error, false);
                     }
 
@@ -421,6 +431,38 @@ impl AppUISlots {
         let discord_link = SlotNoArgs::new(view.main_window(), || { QDesktopServices::open_url(&QUrl::new_1a(&QString::from_std_str(DISCORD_URL))); });
         let patreon_link = SlotNoArgs::new(view.main_window(), || { QDesktopServices::open_url(&QUrl::new_1a(&QString::from_std_str(PATREON_URL))); });
 
+        let pack_toggle_auto_sorting = SlotOfBool::new(&view.main_window, clone!(
+            view => move |toggled| {
+                if let Some(ref game_config) = *view.game_config().read().unwrap() {
+                    let game = view.game_selected().read().unwrap();
+                    let mut load_order = view.game_load_order().write().unwrap();
+                    load_order.set_automatic(toggled);
+                    load_order.update(game_config);
+
+                    if let Err(error) = load_order.save(&game) {
+                        show_dialog(view.main_window(), error, false);
+                    }
+
+                    let game_path = setting_path(game.key());
+                    if let Err(error) = view.pack_list_ui().load(game_config, &game, &game_path, &load_order) {
+                        show_dialog(view.main_window(), error, false);
+                    }
+                }
+            }
+        ));
+
+        let pack_move = SlotOfQModelIndexInt::new(view.main_window(), clone!(
+            view => move |_, dest_row| {
+                if view.pack_list_ui().automatic_order_button().is_checked() {
+                    return show_dialog(view.main_window(), tr("edit_load_order_with_auto_on"), false);
+                }
+
+                if let Err(error) = view.move_pack(dest_row) {
+                    show_dialog(view.main_window(), error, false);
+                }
+            }
+        ));
+
         Self {
             launch_game,
             toggle_logging,
@@ -461,6 +503,9 @@ impl AppUISlots {
             category_rename,
             category_move,
             mod_list_context_menu_open,
+
+            pack_toggle_auto_sorting,
+            pack_move,
         }
     }
 }
