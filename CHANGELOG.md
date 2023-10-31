@@ -30,6 +30,7 @@ If you're looking for the changes included in the latest beta (against the lates
 - Fixed dark theme not reloading correctly after toggling it.
 - Fixed update folders not getting cleanup on start.
 - Fixed decoding error when loading a game which saves are not yet supported to be decoded.
+- Fixed incorrect updating messages.
 
 ## [0.6.0]
 ### Added
