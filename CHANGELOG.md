@@ -6,6 +6,31 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [Unreleased]
+### Added
+- Implemented custom font support.
+- Implemented support for the following start args:
+    + game: allows you to start Runcher with a game selected different of the default one.
+    + profile: allows you to auto-load a profile for a specific game when starting Runcher.
+    + autostart: allows you to skip the UI and start the game directly. 
+        * Combined with game and profile, this allows users to make profile-specific shortcuts.
+- Implemented manual load order support.
+
+### Changed
+- Empty categories are now remembered even if they have no mods.
+- Mods deleted and reinstalled no longer end up back in their old category.
+- Unassigned category is now always last.
+- Mods can now be reordered and moved between categories by dragging and dropping them.
+- Categories can now be reordered to your hearts contend by dragging and dropping them.
+- Packs in the load order can now be reordered to your hearts contend by dragging and dropping them.
+- Optimized toggling large amounts of mods at once.
+- Profiles now remember if the load order is in automatic or manual mode.
+
+### Fixed
+- Fixed dark theme not reloading correctly after toggling it.
+- Fixed update folders not getting cleanup on start.
+- Fixed decoding error when loading a game which saves are not yet supported to be decoded.
+
 ## [0.6.0]
 ### Added
 - Implemented "Enable translations" feature for all games (fixes the "no text on not-english language" bug in old games).
