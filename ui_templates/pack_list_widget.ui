@@ -71,8 +71,7 @@
       <string>...</string>
      </property>
      <property name="icon">
-      <iconset theme="format-text-uppercase">
-       <normaloff>.</normaloff>.</iconset>
+      <iconset theme="update-none"/>
      </property>
      <property name="iconSize">
       <size>
