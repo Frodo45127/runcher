@@ -74,17 +74,29 @@ impl GameConfig {
     pub fn load(game: &GameInfo, new_if_missing: bool) -> Result<Self> {
         let path = game_config_path()?.join(format!("{GAME_CONFIG_FILE_NAME_START}{}{GAME_CONFIG_FILE_NAME_END}", game.key()));
         if !path.is_file() && new_if_missing {
-            return Ok(Self {
+            let mut config = Self {
                 game_key: game.key().to_string(),
                 ..Default::default()
-            });
+            };
+
+            config.categories_mut().insert(DEFAULT_CATEGORY.to_owned(), vec![]);
+            config.categories_order_mut().push(DEFAULT_CATEGORY.to_owned());
+
+            return Ok(config);
         }
 
         let mut file = BufReader::new(File::open(path)?);
         let mut data = Vec::with_capacity(file.get_ref().metadata()?.len() as usize);
         file.read_to_end(&mut data)?;
 
-        let config: Self = serde_json::from_slice(&data)?;
+        let mut config: Self = serde_json::from_slice(&data)?;
+
+        // Just in case we don't have a default category yet.
+        if config.categories().get(DEFAULT_CATEGORY).is_none() {
+            config.categories_mut().insert(DEFAULT_CATEGORY.to_owned(), vec![]);
+            config.categories_order_mut().retain(|category| category != DEFAULT_CATEGORY);
+            config.categories_order_mut().push(DEFAULT_CATEGORY.to_owned());
+        }
 
         Ok(config)
     }
