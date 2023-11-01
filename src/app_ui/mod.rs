@@ -1403,7 +1403,8 @@ impl AppUI {
         Ok(())
     }
 
-    pub unsafe fn move_category(&self, dest_parent: Ref<QModelIndex>, dest_row: i32) -> Result<()> {
+    /// Parent is model means dest_parent is a modelindex FROM THE MODEL, NOT FROM THE VIEW.
+    pub unsafe fn move_category(&self, dest_parent: Ref<QModelIndex>, dest_row: i32, parent_is_model: bool) -> Result<()> {
 
         // Rare case, but possible due to selection weirdness.
         let selection = self.mod_list_selection();
@@ -1489,7 +1490,12 @@ impl AppUI {
                     0
                 };
 
-                let category_index_logical = self.mod_list_ui().filter().map_to_source(category_index_visual);
+                let category_index_logical = if parent_is_model {
+                    self.mod_list_ui().model().index_2a(category_index_visual.row(), category_index_visual.column())
+                } else {
+                    self.mod_list_ui().filter().map_to_source(category_index_visual)
+                };
+
                 let dest_category = category_index_logical.data_0a().to_string().to_std_string();
                 let mut offset = 0;
                 if let Some(dest_mods) = game_config.categories().get(&dest_category) {
@@ -1538,43 +1544,20 @@ impl AppUI {
             app_ui.mod_list_ui().categories_send_to_menu().clear();
 
             for category in game_config.categories_order() {
-                if let Some(item) = app_ui.mod_list_ui().category_item(category) {
-                    let action = app_ui.mod_list_ui().categories_send_to_menu().add_action_q_string(&QString::from_std_str(category));
-                    let slot = SlotNoArgs::new(app_ui.mod_list_ui().categories_send_to_menu(), clone!(
-                        category,
-                        app_ui => move || {
-                            let mut selection = app_ui.mod_list_selection();
-                            selection.reverse();
-
-                            for mod_item in &selection {
-                                let current_cat = mod_item.parent();
-                                let mod_id = mod_item.data_1a(VALUE_MOD_ID).to_string().to_std_string();
-                                let taken = app_ui.mod_list_ui().model().item_from_index(&current_cat).take_row(mod_item.row()).into_ptr();
-                                item.append_row_q_list_of_q_standard_item(taken.as_ref().unwrap());
-
-                                if let Some(ref mut game_config) = *app_ui.game_config().write().unwrap() {
-                                    let curr_cat = game_config.category_for_mod(&mod_id);
-                                    if let Some(ids) = game_config.categories_mut().get_mut(&curr_cat) {
-                                        if let Some(pos) = ids.iter().position(|x| x == &mod_id) {
-                                            ids.remove(pos);
-                                        }
-                                    }
-
-                                    if let Some(ids) = game_config.categories_mut().get_mut(&category) {
-                                        ids.push(mod_id);
-                                    }
-
-                                    let game_info = app_ui.game_selected().read().unwrap();
-                                    if let Err(error) = game_config.save(&game_info) {
-                                        show_dialog(app_ui.main_window(), error, false);
-                                    }
-                                }
+                let action = app_ui.mod_list_ui().categories_send_to_menu().add_action_q_string(&QString::from_std_str(category));
+                let slot = SlotNoArgs::new(app_ui.mod_list_ui().categories_send_to_menu(), clone!(
+                    category,
+                    app_ui => move || {
+                        if let Some(item) = app_ui.mod_list_ui().category_item(&category) {
+                            let index = item.index();
+                            if let Err(error) = app_ui.move_category(index.as_ref(), item.row_count(), true) {
+                                show_dialog(app_ui.main_window(), error, false);
                             }
                         }
-                    ));
+                    }
+                ));
 
-                    action.triggered().connect(&slot);
-                }
+                action.triggered().connect(&slot);
             }
         }
     }

@@ -398,7 +398,7 @@ impl AppUISlots {
 
         let category_move = SlotOfQModelIndexInt::new(view.main_window(), clone!(
             view => move |dest_parent, dest_row| {
-                if let Err(error) = view.move_category(dest_parent, dest_row) {
+                if let Err(error) = view.move_category(dest_parent, dest_row, false) {
                     show_dialog(view.main_window(), error, false);
                 }
             }
