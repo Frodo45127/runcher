@@ -110,7 +110,25 @@ impl LoadOrder {
             .map(|modd| modd.id().to_string())
             .collect::<Vec<_>>();
 
-        self.mods.sort_by(|a, b| a.cmp(b));
+        // NOTE: The fallbacks are there because they're correct most of the time. But for Shogun 2 we NEED the pack comparison.
+        self.mods.sort_by(|a, b| {
+            let mod_a = game_config.mods().get(a);
+            let mod_b = game_config.mods().get(b);
+            if let Some(mod_a) = mod_a {
+                if let Some(mod_b) = mod_b {
+
+                    // Paths is always populated, as per the previous filter.
+                    let pack_a = mod_a.paths()[0].file_name().unwrap().to_string_lossy();
+                    let pack_b = mod_b.paths()[0].file_name().unwrap().to_string_lossy();
+
+                    pack_a.cmp(&pack_b)
+                } else {
+                    a.cmp(b)
+                }
+            } else {
+                a.cmp(b)
+            }
+        });
 
         // TODO: Automatically put parent mods above their children.
         // TODO2: If it works how I think it works, the game loads parent mods twice:
@@ -152,7 +170,25 @@ impl LoadOrder {
             .map(|modd| modd.id().to_string())
             .collect::<Vec<_>>();
 
-        self.movies.sort_by(|a, b| a.cmp(b));
+        // NOTE: The fallbacks are there because they're correct most of the time. But for Shogun 2 we NEED the pack comparison.
+        self.movies.sort_by(|a, b| {
+            let mod_a = game_config.mods().get(a);
+            let mod_b = game_config.mods().get(b);
+            if let Some(mod_a) = mod_a {
+                if let Some(mod_b) = mod_b {
+
+                    // Paths is always populated, as per the previous filter.
+                    let pack_a = mod_a.paths()[0].file_name().unwrap().to_string_lossy();
+                    let pack_b = mod_b.paths()[0].file_name().unwrap().to_string_lossy();
+
+                    pack_a.cmp(&pack_b)
+                } else {
+                    a.cmp(b)
+                }
+            } else {
+                a.cmp(b)
+            }
+        });
     }
 
     pub fn build_load_order_string(&self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path, pack_string: &mut String, folder_paths: &mut String) {
