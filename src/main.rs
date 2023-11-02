@@ -62,6 +62,7 @@ mod games;
 mod mod_manager;
 mod mod_list_ui;
 mod network_thread;
+mod profiles_ui;
 mod pack_list_ui;
 mod settings_ui;
 mod updater_ui;

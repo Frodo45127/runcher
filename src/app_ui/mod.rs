@@ -15,6 +15,8 @@ use qt_widgets::QToolBar;
 use qt_widgets::{QDialog, QDialogButtonBox, q_dialog_button_box::StandardButton};
 use qt_widgets::QLabel;
 use qt_widgets::QMainWindow;
+use qt_widgets::QMessageBox;
+use qt_widgets::q_message_box;
 use qt_widgets::QPushButton;
 use qt_widgets::QSplitter;
 use qt_widgets::QTextEdit;
@@ -442,6 +444,7 @@ impl AppUI {
         self.actions_ui().reload_button().released().connect(slots.reload());
         self.actions_ui().profile_load_button().released().connect(slots.load_profile());
         self.actions_ui().profile_save_button().released().connect(slots.save_profile());
+        self.actions_ui().profile_manager_button().released().connect(slots.open_profile_manager());
 
         self.game_selected_pharaoh().triggered().connect(slots.change_game_selected());
         self.game_selected_warhammer_3().triggered().connect(slots.change_game_selected());
@@ -1082,6 +1085,21 @@ impl AppUI {
     /// This returns the selection REVERSED!!!
     pub unsafe fn pack_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
         self.pack_list_ui().pack_list_selection()
+    }
+
+    /// This function pops up a modal asking you if you're sure you want to do an action that may result in loss of data.
+    pub unsafe fn are_you_sure(&self, message: &str) -> bool {
+
+        // Create the dialog and run it (Yes => 3, No => 4).
+        QMessageBox::from_2_q_string_icon3_int_q_widget(
+            &qtr("are_you_sure_title"),
+            &qtr(message),
+            q_message_box::Icon::Warning,
+            65536, // No
+            16384, // Yes
+            1, // By default, select yes.
+            self.main_window(),
+        ).exec() == 3
     }
 
     /// This function creates the stylesheet used for the dark theme in windows.

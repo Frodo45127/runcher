@@ -29,6 +29,7 @@ use crate::DISCORD_URL;
 use crate::GITHUB_URL;
 use crate::mod_list_ui::VALUE_MOD_ID;
 use crate::PATREON_URL;
+use crate::profiles_ui::ProfilesUI;
 use crate::VERSION;
 use crate::VERSION_SUBTITLE;
 
@@ -71,6 +72,7 @@ pub struct AppUISlots {
     reload: QBox<SlotNoArgs>,
     load_profile: QBox<SlotNoArgs>,
     save_profile: QBox<SlotNoArgs>,
+    open_profile_manager: QBox<SlotNoArgs>,
 
     enable_selected: QBox<SlotNoArgs>,
     disable_selected: QBox<SlotNoArgs>,
@@ -360,6 +362,20 @@ impl AppUISlots {
             }
         ));
 
+        let open_profile_manager = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                if let Err(error) = ProfilesUI::new(&view) {
+                    show_dialog(view.main_window(), error, false);
+                }
+
+                // Always reload the profiles list.
+                view.actions_ui().profile_model().clear();
+                for profile in view.game_profiles().read().unwrap().keys().sorted() {
+                    view.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
+                }
+            }
+        ));
+
         let enable_selected = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 view.batch_toggle_selected_mods(true);
@@ -478,6 +494,7 @@ impl AppUISlots {
 
             load_profile,
             save_profile,
+            open_profile_manager,
 
             enable_selected,
             disable_selected,

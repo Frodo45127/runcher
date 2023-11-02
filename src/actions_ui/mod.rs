@@ -66,6 +66,7 @@ pub struct ActionsUI {
 
     profile_load_button: QPtr<QToolButton>,
     profile_save_button: QPtr<QToolButton>,
+    profile_manager_button: QPtr<QToolButton>,
     profile_combobox: QPtr<QComboBox>,
     profile_model: QBox<QStandardItemModel>,
 
@@ -194,12 +195,14 @@ impl ActionsUI {
 
         let profile_load_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "profile_load_button")?;
         let profile_save_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "profile_save_button")?;
+        let profile_manager_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "profile_manager_button")?;
         let profile_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "profile_combobox")?;
         let profile_model: QBox<QStandardItemModel> = QStandardItemModel::new_1a(&profile_combobox);
         profile_combobox.set_model(&profile_model);
         profile_combobox.line_edit().set_placeholder_text(&qtr("profile_name"));
         profile_load_button.set_tool_tip(&qtr("load_profile"));
         profile_save_button.set_tool_tip(&qtr("save_profile"));
+        profile_manager_button.set_tool_tip(&qtr("profile_manager"));
 
         let save_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "save_combobox")?;
         let save_model: QBox<QStandardItemModel> = QStandardItemModel::new_1a(&save_combobox);
@@ -230,6 +233,7 @@ impl ActionsUI {
 
             profile_load_button,
             profile_save_button,
+            profile_manager_button,
             profile_combobox,
             profile_model,
 

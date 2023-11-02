@@ -156,3 +156,21 @@ automatic_mode_tooltip = Automatic Mode
 
 updater_update_program_updating = Updating, pls wait...
 updater_update_schemas_updating = Updating, pls wait...
+
+are_you_sure_title = Are you sure?
+profile_manager = Profile Manager
+
+profile_details_title = Profile Details
+profile_rename = Rename Profile
+profile_delete = Delete Profile
+profile_shortcut_new = Create Shortcut
+profile_manager_title = Profile Manager
+
+are_you_sure_delete_profile = Are you sure you want to delete the currently selected profile?
+
+profile_shortcut = New Shortcut
+profile_shortcut_name = Shortcut Name
+profile_shortcut_location = Shortcut Location
+profile_shortcut_game = Game
+profile_shortcut_autostart = Autostart Game?
+select_location_folder = Select Link Location

@@ -110,4 +110,13 @@ impl Profile {
 
         Ok(())
     }
+
+    pub fn delete(&self, game: &GameInfo) -> Result<()> {
+        let path = profiles_path()?.join(format!("{FILE_NAME_START}{}_{}{FILE_NAME_END}", game.key(), self.id()));
+        if path.is_file() {
+            std::fs::remove_file(path)?;
+        }
+
+        Ok(())
+    }
 }
