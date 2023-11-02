@@ -95,6 +95,7 @@ pub struct ModListUI {
     category_new: QPtr<QAction>,
     category_delete: QPtr<QAction>,
     category_rename: QPtr<QAction>,
+    category_sort: QPtr<QAction>,
     categories_send_to_menu: QBox<QMenu>,
     enable_selected: QPtr<QAction>,
     disable_selected: QPtr<QAction>,
@@ -145,6 +146,7 @@ impl ModListUI {
         let category_new = context_menu.add_action_q_string(&qtr("category_new"));
         let category_delete = context_menu.add_action_q_string(&qtr("category_delete"));
         let category_rename = context_menu.add_action_q_string(&qtr("category_rename"));
+        let category_sort = context_menu.add_action_q_string(&qtr("category_sort"));
         let categories_send_to_menu = QMenu::from_q_string(&qtr("categories_send_to_menu"));
         context_menu.add_menu_q_menu(&categories_send_to_menu);
 
@@ -165,6 +167,7 @@ impl ModListUI {
             category_new,
             category_delete,
             category_rename,
+            category_sort,
             categories_send_to_menu,
             enable_selected,
             disable_selected,

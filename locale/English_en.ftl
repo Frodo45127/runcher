@@ -176,3 +176,4 @@ profile_shortcut_autostart = Autostart Game?
 select_location_folder = Select Link Location
 profile_shortcut_icon = Shortcut Icon
 select_icon = Select Shortcut Icon
+category_sort = Sort Category

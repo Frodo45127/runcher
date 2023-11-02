@@ -75,6 +75,7 @@ impl ModListUISlots {
 
             view.category_delete.set_enabled(all_categories);
             view.category_rename.set_enabled(all_categories && selection.len() == 1);
+            view.category_sort.set_enabled(all_categories && selection.len() == 1);
             view.categories_send_to_menu.set_enabled(all_mods);
 
             view.open_in_explorer.set_enabled(all_mods);

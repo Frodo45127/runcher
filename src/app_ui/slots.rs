@@ -80,6 +80,7 @@ pub struct AppUISlots {
     category_delete: QBox<SlotNoArgs>,
     category_rename: QBox<SlotNoArgs>,
     category_move: QBox<SlotOfQModelIndexInt>,
+    category_sort: QBox<SlotNoArgs>,
     mod_list_context_menu_open: QBox<SlotNoArgs>,
 
     pack_toggle_auto_sorting: QBox<SlotOfBool>,
@@ -412,6 +413,14 @@ impl AppUISlots {
             }
         ));
 
+        let category_sort = SlotNoArgs::new(view.main_window(), clone!(
+            view => move || {
+                if let Err(error) = view.sort_category() {
+                    show_dialog(view.main_window(), error, false);
+                }
+            }
+        ));
+
         let category_move = SlotOfQModelIndexInt::new(view.main_window(), clone!(
             view => move |dest_parent, dest_row| {
                 if let Err(error) = view.move_category(dest_parent, dest_row, false) {
@@ -502,6 +511,7 @@ impl AppUISlots {
             category_delete,
             category_rename,
             category_move,
+            category_sort,
             mod_list_context_menu_open,
 
             pack_toggle_auto_sorting,

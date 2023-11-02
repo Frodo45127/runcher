@@ -473,6 +473,7 @@ impl AppUI {
         self.mod_list_ui().category_new().triggered().connect(slots.category_create());
         self.mod_list_ui().category_delete().triggered().connect(slots.category_delete());
         self.mod_list_ui().category_rename().triggered().connect(slots.category_rename());
+        self.mod_list_ui().category_sort().triggered().connect(slots.category_sort());
         draggable_tree_view_drop_signal(self.mod_list_ui().tree_view().static_upcast()).connect(slots.category_move());
 
         self.pack_list_ui().automatic_order_button().toggled().connect(slots.pack_toggle_auto_sorting());
@@ -1435,6 +1436,58 @@ impl AppUI {
                 game_config.save(&game_info)?;
             }
         }
+        Ok(())
+    }
+
+    pub unsafe fn sort_category(&self) -> Result<()> {
+        let selection = self.mod_list_selection();
+
+        // NOTE: We assume there is only one selection. This breaks with more.
+        let cat_index = &selection[0];
+        let cat_name = cat_index.data_1a(2).to_string().to_std_string();
+
+        // We need to sort the backend first, then remove all rows from the view, sort them like in the backend, and re-add them.
+        if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
+            let gc_copy = game_config.clone();
+
+            if let Some(ref mut mods) = game_config.categories_mut().get_mut(&cat_name) {
+                mods.sort_by(|a, b| {
+                    let mod_a = gc_copy.mods().get(a);
+                    let mod_b = gc_copy.mods().get(b);
+                    if let Some(mod_a) = mod_a {
+                        if let Some(mod_b) = mod_b {
+
+                            // Paths is always populated, as per the previous filter.
+                            let pack_a = mod_a.paths()[0].file_name().unwrap().to_string_lossy();
+                            let pack_b = mod_b.paths()[0].file_name().unwrap().to_string_lossy();
+
+                            pack_a.cmp(&pack_b)
+                        } else {
+                            a.cmp(b)
+                        }
+                    } else {
+                        a.cmp(b)
+                    }
+                });
+
+                let mut rows = vec![];
+                let cat_item = self.mod_list_ui().model().item_from_index(cat_index);
+                for index in (0..self.mod_list_ui().model().row_count_1a(cat_index)).rev() {
+                    rows.push(cat_item.take_row(index).into_ptr());
+                }
+
+                for mod_id in &**mods {
+                    if let Some(pos) = rows.iter().position(|row| &row.value_1a(0).data_1a(VALUE_MOD_ID).to_string().to_std_string() == mod_id) {
+                        let row = rows.remove(pos);
+                        cat_item.append_row_q_list_of_q_standard_item(row.as_ref().unwrap());
+                    }
+                }
+
+                let game_info = self.game_selected().read().unwrap();
+                game_config.save(&game_info)?;
+            }
+        }
+
         Ok(())
     }
 
