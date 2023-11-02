@@ -2131,8 +2131,8 @@ dependencies = [
 
 [[package]]
 name = "rpfm_extensions"
-version = "4.2.1"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#3c575290056056040e1158a5cffa9fc33f4b169c"
+version = "4.2.2"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#8eddcd4a67335f5f0c1feda463d2ecf264c36395"
 dependencies = [
  "bincode",
  "caseless",
@@ -2151,8 +2151,8 @@ dependencies = [
 
 [[package]]
 name = "rpfm_lib"
-version = "4.2.1"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#3c575290056056040e1158a5cffa9fc33f4b169c"
+version = "4.2.2"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#8eddcd4a67335f5f0c1feda463d2ecf264c36395"
 dependencies = [
  "backtrace",
  "bincode",
@@ -2193,8 +2193,8 @@ dependencies = [
 
 [[package]]
 name = "rpfm_ui_common"
-version = "4.2.1"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#3c575290056056040e1158a5cffa9fc33f4b169c"
+version = "4.2.2"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#8eddcd4a67335f5f0c1feda463d2ecf264c36395"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -2214,7 +2214,7 @@ dependencies = [
 
 [[package]]
 name = "runcher"
-version = "0.6.100"
+version = "0.6.101"
 dependencies = [
  "anyhow",
  "base64",

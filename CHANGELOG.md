@@ -15,6 +15,7 @@ If you're looking for the changes included in the latest beta (against the lates
     + autostart: allows you to skip the UI and start the game directly. 
         * Combined with game and profile, this allows users to make profile-specific shortcuts.
 - Implemented manual load order support.
+- Implemented profile manager.
 
 ### Changed
 - Empty categories are now remembered even if they have no mods.
@@ -25,12 +26,22 @@ If you're looking for the changes included in the latest beta (against the lates
 - Packs in the load order can now be reordered to your hearts contend by dragging and dropping them.
 - Optimized toggling large amounts of mods at once.
 - Profiles now remember if the load order is in automatic or manual mode.
+- Runcher will now make sure to clean it's reserved packs to avoid weird behavior in updates.
 
 ### Fixed
 - Fixed dark theme not reloading correctly after toggling it.
 - Fixed update folders not getting cleanup on start.
 - Fixed decoding error when loading a game which saves are not yet supported to be decoded.
 - Fixed incorrect updating messages.
+- Fixed clean installs breaking the mod list.
+- Fixed broken profiles causing the entire program to hang at boot.
+- Fixed "Send To Category" not working properly when multiple items are selected.
+- Fixed load order being calculated wrong due to a bug in RPFM.
+- Fixed vanilla-file-processing operations being done wrong due to a bug in RPFM. 
+- Fixed main window hanging when changing game selected. 
+- Fixed CTD under some circustances when skipping intros. 
+- Fixed Pharaoh's skip intro not skipping epilepsy warning. 
+- Fixed wrong load order calculation when a "legacy" bin mod is involved in the process. 
 
 ## [0.6.0]
 ### Added
