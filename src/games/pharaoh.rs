@@ -27,21 +27,21 @@ const INTRO_MOVIE_KEYS: [&str; 3] = [
 ];
 
 // These are videos that cannot be replaced with empty ones, or the game will crash.
-//const NON_REPLACEABLE_VIDEOS: [&str; 13] = [
-//    "movies/epilepsy_warning/epilepsy_warning_br.ca_vp8",
-//    "movies/epilepsy_warning/epilepsy_warning_cn.ca_vp8",
-//    "movies/epilepsy_warning/epilepsy_warning_cz.ca_vp8",
-//    "movies/epilepsy_warning/epilepsy_warning_de.ca_vp8",
-//    "movies/epilepsy_warning/epilepsy_warning_en.ca_vp8",
-//    "movies/epilepsy_warning/epilepsy_warning_es.ca_vp8",
-//    "movies/epilepsy_warning/epilepsy_warning_fr.ca_vp8",
-//    "movies/epilepsy_warning/epilepsy_warning_it.ca_vp8",
-//    "movies/epilepsy_warning/epilepsy_warning_kr.ca_vp8",
-//    "movies/epilepsy_warning/epilepsy_warning_pl.ca_vp8",
-//    "movies/epilepsy_warning/epilepsy_warning_ru.ca_vp8",
-//    "movies/epilepsy_warning/epilepsy_warning_tr.ca_vp8",
-//    "movies/epilepsy_warning/epilepsy_warning_zh.ca_vp8",
-//];
+const NON_REPLACEABLE_VIDEOS: [&str; 13] = [
+    "movies/epilepsy_warning/epilepsy_warning_br.ca_vp8",
+    "movies/epilepsy_warning/epilepsy_warning_cn.ca_vp8",
+    "movies/epilepsy_warning/epilepsy_warning_cz.ca_vp8",
+    "movies/epilepsy_warning/epilepsy_warning_de.ca_vp8",
+    "movies/epilepsy_warning/epilepsy_warning_en.ca_vp8",
+    "movies/epilepsy_warning/epilepsy_warning_es.ca_vp8",
+    "movies/epilepsy_warning/epilepsy_warning_fr.ca_vp8",
+    "movies/epilepsy_warning/epilepsy_warning_it.ca_vp8",
+    "movies/epilepsy_warning/epilepsy_warning_kr.ca_vp8",
+    "movies/epilepsy_warning/epilepsy_warning_pl.ca_vp8",
+    "movies/epilepsy_warning/epilepsy_warning_ru.ca_vp8",
+    "movies/epilepsy_warning/epilepsy_warning_tr.ca_vp8",
+    "movies/epilepsy_warning/epilepsy_warning_zh.ca_vp8",
+];
 
 //-------------------------------------------------------------------------------//
 //                             Implementations
@@ -72,11 +72,11 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_pa
     //    .cloned()
     //    .collect::<Vec<_>>();
 
-    //let non_replaceable_videos_paths = NON_REPLACEABLE_VIDEOS.iter().map(|path| ContainerPath::File(path.to_string())).collect::<Vec<_>>();
-    //let mut non_replaceable_videos = vanilla_pack.files_by_paths(&non_replaceable_videos_paths, true)
-    //    .into_iter()
-    //    .cloned()
-    //    .collect::<Vec<_>>();
+    let non_replaceable_videos_paths = NON_REPLACEABLE_VIDEOS.iter().map(|path| ContainerPath::File(path.to_string())).collect::<Vec<_>>();
+    let mut non_replaceable_videos = vanilla_pack.files_by_paths(&non_replaceable_videos_paths, true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>();
 
     let paths = (0..app_ui.pack_list_ui().model().row_count_0a())
         .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
@@ -99,10 +99,10 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_pa
         //    .cloned()
         //    .collect::<Vec<_>>());
 
-        //non_replaceable_videos.append(&mut modded_pack.files_by_paths(&non_replaceable_videos_paths, true)
-        //    .into_iter()
-        //    .cloned()
-        //    .collect::<Vec<_>>());
+        non_replaceable_videos.append(&mut modded_pack.files_by_paths(&non_replaceable_videos_paths, true)
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>());
     }
 
     // Decode each table, modify it, then re-encode it and add it.
@@ -161,18 +161,15 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_pa
         }
     }
 
-    /*
     for file in &mut non_replaceable_videos {
         if let Some(RFileDecoded::Video(mut video)) = file.decode(&dec_extra_data, false, true)? {
-            video.set_frame_table(vec![video.frame_table()[0].clone()]);
-            video.set_num_frames(0);
+            video.set_num_frames(2);
             video.set_framerate(30.0);
-            video.set_frame_data(vec![]);
 
             file.set_decoded(RFileDecoded::Video(video))?;
             reserved_pack.insert(file.clone())?;
         }
-    }*/
+    }
 
     Ok(())
 }
