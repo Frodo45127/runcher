@@ -769,6 +769,14 @@ impl AppUI {
 
             // We need to use an alternative name for Shogun 2, Rome 2, Attila and Thrones because their load order logic for movie packs seems... either different or broken.
             let reserved_pack_name = if game.key() == KEY_SHOGUN_2 || game.key() == KEY_ROME_2 || game.key() == KEY_ATTILA || game.key() == KEY_THRONES_OF_BRITANNIA { RESERVED_PACK_NAME_ALTERNATIVE } else { RESERVED_PACK_NAME };
+            // If the reserved pack is loaded from a custom folder we need to CLEAR SAID FOLDER before anything else. Otherwise we may end up with old packs messing up stuff.
+            if *game.raw_db_version() >= 2 {
+                let temp_packs_folder = temp_packs_folder(&game)?;
+                let files = files_from_subdir(&temp_packs_folder, false)?;
+                for file in &files {
+                    std::fs::remove_file(&file)?;
+                }
+            }
 
             // Support for add_working_directory seems to be only present in rome 2 and newer games. For older games, we drop the pack into /data.
             let temp_path = if *game.raw_db_version() >= 2 {
