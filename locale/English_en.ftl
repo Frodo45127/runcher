@@ -174,3 +174,5 @@ profile_shortcut_location = Shortcut Location
 profile_shortcut_game = Game
 profile_shortcut_autostart = Autostart Game?
 select_location_folder = Select Link Location
+profile_shortcut_icon = Shortcut Icon
+select_icon = Select Shortcut Icon

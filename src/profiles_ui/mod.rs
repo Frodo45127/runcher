@@ -340,12 +340,16 @@ impl ProfilesUI {
         let game_next_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "game_next_label")?;
         let autostart_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "autostart_label")?;
         let autostart_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "autostart_checkbox")?;
+        let icon_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "icon_label")?;
+        let icon_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "icon_line_edit")?;
+        let icon_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "icon_button")?;
 
         let button_box: QPtr<QDialogButtonBox> = find_widget(&main_widget.static_upcast(), "button_box")?;
         name_label.set_text(&qtr("profile_shortcut_name"));
         location_label.set_text(&qtr("profile_shortcut_location"));
         game_label.set_text(&qtr("profile_shortcut_game"));
         autostart_label.set_text(&qtr("profile_shortcut_autostart"));
+        icon_label.set_text(&qtr("profile_shortcut_icon"));
         name_line_edit.set_text(&QString::from_std_str(&current_name));
         game_next_label.set_text(&QString::from_std_str(app_ui.game_selected().read().unwrap().key()));
         button_box.button(StandardButton::Ok).set_enabled(false);
@@ -387,9 +391,39 @@ impl ProfilesUI {
             }
         });
 
+        // Slot for the icon dialog.
+        let main_ptr = main_widget.static_upcast();
+        let icon_search_slot = SlotNoArgs::new(&main_widget, move || {
+            let icon_line_edit: QPtr<QLineEdit> = find_widget(&main_ptr, "icon_line_edit").unwrap();
+
+            let file_dialog = QFileDialog::from_q_widget_q_string(
+                &icon_line_edit,
+                &qtr("select_icon"),
+            );
+
+            file_dialog.set_file_mode(FileMode::ExistingFile);
+            file_dialog.set_name_filter(&QString::from_std_str("Windows Icon (*.ico)"));
+
+            // If said path is not empty, and is a dir, set it as the initial directory.
+            let old_path = icon_line_edit.text().to_std_string();
+            if !old_path.is_empty() && Path::new(&old_path).is_file() {
+                let mut old_path = PathBuf::from(&old_path);
+                old_path.pop();
+
+                file_dialog.set_directory_q_string(&QString::from_std_str(old_path.to_string_lossy()));
+            }
+
+            if file_dialog.exec() == 1 {
+                let selected_files = file_dialog.selected_files();
+                let path = selected_files.at(0);
+                icon_line_edit.set_text(path);
+            }
+        });
+
         name_line_edit.text_changed().connect(&allow_create_slot);
         location_line_edit.text_changed().connect(&allow_create_slot);
         location_search_button.released().connect(&location_search_slot);
+        icon_button.released().connect(&icon_search_slot);
 
         if dialog.exec() == 1 {
             if cfg!(target_os = "windows") {
@@ -405,6 +439,16 @@ impl ProfilesUI {
                 let lnk = PathBuf::from(location_line_edit.text().to_std_string()).join(format!("{}.lnk", name_line_edit.text().to_std_string()));
                 let mut sl = ShellLink::new(target)?;
                 sl.set_arguments(Some(arguments.join(" ")));
+
+                if !icon_line_edit.text().is_empty() {
+                    let icon_location = icon_line_edit.text().to_std_string();
+                    let icon_path = Path::new(&icon_location);
+
+                    if icon_path.is_file() {
+                        sl.set_icon_location(Some(icon_location));
+                    }
+                }
+
                 sl.create_lnk(lnk)?;
             } else {
                 return Err(anyhow!("Unsupported OS."))
