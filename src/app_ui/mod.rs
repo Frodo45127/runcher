@@ -527,7 +527,15 @@ impl AppUI {
         //
         // This works because by default, the initially stored game selected is arena, and that one can never set manually.
         if reload_same_game || new_game_selected != self.game_selected().read().unwrap().key() {
-            self.load_data(&new_game_selected, skip_network_update)?;
+            self.toggle_main_window(false);
+
+            let event_loop = qt_core::QEventLoop::new_0a();
+            event_loop.process_events_0a();
+
+            let result = self.load_data(&new_game_selected, skip_network_update);
+
+            self.toggle_main_window(true);
+            result?;
         }
 
         Ok(())
