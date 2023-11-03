@@ -102,6 +102,7 @@ pub struct ModListUI {
 
     open_in_explorer: QPtr<QAction>,
     open_in_steam: QPtr<QAction>,
+    open_in_tool_menu: QBox<QMenu>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -152,6 +153,9 @@ impl ModListUI {
 
         let open_in_explorer = context_menu.add_action_q_string(&qtr("open_in_explorer"));
         let open_in_steam = context_menu.add_action_q_string(&qtr("open_in_steam"));
+        let open_in_tool_menu = QMenu::from_q_string(&qtr("open_in_tool_menu"));
+        open_in_tool_menu.set_enabled(false);
+        context_menu.add_menu_q_menu(&open_in_tool_menu);
         context_menu.insert_separator(&category_new);
         context_menu.insert_separator(&open_in_explorer);
 
@@ -173,7 +177,8 @@ impl ModListUI {
             disable_selected,
 
             open_in_explorer,
-            open_in_steam
+            open_in_steam,
+            open_in_tool_menu
         });
 
         let slots = ModListUISlots::new(&list);

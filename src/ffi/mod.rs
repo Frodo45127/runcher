@@ -21,8 +21,12 @@ use qt_core::QPtr;
 use qt_core::QRegExp;
 use qt_core::QSortFilterProxyModel;
 use qt_core::Signal;
+use qt_core::QString;
+use qt_core::QStringList;
 
 use cpp_core::Ptr;
+
+use rpfm_lib::games::supported_games::SupportedGames;
 
 //---------------------------------------------------------------------------//
 // Custom delegates stuff.
@@ -56,6 +60,25 @@ pub fn flags_item_delegate_safe(view: &Ptr<QObject>, column: i32) {
     unsafe { flags_item_delegate(view.as_mut_raw_ptr(), column) }
 }
 
+extern "C" { fn path_item_delegate(view: *mut QObject, column: i32); }
+pub fn path_item_delegate_safe(view: &Ptr<QObject>, column: i32) {
+    unsafe { path_item_delegate(view.as_mut_raw_ptr(), column) }
+}
+
+extern "C" { fn game_selector_item_delegate(view: *mut QObject, column: i32, game_keys: *const QStringList); }
+pub fn game_selector_item_delegate_safe(view: &Ptr<QObject>, column: i32) {
+    unsafe {
+        let games = SupportedGames::default();
+        let keys = games.game_keys_sorted();
+        let qkeys = QStringList::new();
+
+        for key in keys {
+            qkeys.append_q_string(&QString::from_std_str(key));
+        }
+
+        game_selector_item_delegate(view.as_mut_raw_ptr(), column, qkeys.into_ptr().as_raw_ptr());
+    }
+}
 
 //---------------------------------------------------------------------------//
 // Drag&Drop stuff.

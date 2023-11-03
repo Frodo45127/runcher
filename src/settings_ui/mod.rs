@@ -8,11 +8,13 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use qt_widgets::QAction;
 use qt_widgets::QApplication;
 use qt_widgets::QCheckBox;
 use qt_widgets::QComboBox;
 use qt_widgets::QDialog;
 use qt_widgets::QDialogButtonBox;
+use qt_widgets::q_header_view::ResizeMode;
 use qt_widgets::q_dialog_button_box::{ButtonRole, StandardButton};
 use qt_widgets::{QFileDialog, q_file_dialog::{FileMode, Option as QFileDialogOption}};
 use qt_widgets::QGridLayout;
@@ -20,14 +22,20 @@ use qt_widgets::QGroupBox;
 use qt_widgets::QLabel;
 use qt_widgets::QLineEdit;
 use qt_widgets::QMainWindow;
+use qt_widgets::QMenu;
 use qt_widgets::QPushButton;
+use qt_widgets::QTableView;
 use qt_widgets::QToolButton;
 
 use qt_gui::QIcon;
+use qt_gui::QListOfQStandardItem;
+use qt_gui::QStandardItem;
+use qt_gui::QStandardItemModel;
 
 use qt_core::QBox;
 use qt_core::QCoreApplication;
 use qt_core::QFlags;
+use qt_core::QObject;
 use qt_core::QPtr;
 use qt_core::QString;
 
@@ -49,6 +57,8 @@ use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
+use crate::ffi::*;
+use crate::mod_manager::tools::{Tools, Tool};
 use crate::SUPPORTED_GAMES;
 use crate::updater_ui::*;
 
@@ -75,6 +85,12 @@ pub struct SettingsUI {
 
     paths_games_line_edits: BTreeMap<String, QBox<QLineEdit>>,
     paths_games_buttons: BTreeMap<String, QBox<QToolButton>>,
+
+    tools_tableview: QPtr<QTableView>,
+    tools_model: QBox<QStandardItemModel>,
+    tools_context_menu: QBox<QMenu>,
+    tools_add: QPtr<QAction>,
+    tools_remove: QPtr<QAction>,
 
     steam_user_id_line_edit: QPtr<QLineEdit>,
     steam_api_key_line_edit: QPtr<QLineEdit>,
@@ -123,6 +139,18 @@ impl SettingsUI {
         let template_path = if cfg!(debug_assertions) { VIEW_DEBUG } else { VIEW_RELEASE };
         let main_widget = load_template(main_window, template_path)?;
         let dialog: QPtr<QDialog> = main_widget.static_downcast();
+
+        let tools_groupbox: QPtr<QGroupBox> = find_widget(&main_widget.static_upcast(), "tools_groupbox")?;
+        let tools_tableview: QPtr<QTableView> = find_widget(&main_widget.static_upcast(), "tools_tableview")?;
+        let tools_model = QStandardItemModel::new_1a(&tools_tableview);
+        tools_tableview.set_model(&tools_model);
+        tools_groupbox.set_title(&qtr("tools_title"));
+        path_item_delegate_safe(&tools_tableview.static_upcast::<QObject>().as_ptr(), 1);
+        game_selector_item_delegate_safe(&tools_tableview.static_upcast::<QObject>().as_ptr(), 2);
+
+        let tools_context_menu = QMenu::from_q_widget(&main_widget);
+        let tools_add = tools_context_menu.add_action_q_string(&qtr("tools_add"));
+        let tools_remove = tools_context_menu.add_action_q_string(&qtr("tools_remove"));
 
         let paths_groupbox: QPtr<QGroupBox> = find_widget(&main_widget.static_upcast(), "paths_groupbox")?;
         let language_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "language_label")?;
@@ -204,6 +232,12 @@ impl SettingsUI {
             dialog,
             font_data: Rc::new(RefCell::new((String::new(), -1))),
 
+            tools_tableview,
+            tools_model,
+            tools_context_menu,
+            tools_add,
+            tools_remove,
+
             paths_games_line_edits,
             paths_games_buttons,
             steam_user_id_line_edit,
@@ -226,9 +260,39 @@ impl SettingsUI {
 
     /// This function loads the data from the provided `Settings` into our `SettingsUI`.
     pub unsafe fn load(&self) -> Result<()> {
-        let q_settings = settings();
+
+        // Tools are kept in a json, not in a qsetting, for ease of updating. Load it first.
+        let tools = Tools::load().unwrap_or_else(|_| Tools::default());
+        self.tools_model().clear();
+
+        // Build the columns.
+        self.tools_model().set_column_count(3);
+        self.tools_model().set_horizontal_header_item(0, QStandardItem::from_q_string(&qtr("tools_column_name")).into_ptr());
+        self.tools_model().set_horizontal_header_item(1, QStandardItem::from_q_string(&qtr("tools_column_path")).into_ptr());
+        self.tools_model().set_horizontal_header_item(2, QStandardItem::from_q_string(&qtr("tools_column_games")).into_ptr());
+
+        for tool in tools.tools() {
+            let row = QListOfQStandardItem::new();
+
+            let item_name = QStandardItem::new();
+            let item_path = QStandardItem::new();
+            let item_games = QStandardItem::new();
+
+            item_name.set_text(&QString::from_std_str(tool.name()));
+            item_path.set_text(&QString::from_std_str(tool.path().to_string_lossy()));
+            item_games.set_text(&QString::from_std_str(tool.games().join(",")));
+
+            row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
+            row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());
+            row.append_q_standard_item(&item_games.into_ptr().as_mut_raw_ptr());
+
+            self.tools_model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
+        }
+
+        self.tools_tableview().horizontal_header().resize_sections(ResizeMode::ResizeToContents);
 
         // Load the Game Paths, if they exists.
+        let q_settings = settings();
         for (key, path) in self.paths_games_line_edits.iter() {
             let stored_path = setting_string_from_q_setting(&q_settings, key);
             if !stored_path.is_empty() {
@@ -281,9 +345,26 @@ impl SettingsUI {
     }
 
     pub unsafe fn save(&self) -> Result<()> {
-        let q_settings = settings();
+
+        let mut tools = Tools::default();
+        for row in 0..self.tools_model().row_count_0a() {
+            let item_name = self.tools_model().item_2a(row, 0);
+            let item_path = self.tools_model().item_2a(row, 1);
+            let item_games = self.tools_model().item_2a(row, 2);
+
+            let mut tool = Tool::default();
+
+            *tool.name_mut() = item_name.text().to_std_string();
+            *tool.path_mut() = PathBuf::from(item_path.text().to_std_string());
+            *tool.games_mut() = item_games.text().to_std_string().split(',').map(|x| x.to_string()).collect::<Vec<String>>();
+
+            tools.tools_mut().push(tool);
+        }
+
+        tools.save()?;
 
         // For each entry, we check if it's a valid directory and save it into Settings.
+        let q_settings = settings();
         for (key, line_edit) in self.paths_games_line_edits.iter() {
             set_setting_string_to_q_setting(&q_settings, key, &line_edit.text().to_std_string());
         }
@@ -323,6 +404,13 @@ impl SettingsUI {
         for (key, button) in self.paths_games_buttons.iter() {
             button.released().connect(&slots.select_game_paths()[key]);
         }
+
+        self.tools_tableview().custom_context_menu_requested().connect(slots.tools_context_menu());
+        self.tools_tableview().selection_model().selection_changed().connect(slots.tools_enabler());
+        self.tools_context_menu().about_to_show().connect(slots.tools_enabler());
+
+        self.tools_add.triggered().connect(slots.tools_add());
+        self.tools_remove.triggered().connect(slots.tools_remove());
 
         self.font_button.released().connect(slots.font_settings());
         self.restore_default_button.released().connect(slots.restore_default());

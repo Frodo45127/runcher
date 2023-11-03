@@ -11,6 +11,11 @@
 use qt_widgets::QApplication;
 use qt_widgets::QFontDialog;
 use qt_widgets::QMainWindow;
+use qt_widgets::SlotOfQPoint;
+
+use qt_gui::QCursor;
+use qt_gui::QListOfQStandardItem;
+use qt_gui::QStandardItem;
 
 use qt_core::QBox;
 use qt_core::QPtr;
@@ -35,6 +40,11 @@ use crate::settings_ui::SettingsUI;
 #[derive(Debug, Getters)]
 #[getset(get = "pub")]
 pub struct SettingsUISlots {
+    tools_context_menu: QBox<SlotOfQPoint>,
+    tools_enabler: QBox<SlotNoArgs>,
+    tools_add: QBox<SlotNoArgs>,
+    tools_remove: QBox<SlotNoArgs>,
+
     font_settings: QBox<SlotNoArgs>,
     restore_default: QBox<SlotNoArgs>,
     select_game_paths: BTreeMap<String, QBox<SlotNoArgs>>,
@@ -47,6 +57,56 @@ pub struct SettingsUISlots {
 impl SettingsUISlots {
 
     pub unsafe fn new(ui: &Rc<SettingsUI>, main_window: QPtr<QMainWindow>) -> Self {
+        let tools_context_menu = SlotOfQPoint::new(ui.dialog(), clone!(
+            ui => move |_| {
+            ui.tools_context_menu().exec_1a_mut(&QCursor::pos_0a());
+        }));
+
+        let tools_enabler = SlotNoArgs::new(ui.dialog(), clone!(
+            ui => move || {
+            let selection = ui.tools_tableview.selection_model().selection();
+
+            ui.tools_remove.set_enabled(selection.count_0a() > 0);
+        }));
+
+        let tools_add = SlotNoArgs::new(ui.dialog(), clone!(
+            ui => move || {
+            let row = QListOfQStandardItem::new();
+
+            let item_name = QStandardItem::new();
+            let item_path = QStandardItem::new();
+            let item_games = QStandardItem::new();
+
+            row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
+            row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());
+            row.append_q_standard_item(&item_games.into_ptr().as_mut_raw_ptr());
+
+            ui.tools_model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
+        }));
+
+        let tools_remove = SlotNoArgs::new(ui.dialog(), clone!(
+            ui => move || {
+            let selection = ui.tools_tableview.selection_model().selection();
+            let mut sel_sort = (0..selection.count_0a())
+                .flat_map(|index| {
+                    let sel_range = selection.value_1a(index);
+                    let indexes = sel_range.indexes();
+                    let mut rows = indexes.iter().map(|index| index.row()).collect::<Vec<_>>();
+                    rows.sort();
+                    rows.dedup();
+                    rows
+                })
+                .collect::<Vec<_>>();
+
+            sel_sort.sort();
+            sel_sort.dedup();
+            sel_sort.reverse();
+
+            for row in &sel_sort {
+                ui.tools_model().remove_row_1a(*row);
+            }
+        }));
+
         let font_settings = SlotNoArgs::new(&ui.dialog, clone!(mut ui => move || {
             let font_changed: *mut bool = &mut false;
             let current_font = QApplication::font();
@@ -117,6 +177,11 @@ impl SettingsUISlots {
         }
 
         Self {
+            tools_context_menu,
+            tools_enabler,
+            tools_add,
+            tools_remove,
+
             font_settings,
             restore_default,
             select_game_paths,

@@ -26,6 +26,9 @@
 # KDE directory config file.
 .directory
 
+# Tools config file.
+tools.json
+
 # Sublime Config files.
 *.sublime-project
 *.sublime-workspace

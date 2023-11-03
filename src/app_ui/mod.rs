@@ -74,7 +74,7 @@ use crate::communications::*;
 use crate::DARK_PALETTE;
 use crate::ffi::*;
 use crate::games::*;
-use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, load_order::LoadOrder, mods::ShareableMod, profiles::Profile, saves::Save};
+use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, load_order::LoadOrder, mods::ShareableMod, profiles::Profile, saves::Save, tools::Tools};
 use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::*;
@@ -163,6 +163,7 @@ pub struct AppUI {
     focused_widget: Rc<RwLock<Option<QPtr<QWidget>>>>,
     disabled_counter: Rc<RwLock<u32>>,
 
+    tools: Arc<RwLock<Tools>>,
     game_config: Arc<RwLock<Option<GameConfig>>>,
     game_load_order: Arc<RwLock<LoadOrder>>,
     game_profiles: Arc<RwLock<HashMap<String, Profile>>>,
@@ -355,6 +356,8 @@ impl AppUI {
             //-------------------------------------------------------------------------------//
             focused_widget: Rc::new(RwLock::new(None)),
             disabled_counter: Rc::new(RwLock::new(0)),
+
+            tools: Arc::new(RwLock::new(Tools::load().unwrap_or_else(|_| Tools::default()))),
             game_config: Arc::new(RwLock::new(None)),
             game_load_order: Arc::new(RwLock::new(LoadOrder::default())),
             game_profiles: Arc::new(RwLock::new(HashMap::new())),
@@ -406,7 +409,7 @@ impl AppUI {
         // Initialization logic. This takes care of parsing args for stuff like profile shortcuts,
         // or setting the game selected.
         //
-        // NOTE: This exists if autostart param is passed, or if you pass invalid params,
+        // NOTE: This exits if autostart param is passed, or if you pass invalid params,
         // so we don't need to load anything regarthing the UI.
         match Cli::parse_args(&app_ui) {
             Ok(autostart) => if autostart {
@@ -706,6 +709,9 @@ impl AppUI {
                         QAction::trigger(&self.game_selected_group.checked_action());
                     }
 
+                    // Reload the tools, just in case they changed.
+                    *self.tools().write().unwrap() = Tools::load().unwrap_or_else(|_| Tools::default());
+
                     // Disable the games we don't have a path for (uninstalled) and Shogun 2, as it's not supported yet.
                     for (_, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
                         let has_exe = game.executable_path(&setting_path(game.key())).filter(|path| path.is_file()).is_some();
@@ -776,7 +782,7 @@ impl AppUI {
                 let temp_packs_folder = temp_packs_folder(&game)?;
                 let files = files_from_subdir(&temp_packs_folder, false)?;
                 for file in &files {
-                    std::fs::remove_file(&file)?;
+                    std::fs::remove_file(file)?;
                 }
             }
 
@@ -1673,10 +1679,10 @@ impl AppUI {
         let packs_to_move = selection.iter().rev().map(|x| x.data_1a(VALUE_MOD_ID).to_string().to_std_string()).collect::<Vec<_>>();
         let offset = load_order.mods().iter()
             .enumerate()
-            .filter(|(index, mod_id)| (index < &(new_position as usize) && packs_to_move.contains(&mod_id)))
+            .filter(|(index, mod_id)| (index < &(new_position as usize) && packs_to_move.contains(mod_id)))
             .count();
 
-        load_order.mods_mut().retain(|mod_id| !packs_to_move.contains(&mod_id));
+        load_order.mods_mut().retain(|mod_id| !packs_to_move.contains(mod_id));
         for (index, mod_id) in packs_to_move.iter().enumerate() {
             let pos: i32 = new_position + index as i32 - offset as i32;
             load_order.mods_mut().insert(pos as usize, mod_id.to_owned());
@@ -1696,11 +1702,47 @@ impl AppUI {
         for row in 0..self.pack_list_ui().model().row_count_0a() {
             let item = self.pack_list_ui().model().item_2a(row, 3);
             if !item.is_null() {
-                item.set_data_2a(&QVariant::from_int(row as i32), 2);
+                item.set_data_2a(&QVariant::from_int(row), 2);
             }
         }
 
         Ok(())
+    }
 
+    pub unsafe fn generate_open_in_tools_submenu(app_ui: &Rc<AppUI>) {
+        let menu = app_ui.mod_list_ui().open_in_tool_menu();
+        menu.clear();
+
+        let mut tools = app_ui.tools().read().unwrap().clone();
+        tools.tools_mut().sort_by(|tool_a, tool_b| tool_a.name().cmp(tool_b.name()));
+
+        let game = app_ui.game_selected().read().unwrap();
+        for tool in tools.tools() {
+            if tool.games().iter().any(|x| x == game.key()) {
+                let action = menu.add_action_q_string(&QString::from_std_str(tool.name()));
+                let slot = SlotNoArgs::new(menu, clone!(
+                    tool,
+                    app_ui => move || {
+                        if let Some(ref game_config) = *app_ui.game_config().read().unwrap() {
+                            let selection = app_ui.mod_list_selection();
+                            let mod_index = &selection[0];
+                            let mod_id = mod_index.data_1a(VALUE_MOD_ID).to_string().to_std_string();
+
+                            if let Some(modd) = game_config.mods().get(&mod_id) {
+                                if let Some(path) = modd.paths().first() {
+                                    if let Err(error) = std::process::Command::new(tool.path().to_string_lossy().to_string())
+                                        .arg(path.to_string_lossy().to_string())
+                                        .spawn() {
+                                        show_dialog(app_ui.main_window(), error, false);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ));
+
+                action.triggered().connect(&slot);
+            }
+        }
     }
 }

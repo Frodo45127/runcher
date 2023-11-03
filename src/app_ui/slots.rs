@@ -432,6 +432,7 @@ impl AppUISlots {
         let mod_list_context_menu_open = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 AppUI::generate_move_to_category_submenu(&view);
+                AppUI::generate_open_in_tools_submenu(&view);
             }
         ));
 

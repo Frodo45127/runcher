@@ -38,6 +38,8 @@ SOURCES += \
     src/flags_item_delegate.cpp \
     src/html_item_delegate.cpp \
     src/launcher_window.cpp \
+    src/game_selector_item_delegate.cpp \
+    src/path_item_delegate.cpp \
     src/mod_list_filter.cpp
 
 HEADERS += \
@@ -48,6 +50,8 @@ HEADERS += \
     src/flags_item_delegate.h \
     src/html_item_delegate.h \
     src/launcher_window.h \
+    src/game_selector_item_delegate.h \
+    src/path_item_delegate.h \
     src/mod_list_filter.h
 
 INCLUDEPATH += include
