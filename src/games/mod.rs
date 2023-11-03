@@ -16,9 +16,13 @@ use std::path::{PathBuf, Path};
 
 use rpfm_extensions::translator::*;
 
+use rpfm_extensions::dependencies::Dependencies;
+use rpfm_extensions::optimizer::Optimizable;
+
 use rpfm_lib::files::{Container, FileType, loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
 use rpfm_lib::games::{*, supported_games::*};
 use rpfm_lib::integrations::git::GitResponse;
+use rpfm_lib::schema::Schema;
 
 use rpfm_ui_common::locale::tre;
 use rpfm_ui_common::settings::*;
@@ -102,6 +106,8 @@ const EMPTY_BIK: [u8; 520] = [
 pub const TRANSLATIONS_REPO: &str = "https://github.com/Frodo45127/total_war_translation_hub";
 pub const TRANSLATIONS_REMOTE: &str = "origin";
 pub const TRANSLATIONS_BRANCH: &str = "master";
+
+pub const VANILLA_LOC_NAME: &str = "vanilla_english.tsv";
 
 mod attila;
 mod empire;
@@ -377,6 +383,21 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_pa
 /// The only particularity is that all games before warhammer 1 need to merge all translations into a localisation.loc file.
 pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack) -> Result<()> {
 
+    // Translation process:
+    // - Pull new translations from the repo.
+    // - Get language from UI.
+    // - Get all the paths for available translations.
+    // - Get all the packs we need to translate, in z-a order, so the last one has priority.
+    // - Make an empty loc to put the translations into.
+    // - For each Pack:
+    //   - Check for translations in the local folder.
+    //   - If not found, check for translations in the remote folder.
+    //   - If found in any folder, apply them, or use the english value if there's no translation.
+    //   - If none are found, just add the loc to the end of the translated loc.
+    //
+    // - Pass the translated loc through the optimizer to remove lines that didn't need to be there.
+    // - If it's an old game, append the vanilla localisation.loc file to the translated file.
+
     // TODO: Troy has a weird translation system. Check that it works, and check pharaoh too.
     if app_ui.actions_ui().enable_translations_combobox().is_enabled() && app_ui.actions_ui().enable_translations_combobox().current_index() != 0 {
 
@@ -489,6 +510,26 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
 
                         let mut merged_loc = Loc::merge(&locs_split_ref)?;
                         loc_data.append(merged_loc.data_mut());
+                    }
+                }
+            }
+
+            // Perform the optimisation BEFORE appending the vanilla loc, if we're appending it. Otherwise we'll lose valid entries.
+            if !loc_data.is_empty() {
+                loc.set_data(&loc_data)?;
+                if let Some(remote_path) = paths.last() {
+                    let vanilla_loc_path = remote_path.join(format!("{}/{}", game.key(), VANILLA_LOC_NAME));
+                    if let Ok(mut vanilla_loc) = RFile::tsv_import_from_path(&vanilla_loc_path, &Schema::default()) {
+                        vanilla_loc.guess_file_type()?;
+                        vanilla_loc.decode(&None, true, false)?;
+
+                        // Workaround: We do not need a whole dependencies for this, just one file with the entire english loc combined.
+                        // So we initialize an empty dependencies, the manually insert that loc.
+                        let mut dependencies = Dependencies::default();
+                        dependencies.insert_loc_as_vanilla_loc(vanilla_loc);
+
+                        let _ = !loc.optimize(&mut dependencies);
+                        loc_data = loc.data().to_vec();
                     }
                 }
             }
