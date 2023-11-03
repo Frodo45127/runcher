@@ -108,6 +108,7 @@ pub const TRANSLATIONS_REMOTE: &str = "origin";
 pub const TRANSLATIONS_BRANCH: &str = "master";
 
 pub const VANILLA_LOC_NAME: &str = "vanilla_english.tsv";
+pub const VANILLA_FIXES_NAME: &str = "vanilla_fixes_";
 
 mod attila;
 mod empire;
@@ -389,6 +390,7 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
     // - Get all the paths for available translations.
     // - Get all the packs we need to translate, in z-a order, so the last one has priority.
     // - Make an empty loc to put the translations into.
+    // - Apply the fixes file, if found.
     // - For each Pack:
     //   - Check for translations in the local folder.
     //   - If not found, check for translations in the remote folder.
@@ -460,6 +462,7 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
 
             let mut loc = Loc::new();
             let mut loc_data = vec![];
+
             for pack_path in &pack_paths {
                 if let Some(ref pack_name) = pack_path.file_name().map(|name| name.to_string_lossy().to_string()) {
                     let mut translation_found = false;
@@ -510,6 +513,17 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
 
                         let mut merged_loc = Loc::merge(&locs_split_ref)?;
                         loc_data.append(merged_loc.data_mut());
+                    }
+                }
+            }
+
+            // If we have a fixes file for the vanilla translation, apply it before everything else.
+            if let Some(remote_path) = paths.last() {
+                let fixes_loc_path = remote_path.join(format!("{}/{}{}.tsv", game.key(), VANILLA_FIXES_NAME, language));
+                if let Ok(mut fixes_loc) = RFile::tsv_import_from_path(&fixes_loc_path, &Schema::default()) {
+                    fixes_loc.guess_file_type()?;
+                    if let Ok(Some(RFileDecoded::Loc(fixes_loc))) = fixes_loc.decode(&None, false, true) {
+                        loc_data.append(&mut fixes_loc.data().to_vec());
                     }
                 }
             }
