@@ -8,7 +8,7 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
-use qt_widgets::QCheckBox;
+#[cfg(target_os = "windows")] use qt_widgets::QCheckBox;
 use qt_widgets::QDialog;
 use qt_widgets::QDialogButtonBox;
 use qt_widgets::q_dialog_button_box::StandardButton;
@@ -37,7 +37,7 @@ use cpp_core::Ref;
 use anyhow::{anyhow, Result};
 use getset::*;
 use itertools::Itertools;
-use mslnk::ShellLink;
+#[cfg(target_os = "windows")] use mslnk::ShellLink;
 
 use std::path::{PathBuf, Path};
 use std::rc::Rc;
@@ -339,9 +339,9 @@ impl ProfilesUI {
         let game_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "game_label")?;
         let game_next_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "game_next_label")?;
         let autostart_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "autostart_label")?;
-        let autostart_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "autostart_checkbox")?;
+        #[cfg(target_os = "windows")] let autostart_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "autostart_checkbox")?;
         let icon_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "icon_label")?;
-        let icon_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "icon_line_edit")?;
+        #[cfg(target_os = "windows")] let icon_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "icon_line_edit")?;
         let icon_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "icon_button")?;
 
         let button_box: QPtr<QDialogButtonBox> = find_widget(&main_widget.static_upcast(), "button_box")?;
@@ -426,7 +426,7 @@ impl ProfilesUI {
         icon_button.released().connect(&icon_search_slot);
 
         if dialog.exec() == 1 {
-            if cfg!(target_os = "windows") {
+            #[cfg(target_os = "windows")] {
                 let mut arguments = vec![];
                 arguments.push(format!("--game {}", app_ui.game_selected().read().unwrap().key()));
                 arguments.push(format!("--profile {}", current_name));
@@ -450,7 +450,13 @@ impl ProfilesUI {
                 }
 
                 sl.create_lnk(lnk)?;
-            } else {
+            }
+
+            #[cfg(target_os = "linux")] {
+                return Err(anyhow!("Unsupported OS."))
+            }
+
+            #[cfg(target_os = "macos")] {
                 return Err(anyhow!("Unsupported OS."))
             }
         }

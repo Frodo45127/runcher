@@ -75,8 +75,6 @@ tempfile = "^3.8"
 zip-extract = "^0.1"
 reqwest = "^0.11"
 
-# Windows shortcut support.
-mslnk = "^0.1"
 
 # CLI parsing, formatting and color support.
 clap = { version = "^4", features = ["derive", "wrap_help"] }
@@ -84,6 +82,9 @@ clap = { version = "^4", features = ["derive", "wrap_help"] }
 # Windows resources support.
 [target.'cfg(windows)'.build-dependencies]
 winres = "^0.1"
+
+# Windows shortcut support.
+mslnk = "^0.1"
 
 [profile.dev]
 incremental = true
