@@ -1,7 +1,7 @@
 [package]
 name = "runcher"
 build = "build.rs"
-version = "0.6.101"
+version = "0.7.0"
 authors = ["Frodo45127 <frodo_gv@hotmail.com>"]
 description = "A generic launcher for Total War games since Empire: Total War."
 license = "MIT"

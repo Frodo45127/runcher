@@ -6,7 +6,7 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
-## [Unreleased]
+## [0.7.0]
 ### Added
 - Implemented custom font support.
 - Implemented support for the following start args:
@@ -16,6 +16,8 @@ If you're looking for the changes included in the latest beta (against the lates
         * Combined with game and profile, this allows users to make profile-specific shortcuts.
 - Implemented manual load order support.
 - Implemented profile manager.
+- Implemented "Sort Category" feature, to help speedup setting up in the new update.
+- Implemented "Open With Tools" feature.
 
 ### Changed
 - Empty categories are now remembered even if they have no mods.
@@ -27,6 +29,8 @@ If you're looking for the changes included in the latest beta (against the lates
 - Optimized toggling large amounts of mods at once.
 - Profiles now remember if the load order is in automatic or manual mode.
 - Runcher will now make sure to clean it's reserved packs to avoid weird behavior in updates.
+- "Enable Translations" launch option will now make sure your language has priority over mods that have english lines unchanged from vanilla.
+- "Enable Translations" launch option now can auto-apply unofficial fixes for vanilla translations.
 
 ### Fixed
 - Fixed dark theme not reloading correctly after toggling it.
@@ -201,7 +205,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Frodo45127/runcher/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Frodo45127/runcher/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Frodo45127/runcher/compare/v0.4.3...v0.5.0
 [0.4.3]: https://github.com/Frodo45127/runcher/compare/v0.4.2...v0.4.3
