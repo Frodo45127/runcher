@@ -412,8 +412,16 @@ impl ModListUI {
         let name_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "name_line_edit")?;
         let name_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "name_label")?;
         let button_box: QPtr<QDialogButtonBox> = find_widget(&main_widget.static_upcast(), "button_box")?;
-        name_line_edit.set_text(&qtr("category_new_placeholder"));
+        name_line_edit.set_placeholder_text(&qtr("category_new_placeholder"));
         name_label.set_text(&qtr("category_name"));
+
+        // If we're renaming, use the current name as the default name.
+        if rename {
+            let selection = self.mod_list_selection();
+            let cat_index = &selection[0];
+            let old_cat_name = cat_index.data_1a(2).to_string().to_std_string();
+            name_line_edit.set_text(&QString::from_std_str(old_cat_name));
+        }
 
         button_box.button(StandardButton::Ok).released().connect(dialog.slot_accept());
 
