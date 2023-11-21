@@ -11,9 +11,9 @@
 use qt_widgets::QGridLayout;
 use qt_widgets::q_header_view::ResizeMode;
 use qt_widgets::QLineEdit;
+use qt_widgets::QTabWidget;
 use qt_widgets::QToolButton;
 use qt_widgets::QTreeView;
-use qt_widgets::QWidget;
 
 use qt_gui::QListOfQStandardItem;
 use qt_gui::QStandardItem;
@@ -78,8 +78,7 @@ pub struct PackListUI {
 
 impl PackListUI {
 
-    pub unsafe fn new(parent: &QBox<QWidget>) -> Result<Rc<Self>> {
-        let layout: QPtr<QGridLayout> = parent.layout().static_downcast();
+    pub unsafe fn new(parent: &QBox<QTabWidget>) -> Result<Rc<Self>> {
 
         // Load the UI Template.
         let template_path = if cfg!(debug_assertions) { VIEW_DEBUG } else { VIEW_RELEASE };
@@ -107,7 +106,7 @@ impl PackListUI {
         let filter_timer = QTimer::new_1a(&main_widget);
         filter_timer.set_single_shot(true);
 
-        layout.add_widget_5a(&main_widget, 1, 0, 1, 1);
+        parent.add_tab_2a(&main_widget, &qtr("pack_list_title"));
 
         let list = Rc::new(Self {
             tree_view,

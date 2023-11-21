@@ -61,8 +61,6 @@ pub struct GameConfig {
 
     // List of categories in order.
     categories_order: Vec<String>,
-
-    // TODO: Move the load order here, so it's always available and up to date.
 }
 
 //-------------------------------------------------------------------------------//

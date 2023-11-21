@@ -10,7 +10,7 @@
 
 //! Module with the code to parse cli arguments, for automation.
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{builder::PossibleValuesParser, Parser};
 
 #[cfg(target_os = "windows")] use std::fs::{read_dir, remove_dir_all};
@@ -156,7 +156,10 @@ impl Cli {
 
                     match app_ui.load_profile(Some(profile.to_string()), cli.autostart) {
                         Ok(_) => info!("Profile loaded correctly."),
-                        Err(error) => error!("Error loading profile {}: {}.", profile, error),
+                        Err(error) => {
+                            error!("Error loading profile {}: {}.", profile, error);
+                            return Err(anyhow!("Error loading profile {}: {}.", profile, error));
+                        },
                     }
                 },
                 None => info!("No profile provided through arg."),

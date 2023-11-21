@@ -11,6 +11,7 @@
 use qt_widgets::QAction;
 use qt_widgets::QActionGroup;
 use qt_widgets::QApplication;
+use qt_widgets::QTabWidget;
 use qt_widgets::QToolBar;
 use qt_widgets::{QDialog, QDialogButtonBox, q_dialog_button_box::StandardButton};
 use qt_widgets::QLabel;
@@ -72,6 +73,7 @@ use crate::CENTRAL_COMMAND;
 use crate::cli::Cli;
 use crate::communications::*;
 use crate::DARK_PALETTE;
+use crate::data_ui::DataListUI;
 use crate::ffi::*;
 use crate::games::*;
 use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, load_order::LoadOrder, mods::ShareableMod, profiles::Profile, saves::Save, tools::Tools};
@@ -117,6 +119,7 @@ pub struct AppUI {
     // Main Window.
     //-------------------------------------------------------------------------------//
     main_window: QBox<QMainWindow>,
+    right_tabbar: QBox<QTabWidget>,
 
     github_button: QBox<QPushButton>,
     discord_button: QBox<QPushButton>,
@@ -151,6 +154,11 @@ pub struct AppUI {
     // `Mod List` section.
     //-------------------------------------------------------------------------------//
     mod_list_ui: Rc<ModListUI>,
+
+    //-------------------------------------------------------------------------------//
+    // `Data List` section.
+    //-------------------------------------------------------------------------------//
+    data_list_ui: Rc<DataListUI>,
 
     //-------------------------------------------------------------------------------//
     // `Pack List` section.
@@ -195,9 +203,13 @@ impl AppUI {
         let left_widget = QWidget::new_1a(&splitter);
         let right_widget = QWidget::new_1a(&splitter);
         let _ = create_grid_layout(left_widget.static_upcast());
-        let _ = create_grid_layout(right_widget.static_upcast());
+        let right_layout = create_grid_layout(right_widget.static_upcast());
         splitter.set_stretch_factor(0, 1);
         right_widget.set_minimum_width(540);
+
+        // Right layout has a tabbar on the second item.
+        let right_tabbar = QTabWidget::new_1a(&right_widget);
+        right_layout.add_widget_5a(&right_tabbar, 1, 0, 1, 1);
 
         central_layout.add_widget_5a(splitter.into_raw_ptr(), 0, 1, 1, 1);
 
@@ -303,7 +315,12 @@ impl AppUI {
         //-------------------------------------------------------------------------------//
         // `Pack List` section.
         //-------------------------------------------------------------------------------//
-        let pack_list_ui = PackListUI::new(&right_widget)?;
+        let data_list_ui = DataListUI::new(&right_tabbar)?;
+
+        //-------------------------------------------------------------------------------//
+        // `Pack List` section.
+        //-------------------------------------------------------------------------------//
+        let pack_list_ui = PackListUI::new(&right_tabbar)?;
 
         let app_ui = Rc::new(Self {
 
@@ -311,6 +328,7 @@ impl AppUI {
             // Main Window.
             //-------------------------------------------------------------------------------//
             main_window,
+            right_tabbar,
 
             github_button,
             discord_button,
@@ -345,6 +363,11 @@ impl AppUI {
             // `Mod List` section.
             //-------------------------------------------------------------------------------//
             mod_list_ui,
+
+            //-------------------------------------------------------------------------------//
+            // `Data List` section.
+            //-------------------------------------------------------------------------------//
+            data_list_ui,
 
             //-------------------------------------------------------------------------------//
             // `Pack List` section.
@@ -399,6 +422,9 @@ impl AppUI {
         // Apply last ui state.
         app_ui.main_window().restore_geometry(&setting_byte_array("geometry"));
         app_ui.main_window().restore_state_1a(&setting_byte_array("windowState"));
+
+        // Default the right tabs to the pack list.
+        app_ui.right_tabbar().set_current_index(1);
 
         // Apply the font.
         let font_name = setting_string("font_name");
@@ -564,7 +590,7 @@ impl AppUI {
                 *self.game_config().write().unwrap() = Some(GameConfig::load(game, true)?);
 
                 // Trigger an update of all game profiles, just in case one needs update.
-                let _ = Profile::update(&self.game_config().read().unwrap().clone().unwrap(), &game);
+                let _ = Profile::update(&self.game_config().read().unwrap().clone().unwrap(), game);
 
                 // Load the profile's list.
                 match Profile::profiles_for_game(game) {
@@ -685,6 +711,7 @@ impl AppUI {
 
             self.mod_list_ui().load(mods)?;
             self.pack_list_ui().load(mods, game, game_path, &load_order)?;
+            self.data_list_ui().load(mods, game, game_path, &load_order)?;
         }
 
         Ok(())
@@ -856,12 +883,9 @@ impl AppUI {
         }
 
         // Otherwise, just add the packs from the load order to the text file.
-        else {
-
-            if let Some(ref game_config) = *self.game_config().read().unwrap() {
-                let load_order = self.game_load_order().read().unwrap();
-                load_order.build_load_order_string(game_config, &game, &data_path, &mut pack_list, &mut folder_list);
-            }
+        else if let Some(ref game_config) = *self.game_config().read().unwrap() {
+            let load_order = self.game_load_order().read().unwrap();
+            load_order.build_load_order_string(game_config, &game, &data_path, &mut pack_list, &mut folder_list);
         }
 
         // Check if we are loading a save. First option is no save load. Any index above that is a save.
@@ -1056,21 +1080,14 @@ impl AppUI {
                     // Reload the pack list.
                     let game_info = self.game_selected().read().unwrap();
 
+                    // No need to do the expensive stuff on autostart, as it'll never get shown.
                     if !is_autostart {
-                        if let Err(error) = load_order.save(&game_info) {
-                            show_dialog(self.main_window(), error, false);
-                        }
-                    }
+                        load_order.save(&game_info)?;
 
-                    let game_path = setting_path(game_info.key());
-                    if let Err(error) = self.pack_list_ui().load(game_config, &game_info, &game_path, &load_order) {
-                        show_dialog(self.main_window(), error, false);
-                    }
-
-                    if !is_autostart {
-                        if let Err(error) = game_config.save(&game_info) {
-                            show_dialog(self.main_window(), error, false);
-                        }
+                        let game_path = setting_path(game_info.key());
+                        self.pack_list_ui().load(game_config, &game_info, &game_path, &load_order)?;
+                        self.data_list_ui().load(game_config, &game_info, &game_path, &load_order)?;
+                        game_config.save(&game_info)?;
                     }
                 }
 
@@ -1279,7 +1296,7 @@ impl AppUI {
         Ok(())
     }
 
-    pub unsafe fn batch_toggle_selected_mods(&self, toggle: bool) {
+    pub unsafe fn batch_toggle_selected_mods(&self, toggle: bool) -> Result<()> {
 
         // Lock the signals for the model, until the last item, so we avoid repeating full updates of the load order.
         self.mod_list_ui().model().block_signals(true);
@@ -1320,18 +1337,15 @@ impl AppUI {
             let game_path = setting_path(game_info.key());
             let mut load_order = self.game_load_order().write().unwrap();
             load_order.update(game_config);
+            load_order.save(&game_info)?;
 
-            if let Err(error) = load_order.save(&game_info) {
-                show_dialog(self.main_window(), error, false);
-            }
+            self.pack_list_ui().load(game_config, &game_info, &game_path, &load_order)?;
+            self.data_list_ui().load(game_config, &game_info, &game_path, &load_order)?;
+            game_config.save(&game_info)?;
 
-            if let Err(error) = self.pack_list_ui().load(game_config, &game_info, &game_path, &load_order) {
-                show_dialog(self.main_window(), error, false);
-            }
-
-            if let Err(error) = game_config.save(&game_info) {
-                show_dialog(self.main_window(), error, false);
-            }
+            Ok(())
+        } else {
+            Err(anyhow!("WTF?!!! game config is not writable? This is probably a bug."))
         }
     }
 

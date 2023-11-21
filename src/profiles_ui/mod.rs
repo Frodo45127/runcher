@@ -243,7 +243,7 @@ impl ProfilesUI {
 
         name_line_edit.text_changed().connect(&qt_core::SlotNoArgs::new(&name_line_edit, clone!(in_use_names => move || {
             let name_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "name_line_edit").unwrap();
-            button_box.button(StandardButton::Ok).set_enabled(!in_use_names.contains(&&name_line_edit.text().to_std_string()));
+            button_box.button(StandardButton::Ok).set_enabled(!in_use_names.contains(&name_line_edit.text().to_std_string()));
         })));
 
         if dialog.exec() == 1 {

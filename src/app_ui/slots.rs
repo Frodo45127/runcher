@@ -244,6 +244,10 @@ impl AppUISlots {
                         show_dialog(view.main_window(), error, false);
                     }
 
+                    if let Err(error) = view.data_list_ui().load(game_config, &game_info, &game_path, &load_order) {
+                        show_dialog(view.main_window(), error, false);
+                    }
+
                     if let Err(error) = game_config.save(&game_info) {
                         show_dialog(view.main_window(), error, false);
                     }
@@ -379,13 +383,17 @@ impl AppUISlots {
 
         let enable_selected = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
-                view.batch_toggle_selected_mods(true);
+                if let Err(error) = view.batch_toggle_selected_mods(true) {
+                    show_dialog(view.main_window(), error, false);
+                }
             }
         ));
 
         let disable_selected = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
-                view.batch_toggle_selected_mods(false);
+                if let Err(error) = view.batch_toggle_selected_mods(false) {
+                    show_dialog(view.main_window(), error, false);
+                }
             }
         ));
 
@@ -449,12 +457,16 @@ impl AppUISlots {
                     load_order.update(game_config);
 
                     if let Err(error) = load_order.save(&game) {
-                        show_dialog(view.main_window(), error, false);
+                        return show_dialog(view.main_window(), error, false);
                     }
 
                     let game_path = setting_path(game.key());
                     if let Err(error) = view.pack_list_ui().load(game_config, &game, &game_path, &load_order) {
-                        show_dialog(view.main_window(), error, false);
+                        return show_dialog(view.main_window(), error, false);
+                    }
+
+                    if let Err(error) = view.data_list_ui().load(game_config, &game, &game_path, &load_order) {
+                        return show_dialog(view.main_window(), error, false);
                     }
                 }
             }
@@ -467,7 +479,7 @@ impl AppUISlots {
                 }
 
                 if let Err(error) = view.move_pack(dest_row) {
-                    show_dialog(view.main_window(), error, false);
+                    return show_dialog(view.main_window(), error, false);
                 }
             }
         ));

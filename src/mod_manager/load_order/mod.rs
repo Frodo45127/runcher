@@ -10,13 +10,16 @@
 
 use anyhow::Result;
 use getset::*;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
 
+use std::collections::HashMap;
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::fs::{DirBuilder, File};
 use std::path::Path;
 
+use rpfm_lib::files::pack::Pack;
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
 use rpfm_lib::integrations::log::*;
 
@@ -43,6 +46,10 @@ pub struct LoadOrder {
 
     // Movie Packs. These are not reorderable, so we keep them in a separate list.
     movies: Vec<String>,
+
+    // List of Packs open for data checking. Not serialized.
+    #[serde(skip_serializing)]
+    packs: HashMap<String, Pack>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -55,6 +62,7 @@ impl Default for LoadOrder {
             automatic: true,
             mods: vec![],
             movies: vec![],
+            packs: HashMap::new(),
         }
     }
 }
@@ -95,6 +103,18 @@ impl LoadOrder {
         } else {
             self.build_manual(game_config);
         }
+
+        // After the order is built, reload the enabled packs.
+        self.packs.clear();
+        self.packs = self.mods.clone()
+            .into_par_iter()
+            .chain(self.movies.clone())
+            .filter_map(|mod_id| {
+                let modd = game_config.mods().get(&mod_id)?;
+                let path = modd.paths().get(0)?;
+                Some((mod_id.to_owned(), Pack::read_and_merge(&[path.to_path_buf()], true, false).ok()?))
+            })
+            .collect();
     }
 
     /// Automatic builds means the user input is ignored, and mods are sorted alphabetically.
@@ -207,7 +227,7 @@ impl LoadOrder {
                 // Also, Shogun 2 requires some custom file management to move and convert mods to /data, but that's not done here.
                 let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
                 let path = &modd.paths()[0];
-                if !path.starts_with(&game_data_path) && *game.raw_db_version() >= 2 && modd.steam_id().is_some() {
+                if !path.starts_with(game_data_path) && *game.raw_db_version() >= 2 && modd.steam_id().is_some() {
                     let mut folder_path = path.to_owned();
                     folder_path.pop();
 

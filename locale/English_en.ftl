@@ -184,3 +184,9 @@ tools_column_games = Games Supported
 open_in_tool_menu = Open with Tool
 tools_add = Add
 tools_remove = Remove
+
+data_list_title = Data Tree
+pack_list_title = Pack List
+
+game_data = Game Data
+file_name = File/Folder Name

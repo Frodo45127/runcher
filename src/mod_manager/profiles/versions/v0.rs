@@ -56,7 +56,7 @@ impl ProfileV0 {
                         .map(|modd| modd.id().to_owned())
                         .collect::<Vec<_>>();
 
-                    profile.load_order_mut().mods_mut().retain(|mod_id| !movies.contains(&mod_id));
+                    profile.load_order_mut().mods_mut().retain(|mod_id| !movies.contains(mod_id));
                     *profile.load_order_mut().movies_mut() = movies;
 
                     let profile_name = profile.id.to_owned();

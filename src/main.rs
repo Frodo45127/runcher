@@ -44,6 +44,7 @@ use rpfm_lib::games::supported_games::SupportedGames;
 use rpfm_lib::integrations::log::*;
 use rpfm_lib::schema::Schema;
 
+use rpfm_ui_common::icons::Icons;
 use rpfm_ui_common::locale::FALLBACK_LOCALE;
 use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
@@ -57,6 +58,7 @@ mod app_ui;
 mod background_thread;
 mod cli;
 mod communications;
+mod data_ui;
 mod ffi;
 mod games;
 mod mod_manager;
@@ -131,6 +133,9 @@ lazy_static! {
 
     /// Global variable to hold the sender/receivers used to comunicate between threads.
     static ref CENTRAL_COMMAND: CentralCommand<Response> = CentralCommand::default();
+
+    /// Icons for the PackFile TreeView.
+    static ref TREEVIEW_ICONS: Icons = unsafe { Icons::new() };
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
