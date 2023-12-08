@@ -32,18 +32,6 @@ use rpfm_lib::games::supported_games::SupportedGames;
 // Custom delegates stuff.
 //---------------------------------------------------------------------------//
 
-// This function setup the special filter used for the PackFile Contents `TreeView`.
-extern "C" { fn mod_list_filter(parent: *mut QObject) -> *mut QSortFilterProxyModel; }
-pub fn mod_list_filter_safe(parent: QPtr<QObject>) ->  QBox<QSortFilterProxyModel> {
-    unsafe { QBox::from_raw(mod_list_filter(parent.as_mut_raw_ptr())) }
-}
-
-// This function triggers the special filter used for the PackFile Contents `TreeView`. It has to be triggered here to work properly.
-extern "C" { fn mod_list_trigger_filter(filter: *const QSortFilterProxyModel, pattern: *mut QRegExp); }
-pub fn mod_list_trigger_filter_safe(filter: &QSortFilterProxyModel, pattern: &Ptr<QRegExp>) {
-    unsafe { mod_list_trigger_filter(filter, pattern.as_mut_raw_ptr()); }
-}
-
 // This function allow us to create a custom window.
 extern "C" { fn launcher_window(use_dark_theme: bool) -> *mut QMainWindow; }
 pub fn launcher_window_safe(use_dark_theme: bool) -> QBox<QMainWindow> {
@@ -95,6 +83,16 @@ pub fn new_mod_list_tree_view_safe(parent: QPtr<QWidget>) -> QPtr<QTreeView> {
     unsafe { QPtr::from_raw(new_mod_list_tree_view(parent.as_mut_raw_ptr())) }
 }
 
+extern "C" { fn mod_list_filter(parent: *mut QObject) -> *mut QSortFilterProxyModel; }
+pub fn mod_list_filter_safe(parent: QPtr<QObject>) ->  QBox<QSortFilterProxyModel> {
+    unsafe { QBox::from_raw(mod_list_filter(parent.as_mut_raw_ptr())) }
+}
+
+extern "C" { fn mod_list_trigger_filter(filter: *const QSortFilterProxyModel, pattern: *mut QRegExp); }
+pub fn mod_list_trigger_filter_safe(filter: &QSortFilterProxyModel, pattern: &Ptr<QRegExp>) {
+    unsafe { mod_list_trigger_filter(filter, pattern.as_mut_raw_ptr()); }
+}
+
 extern "C" { fn new_pack_list_model(parent: *mut QWidget) -> *mut QStandardItemModel; }
 pub fn new_pack_list_model_safe(parent: QPtr<QWidget>) -> QPtr<QStandardItemModel> {
     unsafe { QPtr::from_raw(new_pack_list_model(parent.as_mut_raw_ptr())) }
@@ -104,6 +102,16 @@ pub fn new_pack_list_model_safe(parent: QPtr<QWidget>) -> QPtr<QStandardItemMode
 extern "C" { fn new_pack_list_tree_view(parent: *mut QWidget) -> *mut QTreeView; }
 pub fn new_pack_list_tree_view_safe(parent: QPtr<QWidget>) -> QPtr<QTreeView> {
     unsafe { QPtr::from_raw(new_pack_list_tree_view(parent.as_mut_raw_ptr())) }
+}
+
+extern "C" { fn pack_list_filter(parent: *mut QObject) -> *mut QSortFilterProxyModel; }
+pub fn pack_list_filter_safe(parent: QPtr<QObject>) ->  QBox<QSortFilterProxyModel> {
+    unsafe { QBox::from_raw(pack_list_filter(parent.as_mut_raw_ptr())) }
+}
+
+extern "C" { fn pack_list_trigger_filter(filter: *const QSortFilterProxyModel, pattern: *mut QRegExp); }
+pub fn pack_list_trigger_filter_safe(filter: &QSortFilterProxyModel, pattern: &Ptr<QRegExp>) {
+    unsafe { pack_list_trigger_filter(filter, pattern.as_mut_raw_ptr()); }
 }
 
 pub fn draggable_tree_view_drop_signal(widget: QPtr<QWidget>) -> Signal<(*const QModelIndex, i32)> {

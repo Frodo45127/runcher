@@ -100,7 +100,7 @@ impl DataListUI {
         let main_widget = load_template(parent, template_path)?;
 
         let tree_view_placeholder: QPtr<QTreeView> = find_widget(&main_widget.static_upcast(), "tree_view")?;
-        let tree_view = new_mod_list_tree_view_safe(main_widget.static_upcast());
+        let tree_view = new_pack_list_tree_view_safe(main_widget.static_upcast());
         let filter_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "filter_line_edit")?;
         let filter_case_sensitive_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "filter_case_sensitive_button")?;
 
@@ -109,8 +109,8 @@ impl DataListUI {
         main_layout.replace_widget_2a(&tree_view_placeholder, &tree_view);
         tree_view_placeholder.delete();
 
-        let model = new_mod_list_model_safe(tree_view.static_upcast());
-        let filter = mod_list_filter_safe(main_widget.static_upcast());
+        let model = new_pack_list_model_safe(tree_view.static_upcast());
+        let filter = pack_list_filter_safe(main_widget.static_upcast());
         filter.set_source_model(&model);
         model.set_parent(&tree_view);
         tree_view.set_model(&filter);
@@ -190,6 +190,13 @@ impl DataListUI {
             let mut build_data = BuildData::new();
             build_data.data = Some((ContainerInfo::default(), full_pack.files().par_iter().map(|(_, file)| From::from(file)).collect()));
             self.tree_view.update_treeview(true, TreeViewOperation::Build(build_data));
+
+            // Enlarge the first column if it's too small, and autoexpand the first node.
+            if self.tree_view().column_width(0) < 300 {
+                self.tree_view().set_column_width(0, 300);
+            }
+
+            self.tree_view().expand_to_depth(0);
         }
 
         Ok(())
@@ -218,7 +225,7 @@ impl DataListUI {
         else { pattern.set_case_sensitivity(CaseSensitivity::CaseInsensitive); }
 
         // Filter whatever it's in that column by the text we got.
-        mod_list_trigger_filter_safe(self.filter(), &pattern.as_ptr());
+        pack_list_trigger_filter_safe(self.filter(), &pattern.as_ptr());
     }
 
     pub unsafe fn delayed_updates(&self) {
