@@ -268,9 +268,11 @@ impl ModListUI {
 
                                 let time_created = if *modd.time_created() != 0 {
                                     OffsetDateTime::from_unix_timestamp(*modd.time_created() as i64)?.format(&date_format)?
-                                } else {
+                                } else if cfg!(target_os = "windows") {
                                     let date = modd.paths()[0].metadata()?.created()?.duration_since(UNIX_EPOCH)?;
                                     OffsetDateTime::from_unix_timestamp(date.as_secs() as i64)?.format(&date_format)?
+                                } else {
+                                    String::new()
                                 };
 
                                 let time_updated = if *modd.time_updated() != 0 {

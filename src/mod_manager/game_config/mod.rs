@@ -176,7 +176,11 @@ impl GameConfig {
         // Get the modified date of the game's exe, to check if a mod is outdated or not.
         let last_update_date = if let Some(exe_path) = game.executable_path(game_path) {
             if let Ok(exe) = File::open(exe_path) {
-                exe.metadata()?.created()?.duration_since(UNIX_EPOCH)?.as_secs()
+                if cfg!(target_os = "windows") {
+                    exe.metadata()?.created()?.duration_since(UNIX_EPOCH)?.as_secs()
+                } else {
+                    0
+                }
             } else {
                 0
             }
@@ -223,7 +227,7 @@ impl GameConfig {
                                         modd.set_pack_type(pack.pfh_file_type());
 
                                         let metadata = modd.paths().last().unwrap().metadata()?;
-                                        modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                        #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                         modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                         modd.set_outdated(last_update_date > *modd.time_updated() as u64);
                                     }
@@ -235,7 +239,7 @@ impl GameConfig {
                                         modd.set_pack_type(pack.pfh_file_type());
 
                                         let metadata = modd.paths()[0].metadata()?;
-                                        modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                        #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                         modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                         modd.set_outdated(last_update_date > *modd.time_updated() as u64);
 
@@ -328,7 +332,7 @@ impl GameConfig {
                                     }
 
                                     let metadata = modd.paths()[0].metadata()?;
-                                    modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                    #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                     modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                     modd.set_outdated(last_update_date > *modd.time_updated() as u64);
                                 } else {
@@ -340,7 +344,7 @@ impl GameConfig {
                                             modd.set_pack_type(pack.pfh_file_type());
 
                                             let metadata = modd.paths()[0].metadata()?;
-                                            modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                            #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                             modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                             modd.set_outdated(last_update_date > *modd.time_updated() as u64);
                                         }
@@ -352,7 +356,7 @@ impl GameConfig {
                                             modd.set_pack_type(pack.pfh_file_type());
 
                                             let metadata = modd.paths()[0].metadata()?;
-                                            modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                            #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                             modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                             modd.set_outdated(last_update_date > *modd.time_updated() as u64);
                                             self.mods_mut().insert(pack_name, modd);
