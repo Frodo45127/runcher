@@ -146,47 +146,51 @@ impl DataListUI {
 
         self.setup_columns();
 
-        // Build the full pack list with the vanilla packs.
-        let vanilla_paths = game.ca_packs_paths(game_path)?;
-        let movie_paths = load_order.movies().iter()
-            .filter_map(|mod_id| game_config.mods().get(mod_id))
-            .filter_map(|modd| modd.paths().get(0))
-            .cloned()
-            .collect::<Vec<_>>();
+        // Only load this if the game path is actually a path.
+        if game_path.exists() && game_path.is_dir() {
 
-        let mut base_packs = vanilla_paths.iter().chain(movie_paths.iter())
-            .filter_map(|path| Pack::read_and_merge(&[path.to_path_buf()], true, false).ok())
-            .collect::<Vec<_>>();
+            // Build the full pack list with the vanilla packs.
+            let vanilla_paths = game.ca_packs_paths(game_path)?;
+            let movie_paths = load_order.movies().iter()
+                .filter_map(|mod_id| game_config.mods().get(mod_id))
+                .filter_map(|modd| modd.paths().get(0))
+                .cloned()
+                .collect::<Vec<_>>();
 
-        base_packs.sort_by(|pack_a, pack_b| if pack_a.pfh_file_type() != pack_b.pfh_file_type() {
-            pack_a.pfh_file_type().cmp(&pack_b.pfh_file_type())
-        } else {
-            pack_a.disk_file_path().cmp(pack_b.disk_file_path())
-        });
+            let mut base_packs = vanilla_paths.iter().chain(movie_paths.iter())
+                .filter_map(|path| Pack::read_and_merge(&[path.to_path_buf()], true, false).ok())
+                .collect::<Vec<_>>();
 
-        // Generate the "merged pack" from the load order mods, and inject them into the full pack list.
-        let mut mod_packs_sorted = load_order.mods().iter()
-            .filter_map(|mod_id| load_order.packs().get(mod_id))
-            .cloned()
-            .collect::<Vec<_>>();
+            base_packs.sort_by(|pack_a, pack_b| if pack_a.pfh_file_type() != pack_b.pfh_file_type() {
+                pack_a.pfh_file_type().cmp(&pack_b.pfh_file_type())
+            } else {
+                pack_a.disk_file_path().cmp(pack_b.disk_file_path())
+            });
 
-        // If we have movie packs in the base ones, insert the mods before the movie packs.
-        //
-        // If not, insert them at the end of the list.
-        if let Some(pos) = base_packs.iter().position(|x| x.pfh_file_type() == PFHFileType::Movie) {
-            let mut movie_packs = base_packs.split_off(pos);
-            base_packs.append(&mut mod_packs_sorted);
-            base_packs.append(&mut movie_packs);
-        } else {
-            base_packs.append(&mut mod_packs_sorted);
-        };
+            // Generate the "merged pack" from the load order mods, and inject them into the full pack list.
+            let mut mod_packs_sorted = load_order.mods().iter()
+                .filter_map(|mod_id| load_order.packs().get(mod_id))
+                .cloned()
+                .collect::<Vec<_>>();
 
-        let full_pack = Pack::merge(&base_packs)?;
-        
-        // Then, build the tree.
-        let mut build_data = BuildData::new();
-        build_data.data = Some((ContainerInfo::default(), full_pack.files().par_iter().map(|(_, file)| From::from(file)).collect()));
-        self.tree_view.update_treeview(true, TreeViewOperation::Build(build_data));
+            // If we have movie packs in the base ones, insert the mods before the movie packs.
+            //
+            // If not, insert them at the end of the list.
+            if let Some(pos) = base_packs.iter().position(|x| x.pfh_file_type() == PFHFileType::Movie) {
+                let mut movie_packs = base_packs.split_off(pos);
+                base_packs.append(&mut mod_packs_sorted);
+                base_packs.append(&mut movie_packs);
+            } else {
+                base_packs.append(&mut mod_packs_sorted);
+            };
+
+            let full_pack = Pack::merge(&base_packs)?;
+
+            // Then, build the tree.
+            let mut build_data = BuildData::new();
+            build_data.data = Some((ContainerInfo::default(), full_pack.files().par_iter().map(|(_, file)| From::from(file)).collect()));
+            self.tree_view.update_treeview(true, TreeViewOperation::Build(build_data));
+        }
 
         Ok(())
     }
