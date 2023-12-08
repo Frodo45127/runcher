@@ -603,13 +603,10 @@ impl AppUI {
                     self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
                 }
 
-                // If we don't have a path in the settings for the game, disable the play button.
+                // Load the launch options for the game selected.
                 let game_path_str = setting_string(game.key());
                 let game_path = PathBuf::from(&game_path_str);
-                self.actions_ui().play_button().set_enabled(!game_path_str.is_empty());
-
-                // Load the launch options for the game selected.
-                setup_launch_options(self, game, &game_path);
+                setup_actions(self, game, &game_path);
 
                 // Load the saves list for the selected game.
                 if let Err(error) = self.load_saves_to_ui(game, &game_path) {
