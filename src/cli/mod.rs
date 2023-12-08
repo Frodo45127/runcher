@@ -12,6 +12,7 @@
 
 use anyhow::{anyhow, Result};
 use clap::{builder::PossibleValuesParser, Parser};
+use crossbeam::channel::Receiver;
 
 #[cfg(target_os = "windows")] use std::fs::{read_dir, remove_dir_all};
 
@@ -23,6 +24,7 @@ use rpfm_ui_common::settings::setting_string;
 use rpfm_ui_common::utils::log_to_status_bar;
 
 use crate::app_ui::AppUI;
+use crate::communications::Response;
 
 //---------------------------------------------------------------------------//
 //                          Struct/Enum Definitions
@@ -53,7 +55,7 @@ fn game_keys() -> Vec<&'static str> {
 
 impl Cli {
 
-    pub unsafe fn parse_args(app_ui: &AppUI) -> Result<bool> {
+    pub unsafe fn parse_args(app_ui: &AppUI) -> Result<(bool, Option<Receiver<Response>>)> {
 
         // Clean up folders from previous updates, if they exist. Windows-only.
         //
@@ -140,7 +142,7 @@ impl Cli {
         // Also, the game we already have loaded is arena. We don't need to force a manual reload with that one.
         //
         // Note: if we're autostarting, skip the network update to start the game 1-5 seconds faster.
-        app_ui.change_game_selected(false, cli.autostart)?;
+        let network_receiver = app_ui.change_game_selected(false, cli.autostart)?;
 
         // If we're not autostarting, enable the UI here.
         if !cli.autostart {
@@ -169,7 +171,7 @@ impl Cli {
             if cli.autostart {
                 info!("Autostart provided. Skipping UI and loading the game.");
                 app_ui.launch_game()?;
-                return Ok(true);
+                return Ok((true, network_receiver));
             } else {
                 info!("Autostart not provided, or provided as false.");
             }
@@ -177,6 +179,6 @@ impl Cli {
             info!("No valid game provided through args. Ignoring subsequent checks.");
         }
 
-        Ok(false)
+        Ok((false, network_receiver))
     }
 }

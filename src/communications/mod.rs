@@ -12,11 +12,12 @@ use qt_core::QEventLoop;
 
 use anyhow::Error;
 use crossbeam::channel::{Receiver, Sender, unbounded};
+use steam_workshop_api::interfaces::WorkshopItem;
 
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use rpfm_lib::integrations::{log::info, git::GitResponse};
+use rpfm_lib::integrations::{log::{error, info}, git::GitResponse};
 
 use crate::mod_manager::{game_config::GameConfig, mods::ShareableMod};
 use crate::updater_ui::APIResponse;
@@ -57,6 +58,7 @@ pub enum Command {
     UpdateTranslations,
     GetStringFromLoadOrder(GameConfig),
     GetLoadOrderFromString(String),
+    RequestModsData(Vec<String>),
 }
 
 /// This enum defines the responses (messages) you can send to the to the UI thread as result of a command.
@@ -70,6 +72,7 @@ pub enum Response {
     APIResponse(APIResponse),
     APIResponseGit(GitResponse),
     VecShareableMods(Vec<ShareableMod>),
+    VecWorkshopItem(Vec<WorkshopItem>),
 }
 
 //-------------------------------------------------------------------------------//
@@ -124,7 +127,7 @@ impl<T: Send + Sync + Debug> CentralCommand<T> {
     /// This function serves to send a message back through a generated channel.
     pub fn send_back(sender: &Sender<T>, data: T) {
         if let Err(error) = sender.send(data) {
-            panic!("{THREADS_SENDER_ERROR}: {error}");
+            error!("{THREADS_SENDER_ERROR}: {error}");
         }
     }
 

@@ -11,6 +11,7 @@
 //! Module containing the centralized code for mod and load order management.
 
 use anyhow::Result;
+use crossbeam::channel::Receiver;
 use getset::*;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -29,8 +30,9 @@ use rpfm_lib::integrations::log::error;
 use rpfm_ui_common::settings::setting_string;
 
 use crate::app_ui::{RESERVED_PACK_NAME, RESERVED_PACK_NAME_ALTERNATIVE};
-use crate::mod_manager::{integrations::populate_mods, load_order::LoadOrder, mods::Mod};
-use crate::settings_ui::*;
+use crate::communications::{Command, Response};
+use crate::mod_manager::{load_order::LoadOrder, mods::Mod};
+use crate::{settings_ui::*, CENTRAL_COMMAND};
 
 mod versions;
 
@@ -171,22 +173,13 @@ impl GameConfig {
         self.categories_order_mut().retain(|x| x != category);
     }
 
-    pub fn update_mod_list(&mut self, game: &GameInfo, game_path: &Path, load_order: &mut LoadOrder, skip_network_update: bool) -> Result<()> {
+    /// NOTE: This returns a channel receiver for the workshop/equivalent service data request.
+    /// This is done so the request doesn't hang the entire load process, as it usually takes 2 or 3 seconds to complete.
+    pub fn update_mod_list(&mut self, game: &GameInfo, game_path: &Path, load_order: &mut LoadOrder, skip_network_update: bool) -> Result<Option<Receiver<Response>>> {
+        let mut receiver = None;
 
         // Get the modified date of the game's exe, to check if a mod is outdated or not.
-        let last_update_date = if let Some(exe_path) = game.executable_path(game_path) {
-            if let Ok(exe) = File::open(exe_path) {
-                if cfg!(target_os = "windows") {
-                    exe.metadata()?.created()?.duration_since(UNIX_EPOCH)?.as_secs()
-                } else {
-                    0
-                }
-            } else {
-                0
-            }
-        } else {
-            0
-        };
+        let last_update_date = last_game_update_date(game, game_path)?;
 
         // Clear the mod paths, just in case a failure while loading them leaves them unclean.
         self.mods_mut().values_mut().for_each(|modd| modd.paths_mut().clear());
@@ -258,7 +251,7 @@ impl GameConfig {
 
                 // Ignore network population errors for now.
                 if !skip_network_update {
-                    let _ = populate_mods(self.mods_mut(), &steam_ids, last_update_date);
+                    receiver = Some(CENTRAL_COMMAND.send_network(Command::RequestModsData(steam_ids)));
                 }
 
                 // If any of the mods has a .bin file, we need to copy it to /data and turn it into a Pack.
@@ -404,6 +397,8 @@ impl GameConfig {
         load_order.save(game)?;
 
         // Save the GameConfig or we may lost the population.
-        self.save(game)
+        self.save(game)?;
+
+        Ok(receiver)
     }
 }

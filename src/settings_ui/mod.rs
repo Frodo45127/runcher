@@ -50,6 +50,7 @@ use std::fs::{DirBuilder, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::time::UNIX_EPOCH;
 
 use rpfm_lib::games::{GameInfo, supported_games::{KEY_ARENA, KEY_SHOGUN_2, KEY_WARHAMMER_3}};
 
@@ -592,4 +593,20 @@ pub fn translations_local_path() -> Result<PathBuf> {
 
 pub fn translations_remote_path() -> Result<PathBuf> {
     config_path().map(|path| path.join("translations_remote"))
+}
+
+pub fn last_game_update_date(game: &GameInfo, game_path: &Path) -> Result<u64> {
+    Ok(if let Some(exe_path) = game.executable_path(&game_path) {
+        if let Ok(exe) = File::open(exe_path) {
+            if cfg!(target_os = "windows") {
+                exe.metadata()?.created()?.duration_since(UNIX_EPOCH)?.as_secs()
+            } else {
+                0
+            }
+        } else {
+            0
+        }
+    } else {
+        0
+    })
 }

@@ -19,6 +19,7 @@ use rpfm_ui_common::settings::error_path;
 use crate::CENTRAL_COMMAND;
 use crate::communications::*;
 use crate::games::{TRANSLATIONS_REPO, TRANSLATIONS_REMOTE, TRANSLATIONS_BRANCH};
+use crate::mod_manager::integrations::request_mods_data;
 use crate::settings_ui::{schemas_path, translations_remote_path};
 use crate::updater_ui::check_updates_main_program;
 
@@ -75,6 +76,15 @@ pub fn network_loop() {
                             Err(error) => CentralCommand::send_back(&sender, Response::Error(From::from(error))),
                         }
                     }
+                    Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
+                }
+            }
+
+            Command::RequestModsData(mod_ids) => {
+                match request_mods_data(&mod_ids) {
+                    Ok(mods_data) => {
+                        CentralCommand::send_back(&sender, Response::VecWorkshopItem(mods_data))
+                    },
                     Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
                 }
             }

@@ -46,6 +46,7 @@ use anyhow::Result;
 use getset::*;
 use time::OffsetDateTime;
 
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::time::UNIX_EPOCH;
 
@@ -56,7 +57,7 @@ use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::ffi::*;
-use crate::mod_manager::game_config::GameConfig;
+use crate::mod_manager::{game_config::GameConfig, mods::Mod};
 
 use self::slots::ModListUISlots;
 
@@ -363,6 +364,96 @@ impl ModListUI {
 
         self.tree_view().expand_all();
         self.tree_view().header().resize_sections(ResizeMode::ResizeToContents);
+
+        Ok(())
+    }
+
+    pub unsafe fn update(&self, mods: &HashMap<String, Mod>) -> Result<()> {
+        self.model().block_signals(true);
+
+        let date_format_str = setting_string("date_format");
+        let date_format = time::format_description::parse(&date_format_str).unwrap();
+
+        for category_index in 0..self.model().row_count_0a() {
+            let category = self.model().item_2a(category_index, 0);
+            for mod_index in 0..category.row_count() {
+                let item_mod_name = category.child_2a(mod_index, 0);
+                let mod_id = item_mod_name.data_1a(VALUE_MOD_ID).to_string().to_std_string();
+                if !mod_id.is_empty() {
+                    if let Some(modd) = mods.get(&mod_id) {
+                        let item_flags = category.child_2a(mod_index, 1);
+                        let item_creator = category.child_2a(mod_index, 2);
+                        let item_type = category.child_2a(mod_index, 3);
+                        let item_file_size = category.child_2a(mod_index, 4);
+                        let item_file_url = category.child_2a(mod_index, 5);
+                        let item_preview_url = category.child_2a(mod_index, 6);
+                        let item_time_created = category.child_2a(mod_index, 7);
+                        let item_time_updated = category.child_2a(mod_index, 8);
+                        let item_last_check = category.child_2a(mod_index, 9);
+
+                        let mod_name = if modd.name() != modd.id() {
+                            if !modd.file_name().is_empty() {
+                                format!("<b>{}</b> <i>({} - {})</i>", modd.name(), modd.file_name().split('/').last().unwrap(), modd.id())
+                            } else {
+                                format!("<b>{}</b> <i>({})</i>", modd.name(), modd.id())
+                            }
+                        } else {
+                            format!("<i>{}</i>", modd.name())
+                        };
+
+                        // TODO: show discrepancies between steam's reported data and real data.
+                        let mod_size = if *modd.file_size() != 0 {
+                            format!("{:.2} MB", *modd.file_size() as f64 / 1024.0 / 1024.0)
+                        } else {
+                            let size = modd.paths()[0].metadata()?.len();
+                            format!("{:.2} MB", size as f64 / 1024.0 / 1024.0)
+                        };
+
+                        let time_created = if *modd.time_created() != 0 {
+                            OffsetDateTime::from_unix_timestamp(*modd.time_created() as i64)?.format(&date_format)?
+                        } else if cfg!(target_os = "windows") {
+                            let date = modd.paths()[0].metadata()?.created()?.duration_since(UNIX_EPOCH)?;
+                            OffsetDateTime::from_unix_timestamp(date.as_secs() as i64)?.format(&date_format)?
+                        } else {
+                            String::new()
+                        };
+
+                        let time_updated = if *modd.time_updated() != 0 {
+                            OffsetDateTime::from_unix_timestamp(*modd.time_updated() as i64)?.format(&date_format)?.to_string()
+                        } else {
+                            "-".to_string()
+                        };
+
+                        let mut flags_description = String::new();
+                        if *modd.outdated() {
+                            flags_description.push_str(&tr("mod_outdated_description"));
+                            item_flags.set_data_2a(&QVariant::from_bool(true), FLAG_MOD_IS_OUTDATED);
+                        }
+
+                        if !flags_description.is_empty() {
+                            flags_description = tr("mod_flags_description") + "<ul>" + &flags_description + "<ul/>";
+                            item_flags.set_tool_tip(&QString::from_std_str(&flags_description));
+                        }
+
+                        item_time_created.set_data_2a(&QVariant::from_i64(*modd.time_created() as i64), VALUE_TIMESTAMP);
+                        item_time_updated.set_data_2a(&QVariant::from_i64(*modd.time_updated() as i64), VALUE_TIMESTAMP);
+                        item_last_check.set_data_2a(&QVariant::from_i64(*modd.last_check() as i64), VALUE_TIMESTAMP);
+
+                        item_mod_name.set_text(&QString::from_std_str(mod_name));
+                        item_creator.set_text(&QString::from_std_str(modd.creator_name()));
+                        item_type.set_text(&QString::from_std_str(modd.pack_type().to_string()));
+                        item_file_size.set_text(&QString::from_std_str(&mod_size));
+                        item_file_url.set_text(&QString::from_std_str(modd.file_url()));
+                        item_preview_url.set_text(&QString::from_std_str(modd.preview_url()));
+                        item_time_created.set_text(&QString::from_std_str(&time_created));
+                        item_time_updated.set_text(&QString::from_std_str(&time_updated));
+                        item_last_check.set_text(&QString::from_std_str(modd.last_check().to_string()));
+                    }
+                }
+            }
+        }
+
+        self.model().block_signals(false);
 
         Ok(())
     }

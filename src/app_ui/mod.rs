@@ -42,6 +42,7 @@ use cpp_core::CppBox;
 use cpp_core::Ref;
 
 use anyhow::{anyhow, Result};
+use crossbeam::channel::Receiver;
 use getset::Getters;
 use itertools::Itertools;
 use sha256::try_digest;
@@ -76,7 +77,7 @@ use crate::DARK_PALETTE;
 use crate::data_ui::DataListUI;
 use crate::ffi::*;
 use crate::games::*;
-use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, load_order::LoadOrder, mods::ShareableMod, profiles::Profile, saves::Save, tools::Tools};
+use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, integrations::populate_mods_with_online_data, load_order::LoadOrder, mods::ShareableMod, profiles::Profile, saves::Save, tools::Tools};
 use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::*;
@@ -438,8 +439,12 @@ impl AppUI {
         // NOTE: This exits if autostart param is passed, or if you pass invalid params,
         // so we don't need to load anything regarthing the UI.
         match Cli::parse_args(&app_ui) {
-            Ok(autostart) => if autostart {
+            Ok((autostart, network_receiver)) => if autostart {
                 exit(0);
+            } else {
+
+                // Ignore network errors.
+                let _ = app_ui.update_mod_list_with_online_data(&network_receiver);
             },
             Err(error) => {
                 show_dialog(app_ui.main_window(), error, false);
@@ -548,7 +553,7 @@ impl AppUI {
         }
     }
 
-    pub unsafe fn change_game_selected(&self, reload_same_game: bool, skip_network_update: bool) -> Result<()> {
+    pub unsafe fn change_game_selected(&self, reload_same_game: bool, skip_network_update: bool) -> Result<Option<Receiver<Response>>> {
 
         // Get the new `Game Selected` and clean his name up, so it ends up like "x_y".
         let mut new_game_selected = self.game_selected_group.checked_action().text().to_std_string();
@@ -567,13 +572,13 @@ impl AppUI {
             let result = self.load_data(&new_game_selected, skip_network_update);
 
             self.toggle_main_window(true);
-            result?;
+            result
+        } else {
+            Ok(None)
         }
-
-        Ok(())
     }
 
-    pub unsafe fn load_data(&self, game: &str, skip_network_update: bool) -> Result<()> {
+    pub unsafe fn load_data(&self, game: &str, skip_network_update: bool) -> Result<Option<Receiver<Response>>> {
 
         // We may receive invalid games here, so rule out the invalid ones.
         match SUPPORTED_GAMES.game(game) {
@@ -615,12 +620,13 @@ impl AppUI {
                     show_dialog(self.main_window(), error, false);
                 }
 
-                // Load the mods to the UI.
-                if let Err(error) = self.load_mods_to_ui(game, &game_path, skip_network_update) {
-                    show_dialog(self.main_window(), error, false);
+                // Load the mods to the UI. This does an early return, just in case you add something after this.
+                match self.load_mods_to_ui(game, &game_path, skip_network_update) {
+                    Ok(network_receiver) => return Ok(network_receiver),
+                    Err(error) => show_dialog(self.main_window(), error, false),
                 }
 
-                Ok(())
+                Ok(None)
             },
             None => Err(anyhow!("Game {} is not a valid game.", game)),
         }
@@ -702,17 +708,19 @@ impl AppUI {
         Ok(())
     }
 
-    pub unsafe fn load_mods_to_ui(&self, game: &GameInfo, game_path: &Path, skip_network_update: bool) -> Result<()> {
+    pub unsafe fn load_mods_to_ui(&self, game: &GameInfo, game_path: &Path, skip_network_update: bool) -> Result<Option<Receiver<Response>>> {
         let mut mods = self.game_config().write().unwrap();
         if let Some(ref mut mods) = *mods {
             let mut load_order = self.game_load_order().write().unwrap();
-            mods.update_mod_list(game, game_path, &mut load_order, skip_network_update)?;
+            let network_receiver = mods.update_mod_list(game, game_path, &mut load_order, skip_network_update)?;
 
             self.mod_list_ui().load(mods)?;
             self.pack_list_ui().load(mods, game, game_path, &load_order)?;
-        }
 
-        Ok(())
+            Ok(network_receiver)
+        } else {
+            Ok(None)
+        }
     }
 
     pub unsafe fn open_settings(&self) {
@@ -1756,5 +1764,38 @@ impl AppUI {
                 action.triggered().connect(&slot);
             }
         }
+    }
+
+    pub unsafe fn update_mod_list_with_online_data(&self, receiver: &Option<Receiver<Response>>) -> Result<()> {
+        if let Some(receiver) = receiver {
+            let response = CENTRAL_COMMAND.recv_try(receiver);
+            match response {
+                Response::VecWorkshopItem(workshop_items) => {
+                    let mut mods = self.game_config().write().unwrap();
+                    if let Some(ref mut mods) = *mods {
+                        let game = self.game_selected().read().unwrap();
+                        let game_path_str = setting_string(game.key());
+                        let game_path = PathBuf::from(&game_path_str);
+
+                        // Get the modified date of the game's exe, to check if a mod is outdated or not.
+                        let last_update_date = last_game_update_date(&game, &game_path).unwrap_or(0);
+                        if populate_mods_with_online_data(mods.mods_mut(), &workshop_items, last_update_date).is_ok() {
+                            mods.save(&game)?;
+
+                            // If we got a successfull network update, then proceed to update the UI with the new data.
+                            // It's faster than a full rebuild, and looks more modern and async.
+                            self.mod_list_ui().update(mods.mods())?;
+                        }
+                    }
+                }
+
+                // Ignore errors on network requests for now.
+                Response::Error(_) => {},
+                _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
+
+            }
+        }
+
+        Ok(())
     }
 }

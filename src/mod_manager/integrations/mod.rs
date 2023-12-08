@@ -13,6 +13,7 @@
 //! For now we only support steam workshop, so all calls are redirected to the steam module.
 
 use anyhow::Result;
+use steam_workshop_api::interfaces::WorkshopItem;
 
 use std::collections::HashMap;
 
@@ -24,12 +25,11 @@ mod steam;
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
-#[allow(dead_code)]
-pub fn populate_mods(mods: &mut HashMap<String, Mod>, mod_ids: &[String], last_update_date: u64) -> Result<()> {
-    steam::populate_mods(mods, mod_ids, last_update_date)
+pub fn request_mods_data(mod_ids: &[String]) -> Result<Vec<WorkshopItem>> {
+    steam::request_mods_data(mod_ids)
 }
 
-#[allow(dead_code)]
-pub fn populate_user_names(mods: &mut HashMap<String, Mod>, user_ids: &[String]) -> Result<()> {
-    steam::populate_user_names(mods, user_ids)
+pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_items: &[WorkshopItem], last_update_date: u64) -> Result<()> {
+    steam::populate_mods_with_online_data(mods, workshop_items, last_update_date)
+
 }
