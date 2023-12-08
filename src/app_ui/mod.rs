@@ -507,6 +507,8 @@ impl AppUI {
 
         self.pack_list_ui().automatic_order_button().toggled().connect(slots.pack_toggle_auto_sorting());
         draggable_tree_view_drop_signal(self.pack_list_ui().tree_view().static_upcast()).connect(slots.pack_move());
+
+        self.data_list_ui().reload_button().released().connect(slots.data_view_reload());
     }
 
     /// Function to toggle the main window on and off, while keeping the stupid focus from breaking.
@@ -708,7 +710,6 @@ impl AppUI {
 
             self.mod_list_ui().load(mods)?;
             self.pack_list_ui().load(mods, game, game_path, &load_order)?;
-            self.data_list_ui().load(mods, game, game_path, &load_order)?;
         }
 
         Ok(())
@@ -1083,7 +1084,7 @@ impl AppUI {
 
                         let game_path = setting_path(game_info.key());
                         self.pack_list_ui().load(game_config, &game_info, &game_path, &load_order)?;
-                        self.data_list_ui().load(game_config, &game_info, &game_path, &load_order)?;
+                        self.data_list_ui().set_enabled(false);
                         game_config.save(&game_info)?;
                     }
                 }
@@ -1337,7 +1338,7 @@ impl AppUI {
             load_order.save(&game_info)?;
 
             self.pack_list_ui().load(game_config, &game_info, &game_path, &load_order)?;
-            self.data_list_ui().load(game_config, &game_info, &game_path, &load_order)?;
+            self.data_list_ui().set_enabled(false);
             game_config.save(&game_info)?;
 
             Ok(())

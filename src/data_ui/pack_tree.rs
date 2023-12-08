@@ -28,7 +28,6 @@ use cpp_core::CastFrom;
 use rayon::prelude::*;
 
 use std::cmp::Ordering;
-use std::path::PathBuf;
 
 use rpfm_lib::files::{ContainerPath, FileType};
 
@@ -106,33 +105,14 @@ pub trait PackTree {
     /// - Position 20: Type. 1 is File, 2 is Folder, 4 is PackFile.
     /// - Position 21: Status. 0 is untouched, 1 is added, 2 is modified.
     /// In case you don't realise, those are bitmasks.
-    unsafe fn update_treeview(&self, has_filter: bool, operation: TreeViewOperation);
+    unsafe fn update_treeview(&self, has_filter: bool, operation: &mut TreeViewOperation);
 }
 
 /// This enum has the different possible operations we can do in a `TreeView`.
 #[derive(Clone, Debug)]
 pub enum TreeViewOperation {
-
-    /// Build the entire `TreeView` from nothing. Requires an option: Some<PathBuf> if the `PackFile` is not editable, `None` if it is.
-    /// Also, you can pass a ContainerInfo/RFileInfo if you want to build a TreeView with custom data.
-    Build(BuildData),
-
-    /// Remove all items from the `TreeView`.
+    Build(Vec<RFileInfo>),
     Clear,
-}
-
-/// This struct represents the data needed to build a TreeView.
-#[derive(Clone, Debug)]
-pub struct BuildData {
-
-    /// The path on disk of the PackFile we're trying to open, in case it has one.
-    pub path: Option<PathBuf>,
-
-    /// The "data" to load this instead of a PackFile from the backend.
-    pub data: Option<(ContainerInfo, Vec<RFileInfo>)>,
-
-    /// If this Tree is editable or not (for the root icon).
-    pub editable: bool,
 }
 
 //-------------------------------------------------------------------------------//
@@ -453,7 +433,7 @@ impl PackTree for QPtr<QTreeView> {
         paths
     }
 
-    unsafe fn update_treeview(&self, has_filter: bool, operation: TreeViewOperation) {
+    unsafe fn update_treeview(&self, has_filter: bool, operation: &mut TreeViewOperation) {
         let filter: Option<QPtr<QSortFilterProxyModel>> = if has_filter { Some(self.model().static_downcast()) } else { None };
         let model: QPtr<QStandardItemModel> = if let Some(ref filter) = filter { filter.source_model().static_downcast() } else { self.model().static_downcast() };
 
@@ -463,158 +443,147 @@ impl PackTree for QPtr<QTreeView> {
 
         // We act depending on the operation requested.
         match operation {
-            TreeViewOperation::Build(build_data) => {
+            TreeViewOperation::Build(ref mut packed_files_data) => {
+                if packed_files_data.is_empty() {
+                    self.set_updates_enabled(true);
+                    self.selection_model().block_signals(false);
+                    return
+                }
 
-                match build_data.data {
-                    Some((_, mut packed_files_data)) => {
-                        if packed_files_data.is_empty() {
-                            self.set_updates_enabled(true);
-                            self.selection_model().block_signals(false);
-                            return
-                        }
+                let big_parent = QStandardItem::from_q_string(&qtr("game_data"));
+                big_parent.set_editable(false);
+                big_parent.set_data_2a(&QVariant::from_int(ITEM_TYPE_PACKFILE), ITEM_TYPE);
 
-                        let big_parent = QStandardItem::from_q_string(&qtr("game_data"));
-                        big_parent.set_editable(false);
-                        big_parent.set_data_2a(&QVariant::from_int(ITEM_TYPE_PACKFILE), ITEM_TYPE);
+                TREEVIEW_ICONS.set_standard_item_icon(&big_parent, Some(&FileType::Pack));
+                let big_parent = big_parent.into_ptr();
 
-                        TREEVIEW_ICONS.set_standard_item_icon(&big_parent, Some(&FileType::Pack));
-                        let big_parent = big_parent.into_ptr();
+                // We sort the paths with this horrific monster I don't want to touch ever again, using the following format:
+                // - FolderA
+                // - FolderB
+                // - FileA
+                // - FileB
+                sort_folders_before_files_alphabetically_file_infos(packed_files_data);
 
-                        // We sort the paths with this horrific monster I don't want to touch ever again, using the following format:
-                        // - FolderA
-                        // - FolderB
-                        // - FileA
-                        // - FileB
-                        sort_folders_before_files_alphabetically_file_infos(&mut packed_files_data);
+                // Optimisation: prebuilt certain file-related data before entering the TreeView build loop. This improves performances by about 5%.
+                let packed_files_data = packed_files_data.par_iter().map(|data| (data.path().split('/').count() - 1, data.path().split('/'), data)).collect::<Vec<_>>();
 
-                        // Optimisation: prebuilt certain file-related data before entering the TreeView build loop. This improves performances by about 5%.
-                        let packed_files_data = packed_files_data.par_iter().map(|data| (data.path().split('/').count() - 1, data.path().split('/'), data)).collect::<Vec<_>>();
+                let variant_type_file = QVariant::from_int(ITEM_TYPE_FILE);
+                let variant_type_folder = QVariant::from_int(ITEM_TYPE_FOLDER);
 
-                        let variant_type_file = QVariant::from_int(ITEM_TYPE_FILE);
-                        let variant_type_folder = QVariant::from_int(ITEM_TYPE_FOLDER);
+                let base_file_item = QStandardItem::from_q_string(&QString::new());
+                base_file_item.set_editable(false);
+                base_file_item.set_data_2a(&variant_type_file, ITEM_TYPE);
+                let base_file_item = atomic_from_cpp_box(base_file_item);
 
-                        let base_file_item = QStandardItem::from_q_string(&QString::new());
-                        base_file_item.set_editable(false);
-                        base_file_item.set_data_2a(&variant_type_file, ITEM_TYPE);
-                        let base_file_item = atomic_from_cpp_box(base_file_item);
+                let base_folder_item = QStandardItem::from_q_string(&QString::new());
+                base_folder_item.set_editable(false);
+                base_folder_item.set_data_2a(&variant_type_folder, ITEM_TYPE);
+                TREEVIEW_ICONS.set_standard_item_icon(&base_folder_item, None);
 
-                        let base_folder_item = QStandardItem::from_q_string(&QString::new());
-                        base_folder_item.set_editable(false);
-                        base_folder_item.set_data_2a(&variant_type_folder, ITEM_TYPE);
-                        TREEVIEW_ICONS.set_standard_item_icon(&base_folder_item, None);
+                // Optimisation: Premade the file items before building the tree. This gives us around 20% better times when building WH3 depedencies TreeView.
+                let mut files = packed_files_data.par_iter().rev().map(|(_,_,file_info)| {
+                    let file = (*ref_from_atomic(&base_file_item)).clone();
+                    let pack = (*ref_from_atomic(&base_file_item)).clone();
 
-                        // Optimisation: Premade the file items before building the tree. This gives us around 20% better times when building WH3 depedencies TreeView.
-                        let mut files = packed_files_data.par_iter().rev().map(|(_,_,file_info)| {
-                            let file = (*ref_from_atomic(&base_file_item)).clone();
-                            let pack = (*ref_from_atomic(&base_file_item)).clone();
-
-                            if let Some((_, name)) = file_info.path().rsplit_once('/') {
-                                file.set_text(&QString::from_std_str(name));
-                            } else {
-                                file.set_text(&QString::from_std_str(file_info.path()));
-                            }
-
-                            if let Some(container_name) = file_info.container_name() {
-                                pack.set_text(&QString::from_std_str(container_name));
-                            }
-
-                            TREEVIEW_ICONS.set_standard_item_icon(&file, Some(file_info.file_type()));
-
-                            let row = QListOfQStandardItem::new();
-                            row.append_q_standard_item(&file.as_mut_raw_ptr());
-                            row.append_q_standard_item(&pack.as_mut_raw_ptr());
-
-                            atomic_from_ptr(row.into_ptr())
-                        }).collect::<Vec<_>>();
-
-                        // Once we get the entire path list sorted, we add the paths to the model one by one,
-                        // skipping duplicate entries.
-                        for (count, path_split, _) in packed_files_data {
-
-                            // First, we reset the parent to the big_parent (the PackFile).
-                            // Then, we form the path ("parent -> child" style path) to add to the model.
-                            let mut parent = big_parent;
-
-                            for (index_in_path, name) in path_split.enumerate() {
-                                let name = QString::from_std_str(name);
-
-                                // If it's the last string in the file path, it's a file, so we add it to the model.
-                                if index_in_path == count {
-                                    parent.append_row_q_list_of_q_standard_item(ref_from_atomic(&files.pop().unwrap()));
-                                }
-
-                                // If it's a folder, we check first if it's already in the TreeView using the following
-                                // logic:
-                                // - If the current parent has a child, it should be a folder already in the TreeView,
-                                //   so we check all his children.
-                                // - If any of them is equal to the current folder we are trying to add and it has at
-                                //   least one child, it's a folder exactly like the one we are trying to add, so that
-                                //   one becomes our new parent.
-                                // - If there is no equal folder to the one we are trying to add, we add it, turn it
-                                //   into the new parent, and repeat.
-                                else {
-
-                                    // If the current parent has at least one child, check if the folder already exists.
-                                    let mut duplicate_found = false;
-                                    let children_len = parent.row_count();
-
-                                    if parent.has_children() {
-
-                                        // It's a folder, so we check his children. We are only interested in
-                                        // folders, so ignore the files. Reverse because due to the sorting it's almost
-                                        // sure the last folder is the one we want.
-                                        for index in (0..children_len).rev() {
-                                            let child = parent.child_2a(index, 0);
-                                            if child.data_1a(ITEM_TYPE).to_int_0a() == ITEM_TYPE_FILE { continue }
-
-                                            // Get his text. If it's the same folder we are trying to add, this is our parent now.
-                                            let compare = child.text().compare_q_string(&name);
-                                            match compare.cmp(&0) {
-                                                Ordering::Equal => {
-                                                    parent = parent.child_1a(index);
-                                                    duplicate_found = true;
-                                                    break;
-                                                },
-
-                                                // Optimization: We get the paths pre-sorted. If the last folder cannot be under our folder, stop iterating.
-                                                Ordering::Less => {
-                                                    break;
-                                                },
-                                                Ordering::Greater => {},
-                                            }
-                                        }
-                                    }
-
-                                    // If our current parent doesn't have anything, just add it as a new folder.
-                                    if !duplicate_found {
-                                        let folder = base_folder_item.clone();
-                                        let packs = (*ref_from_atomic(&base_file_item)).clone();
-
-                                        folder.set_text(&name);
-
-                                        let row = QListOfQStandardItem::new();
-                                        row.append_q_standard_item(&folder.as_mut_raw_ptr());
-                                        row.append_q_standard_item(&packs.as_mut_raw_ptr());
-
-                                        parent.append_row_q_list_of_q_standard_item(&row);
-
-                                        // This is our parent now.
-                                        parent = parent.child_1a(children_len);
-                                    }
-                                }
-                            }
-                        }
-
-                        // Delay adding the big parent as much as we can, as otherwise the signals triggered when adding a file can slow this down to a crawl.
-                        model.append_row_q_standard_item(big_parent);
+                    if let Some((_, name)) = file_info.path().rsplit_once('/') {
+                        file.set_text(&QString::from_std_str(name));
+                    } else {
+                        file.set_text(&QString::from_std_str(file_info.path()));
                     }
 
-                    None => {
-                        self.set_updates_enabled(true);
-                        self.selection_model().block_signals(false);
-                        return
+                    if let Some(container_name) = file_info.container_name() {
+                        pack.set_text(&QString::from_std_str(container_name));
+                    }
+
+                    TREEVIEW_ICONS.set_standard_item_icon(&file, Some(file_info.file_type()));
+
+                    let row = QListOfQStandardItem::new();
+                    row.append_q_standard_item(&file.as_mut_raw_ptr());
+                    row.append_q_standard_item(&pack.as_mut_raw_ptr());
+
+                    atomic_from_ptr(row.into_ptr())
+                }).collect::<Vec<_>>();
+
+                // Once we get the entire path list sorted, we add the paths to the model one by one,
+                // skipping duplicate entries.
+                for (count, path_split, _) in packed_files_data {
+
+                    // First, we reset the parent to the big_parent (the PackFile).
+                    // Then, we form the path ("parent -> child" style path) to add to the model.
+                    let mut parent = big_parent;
+
+                    for (index_in_path, name) in path_split.enumerate() {
+                        let name = QString::from_std_str(name);
+
+                        // If it's the last string in the file path, it's a file, so we add it to the model.
+                        if index_in_path == count {
+                            parent.append_row_q_list_of_q_standard_item(ref_from_atomic(&files.pop().unwrap()));
+                        }
+
+                        // If it's a folder, we check first if it's already in the TreeView using the following
+                        // logic:
+                        // - If the current parent has a child, it should be a folder already in the TreeView,
+                        //   so we check all his children.
+                        // - If any of them is equal to the current folder we are trying to add and it has at
+                        //   least one child, it's a folder exactly like the one we are trying to add, so that
+                        //   one becomes our new parent.
+                        // - If there is no equal folder to the one we are trying to add, we add it, turn it
+                        //   into the new parent, and repeat.
+                        else {
+
+                            // If the current parent has at least one child, check if the folder already exists.
+                            let mut duplicate_found = false;
+                            let children_len = parent.row_count();
+
+                            if parent.has_children() {
+
+                                // It's a folder, so we check his children. We are only interested in
+                                // folders, so ignore the files. Reverse because due to the sorting it's almost
+                                // sure the last folder is the one we want.
+                                for index in (0..children_len).rev() {
+                                    let child = parent.child_2a(index, 0);
+                                    if child.data_1a(ITEM_TYPE).to_int_0a() == ITEM_TYPE_FILE { continue }
+
+                                    // Get his text. If it's the same folder we are trying to add, this is our parent now.
+                                    let compare = child.text().compare_q_string(&name);
+                                    match compare.cmp(&0) {
+                                        Ordering::Equal => {
+                                            parent = parent.child_1a(index);
+                                            duplicate_found = true;
+                                            break;
+                                        },
+
+                                        // Optimization: We get the paths pre-sorted. If the last folder cannot be under our folder, stop iterating.
+                                        Ordering::Less => {
+                                            break;
+                                        },
+                                        Ordering::Greater => {},
+                                    }
+                                }
+                            }
+
+                            // If our current parent doesn't have anything, just add it as a new folder.
+                            if !duplicate_found {
+                                let folder = base_folder_item.clone();
+                                let packs = (*ref_from_atomic(&base_file_item)).clone();
+
+                                folder.set_text(&name);
+
+                                let row = QListOfQStandardItem::new();
+                                row.append_q_standard_item(&folder.as_mut_raw_ptr());
+                                row.append_q_standard_item(&packs.as_mut_raw_ptr());
+
+                                parent.append_row_q_list_of_q_standard_item(&row);
+
+                                // This is our parent now.
+                                parent = parent.child_1a(children_len);
+                            }
+                        }
                     }
                 }
+
+                // Delay adding the big parent as much as we can, as otherwise the signals triggered when adding a file can slow this down to a crawl.
+                model.append_row_q_standard_item(big_parent);
             },
 
             // If we want to remove everything from the TreeView...
@@ -630,19 +599,6 @@ impl PackTree for QPtr<QTreeView> {
 //----------------------------------------------------------------//
 // Helpers to control the main TreeView.
 //----------------------------------------------------------------//
-
-/// Implementation of `BuildData`.
-impl BuildData {
-
-    /// This function creates a new build data for a non-editable PackFile.
-    pub fn new() -> Self {
-        Self {
-            path: None,
-            data: None,
-            editable: false,
-        }
-    }
-}
 
 // We sort the paths with this horrific monster I don't want to touch ever again, using the following format:
 // - FolderA

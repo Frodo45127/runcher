@@ -36,17 +36,17 @@ pub struct DataListUISlots {
 impl DataListUISlots {
     pub unsafe fn new(view: &Rc<DataListUI>) -> Self {
 
-        let filter_line_edit = SlotOfQString::new(&view.tree_view, clone!(
+        let filter_line_edit = SlotOfQString::new(view.tree_view(), clone!(
             view => move |_| {
             view.delayed_updates();
         }));
 
-        let filter_case_sensitive_button = SlotNoArgs::new(&view.tree_view, clone!(
+        let filter_case_sensitive_button = SlotNoArgs::new(view.tree_view(), clone!(
             view => move || {
             view.filter_list();
         }));
 
-        let filter_trigger = SlotNoArgs::new(&view.tree_view, clone!(
+        let filter_trigger = SlotNoArgs::new(view.tree_view(), clone!(
             view => move || {
             view.filter_list();
         }));

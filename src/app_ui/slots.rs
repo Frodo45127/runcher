@@ -14,6 +14,7 @@ use qt_gui::QDesktopServices;
 use qt_gui::SlotOfQStandardItem;
 
 use qt_core::QBox;
+use qt_core::QEventLoop;
 use qt_core::QUrl;
 use qt_core::SlotNoArgs;
 use qt_core::SlotOfBool;
@@ -85,6 +86,8 @@ pub struct AppUISlots {
 
     pack_toggle_auto_sorting: QBox<SlotOfBool>,
     pack_move: QBox<SlotOfQModelIndexInt>,
+
+    data_view_reload: QBox<SlotNoArgs>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -244,9 +247,7 @@ impl AppUISlots {
                         show_dialog(view.main_window(), error, false);
                     }
 
-                    if let Err(error) = view.data_list_ui().load(game_config, &game_info, &game_path, &load_order) {
-                        show_dialog(view.main_window(), error, false);
-                    }
+                    view.data_list_ui().set_enabled(false);
 
                     if let Err(error) = game_config.save(&game_info) {
                         show_dialog(view.main_window(), error, false);
@@ -465,9 +466,7 @@ impl AppUISlots {
                         return show_dialog(view.main_window(), error, false);
                     }
 
-                    if let Err(error) = view.data_list_ui().load(game_config, &game, &game_path, &load_order) {
-                        return show_dialog(view.main_window(), error, false);
-                    }
+                    view.data_list_ui().set_enabled(false);
                 }
             }
         ));
@@ -483,6 +482,31 @@ impl AppUISlots {
                 }
             }
         ));
+
+
+        let data_view_reload = SlotNoArgs::new(view.main_window(), clone!(
+            view => move || {
+
+            let game_config = view.game_config().read().unwrap();
+            if let Some(ref game_config) = *game_config {
+                let load_order = view.game_load_order().read().unwrap();
+                let game = view.game_selected().read().unwrap();
+
+                let game_path_str = setting_string(game.key());
+                let game_path = PathBuf::from(&game_path_str);
+
+                view.toggle_main_window(false);
+
+                let event = QEventLoop::new_0a();
+                event.process_events_0a();
+
+                if let Err(error) = view.data_list_ui().load(game_config, &game, &game_path, &load_order) {
+                    show_dialog(view.main_window(), error, false);
+                }
+
+                view.toggle_main_window(true);
+            }
+        }));
 
         Self {
             launch_game,
@@ -529,6 +553,7 @@ impl AppUISlots {
 
             pack_toggle_auto_sorting,
             pack_move,
+            data_view_reload,
         }
     }
 }

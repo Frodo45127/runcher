@@ -36,8 +36,8 @@ use std::rc::Rc;
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::utils::*;
 
-use rpfm_lib::games::{pfh_file_type::PFHFileType, pfh_version::PFHVersion};
-use rpfm_lib::files::{ContainerPath, FileType, RFile, pack::{Pack, PFHFlags}};
+use rpfm_lib::games::pfh_file_type::PFHFileType;
+use rpfm_lib::files::{FileType, RFile, pack::Pack};
 use rpfm_lib::games::GameInfo;
 
 use crate::ffi::*;
@@ -49,8 +49,8 @@ use self::slots::DataListUISlots;
 mod pack_tree;
 mod slots;
 
-const VIEW_DEBUG: &str = "ui_templates/filterable_tree_widget.ui";
-const VIEW_RELEASE: &str = "ui/filterable_tree_widget.ui";
+const VIEW_DEBUG: &str = "ui_templates/filterable_reloadable_tree_widget.ui";
+const VIEW_RELEASE: &str = "ui/filterable_reloadable_tree_widget.ui";
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -65,18 +65,7 @@ pub struct DataListUI {
     filter_line_edit: QPtr<QLineEdit>,
     filter_case_sensitive_button: QPtr<QToolButton>,
     filter_timer: QBox<QTimer>,
-}
-
-#[derive(Clone, Debug, Default, Getters)]
-#[getset(get = "pub")]
-pub struct ContainerInfo {
-    file_name: String,
-    file_path: String,
-    pfh_version: PFHVersion,
-    pfh_file_type: PFHFileType,
-    bitmask: PFHFlags,
-    compress: bool,
-    timestamp: u64,
+    reload_button: QPtr<QToolButton>,
 }
 
 #[derive(Clone, Debug, Default, Getters)]
@@ -103,6 +92,8 @@ impl DataListUI {
         let tree_view = new_pack_list_tree_view_safe(main_widget.static_upcast());
         let filter_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "filter_line_edit")?;
         let filter_case_sensitive_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "filter_case_sensitive_button")?;
+        let reload_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "reload_button")?;
+        reload_button.set_tool_tip(&qtr("reload_data_view"));
 
         // Replace the placeholder widget.
         let main_layout: QPtr<QGridLayout> = main_widget.layout().static_downcast();
@@ -127,7 +118,10 @@ impl DataListUI {
             filter_line_edit,
             filter_case_sensitive_button,
             filter_timer,
+            reload_button,
         });
+
+        list.set_enabled(false);
 
         let slots = DataListUISlots::new(&list);
         list.set_connections(&slots);
@@ -141,13 +135,20 @@ impl DataListUI {
         self.filter_timer().timeout().connect(slots.filter_trigger());
     }
 
+    pub unsafe fn set_enabled(&self, enable: bool) {
+        self.tree_view().set_enabled(enable);
+        self.filter_line_edit().set_enabled(enable);
+        self.filter_case_sensitive_button().set_enabled(enable);
+    }
+
     pub unsafe fn load(&self, game_config: &GameConfig, game: &GameInfo, game_path: &Path, load_order: &LoadOrder) -> Result<()> {
-        self.tree_view.update_treeview(true, TreeViewOperation::Clear);
+        self.tree_view.update_treeview(true, &mut TreeViewOperation::Clear);
 
         self.setup_columns();
 
         // Only load this if the game path is actually a path.
         if game_path.exists() && game_path.is_dir() {
+            self.set_enabled(true);
 
             // Build the full pack list with the vanilla packs.
             let vanilla_paths = game.ca_packs_paths(game_path)?;
@@ -187,9 +188,8 @@ impl DataListUI {
             let full_pack = Pack::merge(&base_packs)?;
 
             // Then, build the tree.
-            let mut build_data = BuildData::new();
-            build_data.data = Some((ContainerInfo::default(), full_pack.files().par_iter().map(|(_, file)| From::from(file)).collect()));
-            self.tree_view.update_treeview(true, TreeViewOperation::Build(build_data));
+            let build_data = full_pack.files().par_iter().map(|(_, file)| From::from(file)).collect();
+            self.tree_view.update_treeview(true, &mut TreeViewOperation::Build(build_data));
 
             // Enlarge the first column if it's too small, and autoexpand the first node.
             if self.tree_view().column_width(0) < 300 {
@@ -197,6 +197,8 @@ impl DataListUI {
             }
 
             self.tree_view().expand_to_depth(0);
+        } else {
+            self.set_enabled(false);
         }
 
         Ok(())
@@ -231,38 +233,6 @@ impl DataListUI {
     pub unsafe fn delayed_updates(&self) {
         self.filter_timer.set_interval(500);
         self.filter_timer.start_0a();
-    }
-}
-
-impl From<&Pack> for ContainerInfo {
-    fn from(pack: &Pack) -> Self {
-
-        // If we have no disk file for the pack, it's a new one.
-        let file_name = if pack.disk_file_path().is_empty() {
-            "new_file.pack"
-        } else {
-            pack.disk_file_path().split('/').last().unwrap_or("unknown.pack")
-        };
-
-        Self {
-            file_name: file_name.to_string(),
-            file_path: pack.disk_file_path().to_string(),
-            pfh_version: *pack.header().pfh_version(),
-            pfh_file_type: *pack.header().pfh_file_type(),
-            bitmask: *pack.header().bitmask(),
-            timestamp: *pack.header().internal_timestamp(),
-            compress: *pack.compress(),
-        }
-    }
-}
-
-impl From<&RFileInfo> for ContainerInfo {
-    fn from(file_info: &RFileInfo) -> Self {
-        Self {
-            file_name: ContainerPath::File(file_info.path().to_owned()).name().unwrap_or("unknown").to_string(),
-            file_path: file_info.path().to_owned(),
-            ..Default::default()
-        }
     }
 }
 
