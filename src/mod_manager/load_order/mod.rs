@@ -48,7 +48,7 @@ pub struct LoadOrder {
     movies: Vec<String>,
 
     // List of Packs open for data checking. Not serialized.
-    #[serde(skip_serializing)]
+    #[serde(skip_deserializing, skip_serializing)]
     packs: HashMap<String, Pack>,
 }
 
