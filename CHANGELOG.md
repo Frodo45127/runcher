@@ -6,6 +6,20 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [Unreleased]
+### Added
+- Implemented load-order dependant data view.
+
+### Changed
+- When renaming a category, its current name is the default value in the dialog.
+- Network request done while loading a game's data (requesting steam workshop info about the downloaded mods) are now done "partially async". 
+    + This means starting the program or changing the game selected takes a few less seconds.
+
+### Fixed
+- Fixed mysterious error when launching Runcher with no game path configured.
+- Fixed actions being enabled when a non-installed game is selected (like on new installs or installs with a default game selected with a missing/invalid path).
+- Fixed creation time error when running runcher on filesystems that do not support creation times.
+
 ## [0.7.0]
 ### Added
 - Implemented custom font support.
