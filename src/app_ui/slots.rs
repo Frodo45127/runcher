@@ -218,7 +218,6 @@ impl AppUISlots {
             view => move || {
                 match view.change_game_selected(true, false) {
                     Ok(network_receiver) => {
-                        dbg!(&network_receiver);
                         if let Err(error) = view.update_mod_list_with_online_data(&network_receiver) {
                             show_dialog(view.main_window(), error, false);
                         }
