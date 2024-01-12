@@ -191,3 +191,6 @@ pack_list_title = Pack List
 game_data = Game Data
 file_name = File/Folder Name
 reload_data_view = Reload Data View
+
+expand_all = Expand All
+collapse_all = Collapse All

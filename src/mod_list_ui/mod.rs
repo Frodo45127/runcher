@@ -100,6 +100,8 @@ pub struct ModListUI {
     categories_send_to_menu: QBox<QMenu>,
     enable_selected: QPtr<QAction>,
     disable_selected: QPtr<QAction>,
+    expand_all: QPtr<QAction>,
+    collapse_all: QPtr<QAction>,
 
     open_in_explorer: QPtr<QAction>,
     open_in_steam: QPtr<QAction>,
@@ -160,6 +162,10 @@ impl ModListUI {
         context_menu.insert_separator(&category_new);
         context_menu.insert_separator(&open_in_explorer);
 
+        let expand_all = context_menu.add_action_q_string(&qtr("expand_all"));
+        let collapse_all = context_menu.add_action_q_string(&qtr("collapse_all"));
+        context_menu.insert_separator(&expand_all);
+
         let list = Rc::new(Self {
             tree_view,
             model,
@@ -176,6 +182,8 @@ impl ModListUI {
             categories_send_to_menu,
             enable_selected,
             disable_selected,
+            expand_all,
+            collapse_all,
 
             open_in_explorer,
             open_in_steam,
@@ -200,6 +208,8 @@ impl ModListUI {
 
         self.open_in_explorer().triggered().connect(slots.open_in_explorer());
         self.open_in_steam().triggered().connect(slots.open_in_steam());
+        self.expand_all().triggered().connect(slots.expand_all());
+        self.collapse_all().triggered().connect(slots.collapse_all());
     }
 
     pub unsafe fn load(&self, game_config: &GameConfig) -> Result<()> {

@@ -38,6 +38,8 @@ pub struct ModListUISlots {
 
     open_in_explorer: QBox<SlotNoArgs>,
     open_in_steam: QBox<SlotNoArgs>,
+    expand_all: QBox<SlotNoArgs>,
+    collapse_all: QBox<SlotNoArgs>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -108,6 +110,16 @@ impl ModListUISlots {
             }
         }));
 
+        let expand_all = SlotNoArgs::new(&view.tree_view, clone!(
+            view => move || {
+            view.tree_view.expand_all();
+        }));
+
+        let collapse_all = SlotNoArgs::new(&view.tree_view, clone!(
+            view => move || {
+            view.tree_view.collapse_all();
+        }));
+
         Self {
             filter_line_edit,
             filter_case_sensitive_button,
@@ -117,6 +129,8 @@ impl ModListUISlots {
             context_menu_enabler,
             open_in_explorer,
             open_in_steam,
+            expand_all,
+            collapse_all,
         }
     }
 }
