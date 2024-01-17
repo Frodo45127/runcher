@@ -44,8 +44,8 @@
       <string/>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
-      <item row="8" column="2">
-       <widget class="QCheckBox" name="check_schema_updates_on_start_checkbox">
+      <item row="7" column="2">
+       <widget class="QCheckBox" name="check_updates_on_start_checkbox">
         <property name="text">
          <string/>
         </property>
@@ -58,86 +58,18 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="2">
-       <widget class="QCheckBox" name="dark_mode_checkbox">
+      <item row="8" column="2">
+       <widget class="QCheckBox" name="check_schema_updates_on_start_checkbox">
         <property name="text">
          <string/>
         </property>
        </widget>
-      </item>
-      <item row="5" column="2">
-       <widget class="KComboBox" name="date_format_combobox"/>
-      </item>
-      <item row="8" column="0">
-       <widget class="QLabel" name="check_schema_updates_on_start_label">
-        <property name="text">
-         <string>TextLabel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="QLabel" name="date_format_label">
-        <property name="text">
-         <string>TextLabel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="0">
-       <widget class="QLabel" name="dark_mode_label">
-        <property name="text">
-         <string>TextLabel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="default_game_label">
-        <property name="text">
-         <string>TextLabel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="2">
-       <widget class="QCheckBox" name="check_updates_on_start_checkbox">
-        <property name="text">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="0">
-       <widget class="QLabel" name="check_updates_on_start_label">
-        <property name="text">
-         <string>TextLabel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="KLineEdit" name="steam_api_key_line_edit"/>
-      </item>
-      <item row="3" column="2">
-       <widget class="KComboBox" name="update_chanel_combobox"/>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="language_label">
-        <property name="text">
-         <string>TextLabel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="2">
-       <widget class="KComboBox" name="language_combobox"/>
       </item>
       <item row="0" column="2">
        <widget class="KLineEdit" name="steam_user_id_line_edit"/>
       </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="steam_user_id_label">
-        <property name="text">
-         <string>TextLabel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="update_chanel_label">
+      <item row="4" column="0">
+       <widget class="QLabel" name="language_label">
         <property name="text">
          <string>TextLabel</string>
         </property>
@@ -153,13 +85,95 @@
         </property>
        </widget>
       </item>
-      <item row="9" column="2">
+      <item row="0" column="0">
+       <widget class="QLabel" name="steam_user_id_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="date_format_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="0">
+       <widget class="QLabel" name="check_schema_updates_on_start_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="QLabel" name="check_updates_on_start_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2">
+       <widget class="KComboBox" name="language_combobox"/>
+      </item>
+      <item row="10" column="2">
        <widget class="QWidget" name="widget" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
           <horstretch>0</horstretch>
           <verstretch>20</verstretch>
          </sizepolicy>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="2">
+       <widget class="QCheckBox" name="dark_mode_checkbox">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="update_chanel_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="KLineEdit" name="steam_api_key_line_edit"/>
+      </item>
+      <item row="3" column="2">
+       <widget class="KComboBox" name="update_chanel_combobox"/>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="dark_mode_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="2">
+       <widget class="KComboBox" name="date_format_combobox"/>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="default_game_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="0">
+       <widget class="QLabel" name="open_workshop_link_in_steam_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="2">
+       <widget class="QCheckBox" name="open_workshop_link_in_steam_checkbox">
+        <property name="text">
+         <string/>
         </property>
        </widget>
       </item>

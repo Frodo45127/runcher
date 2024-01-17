@@ -194,3 +194,4 @@ reload_data_view = Reload Data View
 
 expand_all = Expand All
 collapse_all = Collapse All
+open_workshop_link_in_steam = Open Workshop Links on Steam

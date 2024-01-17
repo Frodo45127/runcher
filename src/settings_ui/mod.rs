@@ -103,6 +103,7 @@ pub struct SettingsUI {
     check_updates_on_start_checkbox: QPtr<QCheckBox>,
     check_schema_updates_on_start_checkbox: QPtr<QCheckBox>,
     dark_mode_checkbox: QPtr<QCheckBox>,
+    open_workshop_link_in_steam_checkbox: QPtr<QCheckBox>,
 
     font_button: QBox<QPushButton>,
     restore_default_button: QPtr<QPushButton>,
@@ -163,6 +164,7 @@ impl SettingsUI {
         let check_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_updates_on_start_label")?;
         let check_schema_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_schema_updates_on_start_label")?;
         let dark_mode_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "dark_mode_label")?;
+        let open_workshop_link_in_steam_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "open_workshop_link_in_steam_label")?;
         let language_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "language_combobox")?;
         let default_game_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "default_game_combobox")?;
         let update_chanel_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "update_chanel_combobox")?;
@@ -172,6 +174,7 @@ impl SettingsUI {
         let check_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_updates_on_start_checkbox")?;
         let check_schema_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_schema_updates_on_start_checkbox")?;
         let dark_mode_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "dark_mode_checkbox")?;
+        let open_workshop_link_in_steam_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "open_workshop_link_in_steam_checkbox")?;
         let paths_layout: QPtr<QGridLayout> = paths_groupbox.layout().static_downcast();
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(STABLE));
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(BETA));
@@ -188,6 +191,7 @@ impl SettingsUI {
         check_updates_on_start_label.set_text(&qtr("check_updates_on_start"));
         check_schema_updates_on_start_label.set_text(&qtr("check_schema_updates_on_start"));
         dark_mode_label.set_text(&qtr("dark_mode"));
+        open_workshop_link_in_steam_label.set_text(&qtr("open_workshop_link_in_steam"));
 
         // We automatically add a Label/LineEdit/Button for each game we support.
         let mut paths_games_line_edits = BTreeMap::new();
@@ -250,6 +254,7 @@ impl SettingsUI {
             check_updates_on_start_checkbox,
             check_schema_updates_on_start_checkbox,
             dark_mode_checkbox,
+            open_workshop_link_in_steam_checkbox,
 
             font_button,
             restore_default_button,
@@ -339,6 +344,7 @@ impl SettingsUI {
         self.steam_user_id_line_edit().set_text(&QString::from_std_str(setting_string_from_q_setting(&q_settings, "steam_user_id")));
         self.steam_api_key_line_edit().set_text(&QString::from_std_str(setting_string_from_q_setting(&q_settings, "steam_api_key")));
         self.dark_mode_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "dark_mode"));
+        self.open_workshop_link_in_steam_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "open_workshop_link_in_steam"));
         self.check_updates_on_start_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "check_updates_on_start"));
         self.check_schema_updates_on_start_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "check_schema_updates_on_start"));
 
@@ -392,6 +398,7 @@ impl SettingsUI {
         set_setting_string_to_q_setting(&q_settings, "steam_user_id", &self.steam_user_id_line_edit().text().to_std_string());
         set_setting_string_to_q_setting(&q_settings, "steam_api_key", &self.steam_api_key_line_edit().text().to_std_string());
         set_setting_bool_to_q_setting(&q_settings, "dark_mode", self.dark_mode_checkbox().is_checked());
+        set_setting_bool_to_q_setting(&q_settings, "open_workshop_link_in_steam", self.open_workshop_link_in_steam_checkbox().is_checked());
         set_setting_bool_to_q_setting(&q_settings, "check_updates_on_start", self.check_updates_on_start_checkbox().is_checked());
         set_setting_bool_to_q_setting(&q_settings, "check_schema_updates_on_start", self.check_schema_updates_on_start_checkbox().is_checked());
 

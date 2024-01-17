@@ -105,7 +105,12 @@ impl ModListUISlots {
             for selection in &selection {
                 let url = selection.data_1a(VALUE_MOD_STEAM_ID).to_string().to_std_string();
                 if !url.is_empty() {
-                    let _ = open::that("https://steamcommunity.com/sharedfiles/filedetails/?id=".to_string() + &url);
+
+                    if setting_bool("open_workshop_link_in_steam") {
+                        let _ = open::that("steam://url/CommunityFilePage/".to_string() + &url);
+                    } else {
+                        let _ = open::that("https://steamcommunity.com/sharedfiles/filedetails/?id=".to_string() + &url);
+                    }
                 }
             }
         }));
