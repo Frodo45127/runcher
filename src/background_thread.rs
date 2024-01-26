@@ -8,6 +8,7 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use anyhow::Result;
 use base64::{Engine as _, engine::general_purpose};
 use crossbeam::channel::Sender;
 use rayon::prelude::*;
@@ -105,16 +106,21 @@ pub fn background_loop() {
                 CentralCommand::send_back(&sender, Response::String(encoded));
             }
             Command::GetLoadOrderFromString(string) => {
-                let debased = general_purpose::STANDARD_NO_PAD.decode(string.as_bytes()).unwrap();
-                let mut decompressed = vec![];
-
-                copy_decode(debased.as_slice(), &mut decompressed).unwrap();
-                let mods: Vec<ShareableMod> = serde_json::from_slice(&decompressed).unwrap();
-
-                CentralCommand::send_back(&sender, Response::VecShareableMods(mods));
+                match get_load_order_from_string(string) {
+                    Ok(mods) => CentralCommand::send_back(&sender, Response::VecShareableMods(mods)),
+                    Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
+                }
             }
 
             Command::CheckUpdates | Command::CheckSchemaUpdates | Command::CheckTranslationsUpdates | Command::RequestModsData(_) => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
         }
     }
+}
+
+fn get_load_order_from_string(string: String) -> Result<Vec<ShareableMod>> {
+    let debased = general_purpose::STANDARD_NO_PAD.decode(string.as_bytes())?;
+    let mut decompressed = vec![];
+
+    copy_decode(debased.as_slice(), &mut decompressed)?;
+    serde_json::from_slice(&decompressed).map_err(From::from)
 }
