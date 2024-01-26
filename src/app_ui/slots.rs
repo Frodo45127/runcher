@@ -315,6 +315,7 @@ impl AppUISlots {
                                 show_dialog(view.main_window(), error, false)
                             }
                         }
+                        Response::Error(error) => show_dialog(view.main_window(), error, false),
                         _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
                     }
 
