@@ -11,6 +11,8 @@
 use qt_widgets::QAction;
 use qt_widgets::QActionGroup;
 use qt_widgets::QApplication;
+use qt_widgets::QButtonGroup;
+use qt_widgets::QRadioButton;
 use qt_widgets::QTabWidget;
 use qt_widgets::QToolBar;
 use qt_widgets::{QDialog, QDialogButtonBox, q_dialog_button_box::StandardButton};
@@ -77,7 +79,7 @@ use crate::DARK_PALETTE;
 use crate::data_ui::DataListUI;
 use crate::ffi::*;
 use crate::games::*;
-use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, integrations::populate_mods_with_online_data, load_order::LoadOrder, mods::ShareableMod, profiles::Profile, saves::Save, tools::Tools};
+use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, integrations::populate_mods_with_online_data, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::ShareableMod, profiles::Profile, saves::Save, tools::Tools};
 use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::*;
@@ -1214,7 +1216,8 @@ impl AppUI {
         }
     }
 
-    pub unsafe fn load_order_string_dialog(&self, string: Option<String>) -> Result<Option<String>> {
+    // String none means paste mode.
+    pub unsafe fn load_order_string_dialog(&self, string: Option<String>) -> Result<Option<ImportedLoadOrderMode>> {
 
         // Load the UI Template.
         let template_path = if cfg!(debug_assertions) { LOAD_ORDER_STRING_VIEW_DEBUG } else { LOAD_ORDER_STRING_VIEW_RELEASE };
@@ -1223,13 +1226,28 @@ impl AppUI {
 
         let info_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "string_label")?;
         let string_text_edit: QPtr<QTextEdit> = find_widget(&main_widget.static_upcast(), "string_text_edit")?;
+        let modlist_mode_radio_button: QPtr<QRadioButton> = find_widget(&main_widget.static_upcast(), "modlist_mode_radio_button")?;
+        let runcher_mode_radio_button: QPtr<QRadioButton> = find_widget(&main_widget.static_upcast(), "runcher_mode_radio_button")?;
         let button_box: QPtr<QDialogButtonBox> = find_widget(&main_widget.static_upcast(), "button_box")?;
         button_box.button(StandardButton::Ok).released().connect(dialog.slot_accept());
+
+        modlist_mode_radio_button.set_text(&qtr("import_string_modlist_mode"));
+        runcher_mode_radio_button.set_text(&qtr("import_string_runcher_mode"));
+        runcher_mode_radio_button.set_checked(true);
+
+        let mode_group = QButtonGroup::new_1a(&dialog);
+
+        // Configure the `Game Selected` Menu.
+        mode_group.add_button_1a(&modlist_mode_radio_button);
+        mode_group.add_button_1a(&runcher_mode_radio_button);
 
         if let Some(ref string) = string {
             dialog.set_window_title(&qtr("load_order_string_title_copy"));
             info_label.set_text(&qtr("load_order_string_info_copy"));
             string_text_edit.set_text(&QString::from_std_str(string));
+
+            modlist_mode_radio_button.set_visible(false);
+            runcher_mode_radio_button.set_visible(false);
         } else {
             dialog.set_window_title(&qtr("load_order_string_title_paste"));
             info_label.set_text(&qtr("load_order_string_info_paste"));
@@ -1241,7 +1259,13 @@ impl AppUI {
         }
 
         if dialog.exec() == 1 && string.is_none() {
-            Ok(Some(string_text_edit.to_plain_text().to_std_string()))
+            let mode = if runcher_mode_radio_button.is_checked() {
+                ImportedLoadOrderMode::Runcher(string_text_edit.to_plain_text().to_std_string())
+            } else {
+                ImportedLoadOrderMode::Modlist(string_text_edit.to_plain_text().to_std_string())
+            };
+
+            Ok(Some(mode))
         } else {
             Ok(None)
         }
@@ -1249,21 +1273,49 @@ impl AppUI {
 
     pub unsafe fn load_order_from_shareable_mod_list(&self, shareable_mod_list: &[ShareableMod]) -> Result<()> {
         if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
+
+            // Before we begin, we need to set all mods to disable. Otherwise, new load orders would get mods mixed up.
+            game_config.mods_mut().iter_mut().for_each(|(_, modd)| { modd.set_enabled(false); });
+
             let mut missing = vec![];
             let mut wrong_hash = vec![];
+            let mut ids = vec![];
+
             for modd in shareable_mod_list {
                 match game_config.mods_mut().get_mut(modd.id()) {
                     Some(modd_local) => {
-                        let current_hash = try_digest(modd_local.paths()[0].as_path())?;
-                        if &current_hash != modd.hash() {
-                            wrong_hash.push(modd.clone());
-                        }
+                        if let Some(path) = modd_local.paths().get(0) {
+                            if !modd.hash().is_empty() {
+                                let current_hash = try_digest(path.as_path())?;
+                                if &current_hash != modd.hash() {
+                                    wrong_hash.push(modd.clone());
+                                }
+                            }
 
-                        modd_local.set_enabled(true);
+                            modd_local.set_enabled(true);
+                            ids.push(modd_local.id().to_owned());
+                        }
                     },
                     None => missing.push(modd.clone()),
                 }
             }
+
+            // Once we're done updating the game config, we need to update the load order.
+            //
+            // We need manual order to respect the provided load order, as it may not be automatic.
+            let game = self.game_selected().read().unwrap();
+            let mut load_order = self.game_load_order().write().unwrap();
+            load_order.set_mods(ids);
+            load_order.set_automatic(false);
+            load_order.update(game_config);
+            load_order.save(&game)?;
+
+            let game_path = setting_path(game.key());
+            self.mod_list_ui().load(game_config)?;
+            self.pack_list_ui().load(game_config, &game, &game_path, &load_order)?;
+            self.data_list_ui().set_enabled(false);
+
+            game_config.save(&game)?;
 
             // Report any missing mods.
             if !missing.is_empty() || !wrong_hash.is_empty() {
@@ -1286,17 +1338,9 @@ impl AppUI {
                         }).collect::<Vec<_>>().join("\n")
                     ));
                 }
+
                 show_dialog(self.main_window(), message, false);
             }
-
-            // TODO: This is wrong!!!! the load order from shared lists needs a rework.
-            let game = self.game_selected().read().unwrap();
-            let game_path = setting_path(game.key());
-            let load_order = self.game_load_order().read().unwrap();
-            self.mod_list_ui().load(game_config)?;
-            self.pack_list_ui().load(game_config, &game, &game_path, &load_order)?;
-
-            game_config.save(&game)?;
         }
 
         Ok(())

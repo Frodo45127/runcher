@@ -75,7 +75,12 @@ check_updates_on_start = Check Updates on Start
 
 copy_load_order = Copy Load Order
 paste_load_order = Paste Load Order
-load_order_string_info_paste = Paste a String you have copied in another instance of Runcher to replicate its load order.
+load_order_string_info_paste = <p>Select the mode you want, and paste the String to import. Regarding the modes:</p>
+    <ul>
+        <li><b>Runcher mode:</b> select this if you're importing a Load Order String generated on another Runcher instance</li>
+        <li><b>Modlist mode:</b> select this if you're importing a Load Order from a "used_mods.txt" or similar file. This is for importing load orders from other mod managers.</li>
+    </ul>
+
 load_order_string_info_copy = Copy this String, and paste it in another instance of Runcher to replicate this load order.
 load_order_string_title_copy = Copy Load Order
 load_order_string_title_paste = Paste Load Order
@@ -196,6 +201,9 @@ reload_data_view = Reload Data View
 expand_all = Expand All
 collapse_all = Collapse All
 open_workshop_link_in_steam = Open Workshop Links on Steam
+
+import_string_modlist_mode = Modlist Mode
+import_string_runcher_mode = Runcher Mode
 
 settings_secondary_mods_folder = Secondary Mods Folder
 settings_secondary_mods_folder_ph = This is an alternative folder to place mods, so /data doesn't get too crowded.

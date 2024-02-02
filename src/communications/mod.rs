@@ -19,7 +19,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use rpfm_lib::integrations::{log::{error, info}, git::GitResponse};
 
-use crate::mod_manager::{game_config::GameConfig, mods::ShareableMod};
+use crate::mod_manager::{game_config::GameConfig, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::ShareableMod};
 use crate::updater_ui::APIResponse;
 
 /// This const is the standard message in case of message communication error. If this happens, crash the program.
@@ -56,8 +56,8 @@ pub enum Command {
     UpdateSchemas(String),
     CheckTranslationsUpdates,
     UpdateTranslations,
-    GetStringFromLoadOrder(GameConfig),
-    GetLoadOrderFromString(String),
+    GetStringFromLoadOrder(GameConfig, LoadOrder),
+    GetLoadOrderFromString(ImportedLoadOrderMode),
     RequestModsData(Vec<String>),
 }
 

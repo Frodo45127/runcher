@@ -53,6 +53,12 @@ pub struct LoadOrder {
     packs: HashMap<String, Pack>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum ImportedLoadOrderMode {
+    Runcher(String),
+    Modlist(String)
+}
+
 //-------------------------------------------------------------------------------//
 //                             Implementations
 //-------------------------------------------------------------------------------//

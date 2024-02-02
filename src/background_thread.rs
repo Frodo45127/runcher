@@ -24,7 +24,7 @@ use rpfm_ui_common::settings::error_path;
 use crate::CENTRAL_COMMAND;
 use crate::communications::*;
 use crate::games::{TRANSLATIONS_REPO, TRANSLATIONS_BRANCH, TRANSLATIONS_REMOTE};
-use crate::mod_manager::{game_config::GameConfig, mods::ShareableMod};
+use crate::mod_manager::{game_config::GameConfig, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::ShareableMod};
 use crate::settings_ui::{schemas_path, translations_remote_path};
 use crate::SCHEMA;
 
@@ -86,15 +86,15 @@ pub fn background_loop() {
                 }
             }
 
-            Command::GetStringFromLoadOrder(game_config) => {
-                match get_string_from_load_order(game_config) {
+            Command::GetStringFromLoadOrder(game_config, load_order) => {
+                match get_string_from_load_order(game_config, load_order) {
                     Ok(encoded) => CentralCommand::send_back(&sender, Response::String(encoded)),
                     Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
                 }
             }
 
-            Command::GetLoadOrderFromString(string) => {
-                match get_load_order_from_string(string) {
+            Command::GetLoadOrderFromString(mode) => {
+                match get_load_order_from_string(mode) {
                     Ok(mods) => CentralCommand::send_back(&sender, Response::VecShareableMods(mods)),
                     Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
                 }
@@ -105,15 +105,13 @@ pub fn background_loop() {
     }
 }
 
-fn get_string_from_load_order(game_config: GameConfig) -> Result<String> {
-    let mut mods = game_config.mods()
+fn get_string_from_load_order(game_config: GameConfig, load_order: LoadOrder) -> Result<String> {
+    let mods = load_order.mods()
         .par_iter()
-        .map(|(_, modd)| modd)
+        .filter_map(|mod_id| game_config.mods().get(mod_id))
         .filter(|modd| *modd.enabled() && !modd.paths().is_empty())
         .map(ShareableMod::from)
         .collect::<Vec<_>>();
-
-    mods.sort_by_key(|a| a.id().clone());
 
     let mods = serde_json::to_string(&mods)?;
     let mut compressed = vec![];
@@ -122,10 +120,28 @@ fn get_string_from_load_order(game_config: GameConfig) -> Result<String> {
     Ok(general_purpose::STANDARD_NO_PAD.encode(compressed))
 }
 
-fn get_load_order_from_string(string: String) -> Result<Vec<ShareableMod>> {
-    let debased = general_purpose::STANDARD_NO_PAD.decode(string.as_bytes())?;
-    let mut decompressed = vec![];
+fn get_load_order_from_string(mode: ImportedLoadOrderMode) -> Result<Vec<ShareableMod>> {
+    match mode {
+        ImportedLoadOrderMode::Runcher(string) => {
+            let debased = general_purpose::STANDARD_NO_PAD.decode(string.as_bytes())?;
+            let mut decompressed = vec![];
 
-    copy_decode(debased.as_slice(), &mut decompressed)?;
-    serde_json::from_slice(&decompressed).map_err(From::from)
+            copy_decode(debased.as_slice(), &mut decompressed)?;
+            serde_json::from_slice(&decompressed).map_err(From::from)
+        }
+        ImportedLoadOrderMode::Modlist(string) => {
+            let mut mods = vec![];
+            for line in string.lines() {
+                if let Some(start) = line.find("mod \"") {
+                    if let Some(mod_id) = line.get(start + 5 .. line.len() - 2) {
+                        let mut modd = ShareableMod::default();
+                        modd.set_id(mod_id.to_owned());
+
+                        mods.push(modd);
+                    }
+                }
+            }
+            Ok(mods)
+        }
+    }
 }

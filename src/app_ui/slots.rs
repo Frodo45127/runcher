@@ -320,7 +320,8 @@ impl AppUISlots {
                 if let Some(ref game_config) = *view.game_config().read().unwrap() {
                     view.toggle_main_window(false);
 
-                    let receiver = CENTRAL_COMMAND.send_background(Command::GetStringFromLoadOrder(game_config.clone()));
+                    let load_order = view.game_load_order().read().unwrap().clone();
+                    let receiver = CENTRAL_COMMAND.send_background(Command::GetStringFromLoadOrder(game_config.clone(), load_order));
                     let response = CENTRAL_COMMAND.recv_try(&receiver);
                     match response {
                         Response::String(response) => {
@@ -340,10 +341,10 @@ impl AppUISlots {
         let paste_load_order = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 match view.load_order_string_dialog(None) {
-                    Ok(string) => if let Some(string) = string {
+                    Ok(mode) => if let Some(mode) = mode {
                         view.toggle_main_window(false);
 
-                        let receiver = CENTRAL_COMMAND.send_background(Command::GetLoadOrderFromString(string));
+                        let receiver = CENTRAL_COMMAND.send_background(Command::GetLoadOrderFromString(mode));
                         let response = CENTRAL_COMMAND.recv_try(&receiver);
                         match response {
                             Response::VecShareableMods(response) => {
