@@ -470,6 +470,7 @@ impl AppUI {
         self.actions_ui().open_game_root_folder().triggered().connect(slots.open_game_root_folder());
         self.actions_ui().open_game_data_folder().triggered().connect(slots.open_game_data_folder());
         self.actions_ui().open_game_content_folder().triggered().connect(slots.open_game_content_folder());
+        self.actions_ui().open_game_secondary_folder().triggered().connect(slots.open_game_secondary_folder());
         self.actions_ui().open_game_config_folder().triggered().connect(slots.open_game_config_folder());
         self.actions_ui().open_runcher_config_folder().triggered().connect(slots.open_runcher_config_folder());
         self.actions_ui().open_runcher_error_folder().triggered().connect(slots.open_runcher_error_folder());

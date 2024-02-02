@@ -34,6 +34,8 @@ use crate::communications::{Command, Response};
 use crate::mod_manager::{load_order::LoadOrder, mods::Mod};
 use crate::{settings_ui::*, CENTRAL_COMMAND};
 
+use super::secondary_mods_packs_paths;
+
 mod versions;
 
 const GAME_CONFIG_FILE_NAME_START: &str = "game_config_";
@@ -192,6 +194,7 @@ impl GameConfig {
             if let Ok(vanilla_packs) = game.ca_packs_paths(game_path) {
                 let data_paths = game.data_packs_paths(game_path);
                 let content_paths = game.content_packs_paths(game_path);
+                let secondary_mods_paths = secondary_mods_packs_paths(game.key());
 
                 let mut steam_ids = vec![];
 
@@ -296,6 +299,63 @@ impl GameConfig {
                     }
                 }
 
+                // Then, if the game supports secondary mod path (only since Shogun 2) we check for mods in there. These have middle priority.
+                //
+                // Non supported games will simply return "None" here.
+                if let Some(ref paths) = secondary_mods_paths {
+                    let paths = paths.iter()
+                        .filter(|path| {
+                            if let Ok(canon_path) = std::fs::canonicalize(path) {
+                                !vanilla_packs.contains(&canon_path) &&
+                                    canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(String::new) != RESERVED_PACK_NAME &&
+                                    canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(String::new) != RESERVED_PACK_NAME_ALTERNATIVE
+                            } else {
+                                false
+                            }
+                        })
+                        .collect::<Vec<_>>();
+
+                    let packs = paths.par_iter()
+                        .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false)))
+                        .collect::<Vec<_>>();
+
+                    for (path, pack) in packs {
+                        let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
+                        if let Ok(pack) = pack {
+                            if pack.pfh_file_type() == PFHFileType::Mod || pack.pfh_file_type() == PFHFileType::Movie {
+
+                                match self.mods_mut().get_mut(&pack_name) {
+                                    Some(modd) => {
+                                        if !modd.paths().contains(path) {
+                                            modd.paths_mut().insert(0, path.to_path_buf());
+                                        }
+                                        modd.set_pack_type(pack.pfh_file_type());
+
+                                        let metadata = modd.paths()[0].metadata()?;
+                                        #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                        modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                        modd.set_outdated(last_update_date > *modd.time_updated() as u64);
+                                    }
+                                    None => {
+                                        let mut modd = Mod::default();
+                                        modd.set_name(pack_name.to_owned());
+                                        modd.set_id(pack_name.to_owned());
+                                        modd.set_paths(vec![path.to_path_buf()]);
+                                        modd.set_pack_type(pack.pfh_file_type());
+
+                                        let metadata = modd.paths()[0].metadata()?;
+                                        #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                        modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                        modd.set_outdated(last_update_date > *modd.time_updated() as u64);
+                                        self.mods_mut().insert(pack_name, modd);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Then finally we process /data packs. These have the highest priority.
                 if let Some(ref paths) = data_paths {
                     let paths = paths.iter()
                         .filter(|path| {

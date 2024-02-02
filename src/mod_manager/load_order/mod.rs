@@ -17,7 +17,7 @@ use serde_json::to_string_pretty;
 use std::collections::HashMap;
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::fs::{DirBuilder, File};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use rpfm_lib::files::pack::Pack;
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
@@ -26,6 +26,7 @@ use rpfm_lib::integrations::log::*;
 use crate::settings_ui::game_config_path;
 
 use super::game_config::GameConfig;
+use super::secondary_mods_path;
 
 const FILE_NAME_START: &str = "last_load_order_";
 const FILE_NAME_END: &str = ".json";
@@ -212,6 +213,9 @@ impl LoadOrder {
     }
 
     pub fn build_load_order_string(&self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path, pack_string: &mut String, folder_paths: &mut String) {
+        let mut added_secondary_folder = false;
+        let secondary_mods_path = secondary_mods_path(game.key()).unwrap_or_else(|_| PathBuf::new());
+
         for mod_id in self.mods() {
             if let Some(modd) = game_config.mods().get(mod_id) {
 
@@ -227,7 +231,7 @@ impl LoadOrder {
                 // Also, Shogun 2 requires some custom file management to move and convert mods to /data, but that's not done here.
                 let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
                 let path = &modd.paths()[0];
-                if !path.starts_with(game_data_path) && *game.raw_db_version() >= 2 && modd.steam_id().is_some() {
+                if !path.starts_with(game_data_path) && *game.raw_db_version() >= 2 {
                     let mut folder_path = path.to_owned();
                     folder_path.pop();
 
@@ -238,7 +242,15 @@ impl LoadOrder {
                             folder_path_str = folder_path_str[4..].to_string();
                         }
 
-                        folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
+                        // If it's the secondary folder, just add it once. If it's the contents folder, add one per mod.
+                        if secondary_mods_path.is_dir() && folder_path == secondary_mods_path {
+                            if !added_secondary_folder {
+                                folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
+                                added_secondary_folder = true;
+                            }
+                        } else {
+                            folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
+                        }
                     } else {
                         error!("Cannonicalization of path {} failed.", &folder_path.to_string_lossy().to_string());
                     }

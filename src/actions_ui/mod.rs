@@ -56,6 +56,7 @@ pub struct ActionsUI {
     open_game_root_folder: QPtr<QAction>,
     open_game_data_folder: QPtr<QAction>,
     open_game_content_folder: QPtr<QAction>,
+    open_game_secondary_folder: QPtr<QAction>,
     open_game_config_folder: QPtr<QAction>,
     open_runcher_config_folder: QPtr<QAction>,
     open_runcher_error_folder: QPtr<QAction>,
@@ -180,6 +181,7 @@ impl ActionsUI {
         let open_game_root_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_game_root_folder"));
         let open_game_data_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_game_data_folder"));
         let open_game_content_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_game_content_folder"));
+        let open_game_secondary_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_game_secondary_folder"));
         let open_game_config_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_game_config_folder"));
         let open_runcher_config_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_runcher_config_folder"));
         let open_runcher_error_folder = folders_menu.add_action_q_icon_q_string(&QIcon::from_theme_1a(&QString::from_std_str("folder")), &qtr("open_runcher_error_folder"));
@@ -223,6 +225,7 @@ impl ActionsUI {
             open_game_root_folder,
             open_game_data_folder,
             open_game_content_folder,
+            open_game_secondary_folder,
             open_game_config_folder,
             open_runcher_config_folder,
             open_runcher_error_folder,

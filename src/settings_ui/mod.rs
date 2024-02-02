@@ -16,6 +16,7 @@ use qt_widgets::QDialog;
 use qt_widgets::QDialogButtonBox;
 use qt_widgets::q_header_view::ResizeMode;
 use qt_widgets::q_dialog_button_box::{ButtonRole, StandardButton};
+use qt_widgets::{QFrame, q_frame::Shape};
 use qt_widgets::{QFileDialog, q_file_dialog::{FileMode, Option as QFileDialogOption}};
 use qt_widgets::QGridLayout;
 use qt_widgets::QGroupBox;
@@ -86,6 +87,9 @@ pub struct SettingsUI {
 
     paths_games_line_edits: BTreeMap<String, QBox<QLineEdit>>,
     paths_games_buttons: BTreeMap<String, QBox<QToolButton>>,
+
+    secondary_mods_folder_line_edit: QBox<QLineEdit>,
+    secondary_mods_folder_button: QBox<QToolButton>,
 
     tools_tableview: QPtr<QTableView>,
     tools_model: QBox<QStandardItemModel>,
@@ -193,6 +197,22 @@ impl SettingsUI {
         dark_mode_label.set_text(&qtr("dark_mode"));
         open_workshop_link_in_steam_label.set_text(&qtr("open_workshop_link_in_steam"));
 
+        // Add one path at the beginning for the secondary mods folder.
+        let secondary_mods_folder_label = QLabel::from_q_string_q_widget(&qtr("settings_secondary_mods_folder"), &paths_groupbox);
+        let secondary_mods_folder_line_edit = QLineEdit::from_q_widget(&paths_groupbox);
+        let secondary_mods_folder_button = QToolButton::new_1a(&paths_groupbox);
+        secondary_mods_folder_line_edit.set_placeholder_text(&qtr("settings_secondary_mods_folder_ph"));
+        secondary_mods_folder_button.set_icon(&QIcon::from_theme_1a(&QString::from_std_str("folder")));
+
+        paths_layout.add_widget_5a(&secondary_mods_folder_label, 0, 0, 1, 1);
+        paths_layout.add_widget_5a(&secondary_mods_folder_line_edit, 0, 1, 1, 1);
+        paths_layout.add_widget_5a(&secondary_mods_folder_button, 0, 2, 1, 1);
+
+        // TODO: Maybe add a separator here.
+        let line = QFrame::new_1a(&paths_groupbox);
+        line.set_frame_shape(Shape::HLine);
+        paths_layout.add_widget_5a(&line, 1, 0, 1, 3);
+
         // We automatically add a Label/LineEdit/Button for each game we support.
         let mut paths_games_line_edits = BTreeMap::new();
         let mut paths_games_buttons = BTreeMap::new();
@@ -206,9 +226,9 @@ impl SettingsUI {
                 game_line_edit.set_placeholder_text(&qtre("settings_game_line_ph", &[game.display_name()]));
                 game_button.set_icon(&QIcon::from_theme_1a(&QString::from_std_str("folder")));
 
-                paths_layout.add_widget_5a(&game_label, index as i32, 0, 1, 1);
-                paths_layout.add_widget_5a(&game_line_edit, index as i32, 1, 1, 1);
-                paths_layout.add_widget_5a(&game_button, index as i32, 2, 1, 1);
+                paths_layout.add_widget_5a(&game_label, index as i32 + 2, 0, 1, 1);
+                paths_layout.add_widget_5a(&game_line_edit, index as i32 + 2, 1, 1, 1);
+                paths_layout.add_widget_5a(&game_button, index as i32 + 2, 2, 1, 1);
 
                 // Add the LineEdit and Button to the list.
                 paths_games_line_edits.insert(game_key.to_owned(), game_line_edit);
@@ -245,6 +265,10 @@ impl SettingsUI {
 
             paths_games_line_edits,
             paths_games_buttons,
+
+            secondary_mods_folder_line_edit,
+            secondary_mods_folder_button,
+
             steam_user_id_line_edit,
             steam_api_key_line_edit,
             language_combobox,
@@ -297,8 +321,13 @@ impl SettingsUI {
 
         self.tools_tableview().horizontal_header().resize_sections(ResizeMode::ResizeToContents);
 
-        // Load the Game Paths, if they exists.
         let q_settings = settings();
+        let secondary_mods_path = setting_string_from_q_setting(&q_settings, "secondary_mods_path");
+        if !secondary_mods_path.is_empty() {
+            self.secondary_mods_folder_line_edit().set_text(&QString::from_std_str(secondary_mods_path));
+        }
+
+        // Load the Game Paths, if they exists.
         for (key, path) in self.paths_games_line_edits.iter() {
             let stored_path = setting_string_from_q_setting(&q_settings, key);
             if !stored_path.is_empty() {
@@ -372,6 +401,8 @@ impl SettingsUI {
 
         // For each entry, we check if it's a valid directory and save it into Settings.
         let q_settings = settings();
+        set_setting_string_to_q_setting(&q_settings, "secondary_mods_path", &self.secondary_mods_folder_line_edit().text().to_std_string());
+
         for (key, line_edit) in self.paths_games_line_edits.iter() {
             set_setting_string_to_q_setting(&q_settings, key, &line_edit.text().to_std_string());
         }
@@ -409,6 +440,7 @@ impl SettingsUI {
     }
 
     pub unsafe fn set_connections(&self, slots: &SettingsUISlots) {
+        self.secondary_mods_folder_button().released().connect(slots.select_secondary_mods_path());
         for (key, button) in self.paths_games_buttons.iter() {
             button.released().connect(&slots.select_game_paths()[key]);
         }
@@ -434,6 +466,39 @@ impl SettingsUI {
             Some(line_edit) => line_edit,
             None => return,
         };
+
+        // Create the `FileDialog` and configure it.
+        let title = qtr("settings_select_folder");
+        let file_dialog = QFileDialog::from_q_widget_q_string(
+            &self.dialog,
+            &title,
+        );
+
+        file_dialog.set_file_mode(FileMode::Directory);
+        file_dialog.set_options(QFlags::from(QFileDialogOption::ShowDirsOnly));
+
+        // Get the old Path, if exists.
+        let old_path = line_edit.text().to_std_string();
+
+        // If said path is not empty, and is a dir, set it as the initial directory.
+        if !old_path.is_empty() && Path::new(&old_path).is_dir() {
+            file_dialog.set_directory_q_string(&line_edit.text());
+        }
+
+        // Run it and expect a response (1 => Accept, 0 => Cancel).
+        if file_dialog.exec() == 1 {
+
+            // Get the path of the selected file.
+            let selected_files = file_dialog.selected_files();
+            let path = selected_files.at(0);
+
+            // Add the Path to the LineEdit.
+            line_edit.set_text(path);
+        }
+    }
+
+    unsafe fn update_secondary_mods_path(&self) {
+        let line_edit = self.secondary_mods_folder_line_edit();
 
         // Create the `FileDialog` and configure it.
         let title = qtr("settings_select_folder");

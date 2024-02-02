@@ -4,6 +4,7 @@ open_folders = Open Folders...
 open_game_root_folder = Open Game Root Folder
 open_game_data_folder = Open Game Data Folder
 open_game_content_folder = Open Game Content Folder
+open_game_secondary_folder = Open Game Secondary Folder
 open_game_config_folder = Open Game Config Folder
 open_runcher_config_folder = Open Runcher Config Folder
 open_runcher_error_folder = Open Runcher Error Folder
@@ -195,3 +196,6 @@ reload_data_view = Reload Data View
 expand_all = Expand All
 collapse_all = Collapse All
 open_workshop_link_in_steam = Open Workshop Links on Steam
+
+settings_secondary_mods_folder = Secondary Mods Folder
+settings_secondary_mods_folder_ph = This is an alternative folder to place mods, so /data doesn't get too crowded.

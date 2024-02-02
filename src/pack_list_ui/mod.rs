@@ -36,6 +36,7 @@ use anyhow::Result;
 use getset::*;
 
 use std::path::Path;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use rpfm_lib::files::pack::Pack;
@@ -46,7 +47,7 @@ use rpfm_ui_common::utils::*;
 
 use crate::ffi::*;
 use crate::mod_list_ui::VALUE_MOD_ID;
-use crate::mod_manager::{game_config::GameConfig, load_order::LoadOrder};
+use crate::mod_manager::{game_config::GameConfig, load_order::LoadOrder, secondary_mods_path};
 
 use self::slots::PackListUISlots;
 
@@ -133,6 +134,8 @@ impl PackListUI {
     pub unsafe fn load(&self, game_config: &GameConfig, game_info: &GameInfo, game_path: &Path, load_order: &LoadOrder) -> Result<()> {
         self.model().clear();
 
+        let secondary_mods_path = secondary_mods_path(&game_config.game_key()).unwrap_or_else(|_| PathBuf::new());
+
         if !game_path.to_string_lossy().is_empty() {
             if let Ok(game_data_folder) = game_info.data_path(game_path) {
 
@@ -162,8 +165,16 @@ impl PackListUI {
                         location.set_text(&QString::from_std_str(
                             if modd.paths()[0].starts_with(&game_data_folder) {
                                 "Data".to_string()
+                            } else if secondary_mods_path.is_dir() && modd.paths()[0].starts_with(&secondary_mods_path) {
+                                if let Some(ref id) = modd.steam_id() {
+                                    format!("Secondary ({})", id)
+                                } else {
+                                    format!("Secondary (Non-Steam)")
+                                }
+                            } else if let Some(ref id) = modd.steam_id() {
+                                format!("Content ({})", id)
                             } else {
-                                format!("Content ({})", modd.steam_id().as_ref().unwrap())
+                                format!("Where the fuck is this pack?")
                             }
                         ));
 

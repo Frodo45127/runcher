@@ -29,6 +29,7 @@ use rpfm_ui_common::clone;
 use crate::DISCORD_URL;
 use crate::GITHUB_URL;
 use crate::mod_list_ui::VALUE_MOD_ID;
+use crate::mod_manager::secondary_mods_path;
 use crate::PATREON_URL;
 use crate::profiles_ui::ProfilesUI;
 use crate::VERSION;
@@ -54,6 +55,7 @@ pub struct AppUISlots {
     open_game_root_folder: QBox<SlotNoArgs>,
     open_game_data_folder: QBox<SlotNoArgs>,
     open_game_content_folder: QBox<SlotNoArgs>,
+    open_game_secondary_folder: QBox<SlotNoArgs>,
     open_game_config_folder: QBox<SlotNoArgs>,
     open_runcher_config_folder: QBox<SlotNoArgs>,
     open_runcher_error_folder: QBox<SlotNoArgs>,
@@ -183,6 +185,17 @@ impl AppUISlots {
                 let _ = open::that(game_path);
             } else {
                 show_dialog(view.main_window(), "Runcher cannot open that folder (maybe it doesn't exists/is misconfigured?).", false);
+            }
+        }));
+
+        let open_game_secondary_folder = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+            let game = view.game_selected().read().unwrap();
+            dbg!(secondary_mods_path(game.key()));
+            if let Ok(game_path) = secondary_mods_path(game.key()) {
+                let _ = open::that(game_path);
+            } else {
+                show_dialog(view.main_window(), "Runcher cannot open that folder (maybe it doesn't exists/is misconfigured?). Also, this folder is only available from Shogun 2 onwards.", false);
             }
         }));
 
@@ -530,6 +543,7 @@ impl AppUISlots {
             open_game_root_folder,
             open_game_data_folder,
             open_game_content_folder,
+            open_game_secondary_folder,
             open_game_config_folder,
             open_runcher_config_folder,
             open_runcher_error_folder,

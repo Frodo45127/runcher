@@ -48,6 +48,7 @@ pub struct SettingsUISlots {
     font_settings: QBox<SlotNoArgs>,
     restore_default: QBox<SlotNoArgs>,
     select_game_paths: BTreeMap<String, QBox<SlotNoArgs>>,
+    select_secondary_mods_path: QBox<SlotNoArgs>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -176,6 +177,11 @@ impl SettingsUISlots {
             );
         }
 
+        let select_secondary_mods_path = SlotNoArgs::new(&ui.dialog, clone!(
+            ui => move || {
+            ui.update_secondary_mods_path();
+        }));
+
         Self {
             tools_context_menu,
             tools_enabler,
@@ -185,6 +191,7 @@ impl SettingsUISlots {
             font_settings,
             restore_default,
             select_game_paths,
+            select_secondary_mods_path,
         }
     }
 }
