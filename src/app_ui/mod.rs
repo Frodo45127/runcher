@@ -724,9 +724,8 @@ impl AppUI {
     }
 
     pub unsafe fn open_settings(&self) {
-        let game_selected = self.game_selected().read().unwrap();
-        let game_key = game_selected.key();
-        let game_path_old = setting_path(game_key);
+        let game_key = self.game_selected().read().unwrap().key().to_owned();
+        let game_path_old = setting_path(&game_key);
         let dark_theme_old = setting_bool("dark_mode");
         let font_name_old = setting_string("font_name");
         let font_size_old = setting_int("font_size");
@@ -734,7 +733,7 @@ impl AppUI {
         match SettingsUI::new(self.main_window()) {
             Ok(saved) => {
                 if saved {
-                    let game_path_new = setting_path(game_key);
+                    let game_path_new = setting_path(&game_key);
 
                     // If we have changed the path of any of the games, and that game is the current `GameSelected`,
                     // re-select the current `GameSelected` to force it to reload the game's files.
