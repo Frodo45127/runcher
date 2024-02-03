@@ -191,7 +191,6 @@ impl AppUISlots {
         let open_game_secondary_folder = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
             let game = view.game_selected().read().unwrap();
-            dbg!(secondary_mods_path(game.key()));
             if let Ok(game_path) = secondary_mods_path(game.key()) {
                 let _ = open::that(game_path);
             } else {
