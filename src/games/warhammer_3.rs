@@ -10,7 +10,7 @@
 
 use anyhow::Result;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use rpfm_lib::schema::Schema;
@@ -49,6 +49,7 @@ const INTRO_MOVIE_PATHS_BY_GAME: [&str; 19] = [
 //-------------------------------------------------------------------------------//
 
 pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack, schema: &Schema) -> Result<()> {
+    let unit_multiplier = app_ui.actions_ui().unit_multiplier_spinbox().value();
 
     let vanilla_pack = Pack::read_and_merge_ca_packs(game, game_path)?;
     let mut kv_rules = vanilla_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
@@ -133,35 +134,35 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                     // Battle width change.
                     if key == "unit_max_drag_width" {
                         if let Some(DecodedData::F32(value)) = row.get_mut(1) {
-                            *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            *value *= unit_multiplier as f32;
                         }
                     }
 
                     // Tomb kings campaign mechanic.
                     if key == "realm_of_souls_tier_1_death_threshold" || key == "realm_of_souls_tier_2_death_threshold" || key == "realm_of_souls_tier_3_death_threshold" {
                         if let Some(DecodedData::F32(value)) = row.get_mut(1) {
-                            *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            *value *= unit_multiplier as f32;
                         }
                     }
 
                     // Tomb kings campaign mechanic.
                     if key == "realm_of_souls_tier_1_death_threshold" || key == "realm_of_souls_tier_2_death_threshold" || key == "realm_of_souls_tier_3_death_threshold" {
                         if let Some(DecodedData::F32(value)) = row.get_mut(1) {
-                            *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            *value *= unit_multiplier as f32;
                         }
                     }
 
                     // Not sure what this do, but it seems to affect a few abilities.
                     if key == "unit_tier1_kills" || key == "unit_tier2_kills" || key == "unit_tier3_kills" {
                         if let Some(DecodedData::F32(value)) = row.get_mut(1) {
-                            *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            *value *= unit_multiplier as f32;
                         }
                     }
 
                     // Waaagh minimum threshold? Need to test this.
                     if key == "waaagh_base_threshold" {
                         if let Some(DecodedData::F32(value)) = row.get_mut(1) {
-                            *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            *value *= unit_multiplier as f32;
                         }
                     }
                 }
@@ -180,7 +181,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                 if let Some(DecodedData::StringU8(key)) = row.get(0).cloned() {
                     if key == "direct_damage_large" || key == "direct_damage_medium" || key == "direct_damage_small" || key == "direct_damage_ultra" {
                         if let Some(DecodedData::F32(value)) = row.get_mut(1) {
-                            *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                            *value *= unit_multiplier as f32;
                         }
                     }
                 }
@@ -192,6 +193,32 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
         }
     }
 
+    // Some units like chariots may have multiple units on one engine. Here we do a pass to get the engine numbers, to later calculate the men->engine ratios.
+    //
+    // Otherwise, we may get weird stuff like 6 dark elven chariots with one chariot empty.
+    let mut engine_amount = HashMap::new();
+    for table in &mut land_units {
+        if let Some(RFileDecoded::DB(data)) = table.decode(&dec_extra_data, false, true)? {
+            let key_column = data.definition().column_position_by_name("key");
+            let num_engines_column = data.definition().column_position_by_name("num_engines");
+            for row in data.data().iter() {
+                if let Some(key_column) = key_column {
+                    if let Some(DecodedData::StringU8(key_value)) = row.get(key_column).cloned() {
+
+                        // Artillery pieces, chariots and weird units.
+                        if let Some(column) = num_engines_column {
+                            if let Some(DecodedData::I32(value)) = row.get(column) {
+                                if *value != 0 {
+                                    engine_amount.insert(key_value.to_owned(), *value);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // Note: we need to process this before land_units to get the single entity units.
     let mut single_entity_units = HashSet::new();
     for table in &mut main_units {
@@ -199,30 +226,40 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
             let caste_column = data.definition().column_position_by_name("caste");
             let num_men_column = data.definition().column_position_by_name("num_men");
             let land_unit_column = data.definition().column_position_by_name("land_unit");
+            let use_hitpoints_in_campaign_column = data.definition().column_position_by_name("use_hitpoints_in_campaign");
 
             for row in data.data_mut() {
 
                 // General unit size.
                 if let Some(num_men_column) = num_men_column {
                     if let Some(caste_column) = caste_column {
+                        if let Some(use_hitpoints_in_campaign_column) = use_hitpoints_in_campaign_column {
 
-                        // Store single entity units to increase their health later.
-                        if let Some(land_unit_column) = land_unit_column {
-                            if let Some(DecodedData::StringU8(land_unit_value)) = row.get(land_unit_column).cloned() {
-                                if let Some(DecodedData::StringU8(caste_value)) = row.get(caste_column).cloned() {
-                                    if let Some(DecodedData::I32(num_men_value)) = row.get_mut(num_men_column) {
+                            // Store single entity units to increase their health later.
+                            if let Some(land_unit_column) = land_unit_column {
+                                if let Some(DecodedData::StringU8(land_unit_value)) = row.get(land_unit_column).cloned() {
+                                    if let Some(DecodedData::StringU8(caste_value)) = row.get(caste_column).cloned() {
+                                        if let Some(DecodedData::Boolean(hitpoins_in_campaign_value)) = row.get(use_hitpoints_in_campaign_column).cloned() {
+                                            if let Some(DecodedData::I32(num_men_value)) = row.get_mut(num_men_column) {
 
-                                        // There are some exceptions for this that need to be manually marked as single entities. Mainly:
-                                        // - Lords & heroes.
-                                        // - Certain warmachines.
-                                        // - Certain multimount monsters.
-                                        if caste_value == "lord" || caste_value == "hero" || *num_men_value < 10 || land_unit_value.contains("hellcannon") {
-                                            single_entity_units.insert(land_unit_value.to_owned());
-                                        }
+                                                // There are some exceptions for this that need to be manually marked as single entities. Mainly:
+                                                // - Lords & heroes.
+                                                // - Anything marked as using hitpoints in campaign.
+                                                if caste_value == "lord" || caste_value == "hero" || hitpoins_in_campaign_value {
+                                                    single_entity_units.insert(land_unit_value.to_owned());
+                                                }
 
-                                        // If it's not a single entity, apply the multiplier.
-                                        else {
-                                            *num_men_value = (*num_men_value as f64 * app_ui.actions_ui().unit_multiplier_spinbox().value()).round() as i32;
+                                                // If we have engines, we need to calculate the engine-men ratio to avoid ghost engines.
+                                                else if let Some(engine_amount) = engine_amount.get(&land_unit_value) {
+                                                    let new_engine_amount = (*engine_amount as f64 * unit_multiplier).round() as i32;
+                                                    *num_men_value = (*num_men_value * new_engine_amount) / *engine_amount;
+                                                }
+
+                                                // If it's not a single entity, apply the multiplier.
+                                                else {
+                                                    *num_men_value = (*num_men_value as f64 * unit_multiplier).round() as i32;
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -249,15 +286,22 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
             for row in data.data_mut() {
 
                 // For single entities, multiply their health, not their number too.
+                // For engines with mounts (chariots) the calculatuion is different. We only need to increase engines, as mounts is mounts per-engine.
                 if let Some(key_column) = key_column {
                     if let Some(DecodedData::StringU8(key_value)) = row.get(key_column).cloned() {
                         let is_single_entity = single_entity_units.get(&key_value).is_some();
+                        let mut is_engine_with_mount = false;
 
-                        // Artillery pieces.
+                        // Artillery pieces, chariots and weird units.
                         if let Some(column) = num_engines_column {
                             if let Some(DecodedData::I32(value)) = row.get_mut(column) {
                                 if !is_single_entity {
-                                    *value = (*value as f64 * app_ui.actions_ui().unit_multiplier_spinbox().value()).round() as i32;
+
+                                    if *value != 0 {
+                                        is_engine_with_mount = true;
+                                    }
+
+                                    *value = (*value as f64 * unit_multiplier).round() as i32;
                                 }
                             }
                         }
@@ -265,8 +309,8 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                         // Cavalry unit size (mounts).
                         if let Some(column) = num_mounts_column {
                             if let Some(DecodedData::I32(value)) = row.get_mut(column) {
-                                if !is_single_entity {
-                                    *value = (*value as f64 * app_ui.actions_ui().unit_multiplier_spinbox().value()).round() as i32;
+                                if !is_single_entity && !is_engine_with_mount {
+                                    *value = (*value as f64 * unit_multiplier).round() as i32;
                                 }
                             }
                         }
@@ -275,7 +319,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                         if let Some(column) = rank_depth_column {
                             if let Some(DecodedData::I32(value)) = row.get_mut(column) {
                                 if !is_single_entity {
-                                    *value = (*value as f64 * app_ui.actions_ui().unit_multiplier_spinbox().value()).round() as i32;
+                                    *value = (*value as f64 * unit_multiplier).round() as i32;
                                 }
                             }
                         }
@@ -283,7 +327,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                         if is_single_entity {
                             if let Some(bonus_hit_points) = bonus_hit_points_column {
                                 if let Some(DecodedData::I32(value)) = row.get_mut(bonus_hit_points) {
-                                    *value = (*value as f64 * app_ui.actions_ui().unit_multiplier_spinbox().value()).round() as i32;
+                                    *value = (*value as f64 * unit_multiplier).round() as i32;
                                 }
                             }
                         }
@@ -326,121 +370,121 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
 
                 if let Some(column) = hit_points_building_small {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = hit_points_building_medium {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = hit_points_building_large {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = hit_points_building_ultra {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = hit_points_siege_vehicle_small {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = hit_points_siege_vehicle_medium {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = hit_points_siege_vehicle_large {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = hit_points_siege_vehicle_ultra {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = building_projectile_damage_small {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = building_projectile_damage_medium {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = building_projectile_damage_large {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = building_projectile_damage_ultra {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = building_projectile_detonation_damage_small {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = building_projectile_detonation_damage_medium {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = building_projectile_detonation_damage_large {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = building_projectile_detonation_damage_ultra {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = fort_tower_fire_frequency_small {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = fort_tower_fire_frequency_medium {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = fort_tower_fire_frequency_large {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
 
                 if let Some(column) = fort_tower_fire_frequency_ultra {
                     if let Some(DecodedData::F32(value)) = row.get_mut(column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value() as f32;
+                        *value *= unit_multiplier as f32;
                     }
                 }
             }
@@ -458,7 +502,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
             for row in data.data_mut() {
                 if let Some(single_entity_value_column) = single_entity_value {
                     if let Some(DecodedData::F64(value)) = row.get_mut(single_entity_value_column) {
-                        *value *= app_ui.actions_ui().unit_multiplier_spinbox().value();
+                        *value *= unit_multiplier;
                     }
                 }
             }
