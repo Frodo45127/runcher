@@ -119,6 +119,14 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
             .collect::<Vec<_>>());
     }
 
+    // Sort them so file processing is done in the correct order.
+    kv_rules.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
+    kv_unit_ability_scaling_rules.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
+    land_units.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
+    main_units.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
+    unit_size_global_scalings.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
+    unit_stat_to_size_scaling_values.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
+
     // Decode each table, modify it, then re-encode it and add it.
     let enc_extra_data = Some(EncodeableExtraData::new_from_game_info(game));
     let mut dec_extra_data = DecodeableExtraData::default();
@@ -193,23 +201,41 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
         }
     }
 
-    // Some units like chariots may have multiple units on one engine. Here we do a pass to get the engine numbers, to later calculate the men->engine ratios.
+    // Some units like chariots may have multiple units on one engine, or on one mount. Here we do a pass to get the engine numbers,
+    // to later calculate the men->engine and men->mount ratios.
     //
     // Otherwise, we may get weird stuff like 6 dark elven chariots with one chariot empty.
     let mut engine_amount = HashMap::new();
+    let mut mount_amount = HashMap::new();
     for table in &mut land_units {
         if let Some(RFileDecoded::DB(data)) = table.decode(&dec_extra_data, false, true)? {
             let key_column = data.definition().column_position_by_name("key");
+            let num_mounts_column = data.definition().column_position_by_name("num_mounts");
             let num_engines_column = data.definition().column_position_by_name("num_engines");
             for row in data.data().iter() {
                 if let Some(key_column) = key_column {
                     if let Some(DecodedData::StringU8(key_value)) = row.get(key_column).cloned() {
+                        let mut is_engine = false;
 
                         // Artillery pieces, chariots and weird units.
                         if let Some(column) = num_engines_column {
                             if let Some(DecodedData::I32(value)) = row.get(column) {
                                 if *value != 0 {
-                                    engine_amount.insert(key_value.to_owned(), *value);
+                                    is_engine = true;
+                                    if !engine_amount.contains_key(&key_value) {
+                                        engine_amount.insert(key_value.to_owned(), *value);
+                                    }
+                                }
+                            }
+                        }
+
+                        // Cavalry and some weird mounts, like sky junks.
+                        if let Some(column) = num_mounts_column {
+                            if let Some(DecodedData::I32(value)) = row.get(column) {
+                                if !is_engine && *value > 0 {
+                                    if !mount_amount.contains_key(&key_value) {
+                                        mount_amount.insert(key_value.to_owned(), *value);
+                                    }
                                 }
                             }
                         }
@@ -221,6 +247,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
 
     // Note: we need to process this before land_units to get the single entity units.
     let mut single_entity_units = HashSet::new();
+    let mut processed_units = HashSet::new();
     for table in &mut main_units {
         if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
             let caste_column = data.definition().column_position_by_name("caste");
@@ -245,7 +272,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                                                 // There are some exceptions for this that need to be manually marked as single entities. Mainly:
                                                 // - Lords & heroes.
                                                 // - Anything marked as using hitpoints in campaign.
-                                                if caste_value == "lord" || caste_value == "hero" || hitpoins_in_campaign_value {
+                                                if (caste_value == "lord" || caste_value == "hero" || hitpoins_in_campaign_value) && !processed_units.contains(&land_unit_value) {
                                                     single_entity_units.insert(land_unit_value.to_owned());
                                                 }
 
@@ -253,11 +280,20 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                                                 else if let Some(engine_amount) = engine_amount.get(&land_unit_value) {
                                                     let new_engine_amount = (*engine_amount as f64 * unit_multiplier).round() as i32;
                                                     *num_men_value = (*num_men_value * new_engine_amount) / *engine_amount;
+                                                    processed_units.insert(land_unit_value.to_owned());
+                                                }
+
+                                                // Same with some weird mounts.
+                                                else if let Some(mount_amount) = mount_amount.get(&land_unit_value) {
+                                                    let new_mount_amount = (*mount_amount as f64 * unit_multiplier).round() as i32;
+                                                    *num_men_value = (*num_men_value * new_mount_amount) / *mount_amount;
+                                                    processed_units.insert(land_unit_value.to_owned());
                                                 }
 
                                                 // If it's not a single entity, apply the multiplier.
                                                 else {
                                                     *num_men_value = (*num_men_value as f64 * unit_multiplier).round() as i32;
+                                                    processed_units.insert(land_unit_value.to_owned());
                                                 }
                                             }
                                         }
@@ -290,7 +326,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                 if let Some(key_column) = key_column {
                     if let Some(DecodedData::StringU8(key_value)) = row.get(key_column).cloned() {
                         let is_single_entity = single_entity_units.get(&key_value).is_some();
-                        let mut is_engine_with_mount = false;
+                        let mut is_engine = false;
 
                         // Artillery pieces, chariots and weird units.
                         if let Some(column) = num_engines_column {
@@ -298,7 +334,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                                 if !is_single_entity {
 
                                     if *value != 0 {
-                                        is_engine_with_mount = true;
+                                        is_engine = true;
                                     }
 
                                     *value = (*value as f64 * unit_multiplier).round() as i32;
@@ -309,7 +345,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                         // Cavalry unit size (mounts).
                         if let Some(column) = num_mounts_column {
                             if let Some(DecodedData::I32(value)) = row.get_mut(column) {
-                                if !is_single_entity && !is_engine_with_mount {
+                                if !is_single_entity && !is_engine {
                                     *value = (*value as f64 * unit_multiplier).round() as i32;
                                 }
                             }
