@@ -11,13 +11,14 @@
 use qt_core::QString;
 
 use anyhow::Result;
+use rayon::prelude::*;
 
+use std::collections::{HashMap, HashSet};
 use std::path::{PathBuf, Path};
-
-use rpfm_extensions::translator::*;
 
 use rpfm_extensions::dependencies::Dependencies;
 use rpfm_extensions::optimizer::Optimizable;
+use rpfm_extensions::translator::*;
 
 use rpfm_lib::files::{Container, FileType, loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
 use rpfm_lib::games::{*, supported_games::*};
@@ -428,7 +429,8 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
     //   - If none are found, just add the loc to the end of the translated loc.
     //
     // - Pass the translated loc through the optimizer to remove lines that didn't need to be there.
-    // - If it's an old game, append the vanilla localisation.loc file to the translated file.
+    //   - If it's an old game, append the vanilla localisation.loc file to the translated file.
+    //   - If it's not an old game, check what lines got optimized and re-add them, but from the vanilla translation, so they overwrite any mod using them.
 
     // TODO: Troy has a weird translation system. Check that it works, and check pharaoh too.
     if app_ui.actions_ui().enable_translations_combobox().is_enabled() && app_ui.actions_ui().enable_translations_combobox().current_index() != 0 {
@@ -558,6 +560,15 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
                 }
             }
 
+            // Only needed for modern games.
+            let keys_pre_opt = if use_old_multilanguage_logic{
+                HashSet::new()
+            } else {
+                loc_data.par_iter()
+                    .map(|row| row[0].data_to_string().to_string())
+                    .collect::<HashSet<_>>()
+            };
+
             // Perform the optimisation BEFORE appending the vanilla loc, if we're appending it. Otherwise we'll lose valid entries.
             if !loc_data.is_empty() {
                 loc.set_data(&loc_data)?;
@@ -587,6 +598,54 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
                         loc_data.append(loc.data_mut());
                     }
                 }
+            }
+
+
+            // If the game is not using the old logic, we need to restore the optimized lines, but from the translated loc, not the english one.
+            else {
+                let game_path = setting_path(game.key());
+                let mut pack = Pack::read_and_merge_ca_packs(game, &game_path)?;
+                let mut vanilla_locs = pack.files_by_type_mut(&[FileType::Loc]);
+                let vanilla_loc_data = vanilla_locs.par_iter_mut()
+                    .filter_map(|rfile| {
+                        if let Ok(Some(RFileDecoded::Loc(loc))) = rfile.decode(&None, false, true) {
+                            Some(loc)
+                        } else {
+                            None
+                        }
+                    })
+                    .map(|loc| loc.data().to_vec())
+                    .flatten()
+                    .collect::<Vec<_>>();
+
+
+                let vanilla_loc_data_hash = vanilla_loc_data
+                    .par_iter()
+                    .rev()
+                    .map(|row| (row[0].data_to_string(), row[1].data_to_string()))
+                    .collect::<HashMap<_,_>>();
+
+                let keys_post_opt = loc_data.par_iter()
+                    .map(|row| row[0].data_to_string().to_string())
+                    .collect::<HashSet<_>>();
+
+                let keys_to_fill_from_vanilla = keys_pre_opt.par_iter()
+                    .filter(|key| !keys_post_opt.contains(&**key))
+                    .map(|key| key)
+                    .collect::<HashSet<_>>();
+
+                let mut new_rows = keys_to_fill_from_vanilla.par_iter()
+                    .filter_map(|key| {
+                        let value = vanilla_loc_data_hash.get(&***key)?;
+
+                        Some(vec![
+                            DecodedData::StringU16(key.to_string()),
+                            DecodedData::StringU16(value.to_string()),
+                            DecodedData::Boolean(false),
+                        ])
+                    })
+                    .collect::<Vec<_>>();
+                loc_data.append(&mut new_rows);
             }
 
             if !loc_data.is_empty() {
