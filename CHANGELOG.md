@@ -9,6 +9,10 @@ If you're looking for the changes included in the latest beta (against the lates
 ## [Unreleased]
 ### Added
 - Implemented load-order dependant data view.
+- Implemented "Expand/Collapse All" actions in the mod list.
+- Implemented "Open Workshop Links on Steam" setting. 
+- Implemented "Secondary Mods Folder" feature.
+- Implemented "Import ModList" feature.
 
 ### Changed
 - When renaming a category, its current name is the default value in the dialog.
@@ -19,6 +23,15 @@ If you're looking for the changes included in the latest beta (against the lates
 - Fixed mysterious error when launching Runcher with no game path configured.
 - Fixed actions being enabled when a non-installed game is selected (like on new installs or installs with a default game selected with a missing/invalid path).
 - Fixed creation time error when running runcher on filesystems that do not support creation times.
+- Fixed possible CTDs when importing a load order from a string.
+- Fixed possible CTDs when exporting a load order into a string.
+- Fixed hang when changing a path in the settings.
+- Fixed a myriad of random issues in the import/export loadorder code.
+- Fixed unit multiplier incorrectly marking units as SEM units.
+- Fixed unit multiplier causing chariots to have random horses inside them.
+- Fixed unit multiplier causing chariots to be empty of units due to rounding errors.
+- Fixed unit multiplier causing units to sometimes break when they're edited in a mod.
+- Fixed translator not automatically translating unchanged english text in games that do not use the old multilanguage logic.
 
 ## [0.7.0]
 ### Added
