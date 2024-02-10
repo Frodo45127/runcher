@@ -65,7 +65,7 @@ jobs:
           ${{ matrix.DDISK }}:\Craft\craft\craftenv.ps1
           cd E:\runner_runcher\_work\runcher\runcher
 
-          # Build the exes in debug mode.
+          # Build the exes in release mode.
           $env:CARGO_NET_GIT_FETCH_WITH_CLI = 'true'
           cargo build --release
 
@@ -225,7 +225,7 @@ jobs:
           cp E:\runner_runcher\_work\runcher\runcher/target/release/runcher.pdb ${{ matrix.DDISK }}:\deploy\runcher-release-assets
 
           # Bouncer's exe, for shogun 2.
-          cp E:\runner_runcher\_work\runcher\runcher/3rdparty/builds/bouncer.exe ${{ matrix.DDISK }}:\deploy\runcher-release-assets
+          cp E:\runner_runcher\_work\runcher\runcher/target/release/bouncer.exe ${{ matrix.DDISK }}:\deploy\runcher-release-assets
 
           # Here we copy assets from the repo.
           mkdir icons

@@ -22,7 +22,7 @@ fn main() {
     common_config();
 
     // This compiles the custom widgets lib.
-    match Command::new("nmake").current_dir("./3rdparty/src/qt_runcher_extensions/").output() {
+    match Command::new("nmake").current_dir("./../3rdparty/src/qt_runcher_extensions/").output() {
         Ok(output) => {
             stdout().write_all(&output.stdout).unwrap();
             stderr().write_all(&output.stderr).unwrap();
@@ -36,16 +36,16 @@ fn main() {
 
     // Icon/Exe info gets added here.
     let mut res = winres::WindowsResource::new();
-    res.set_icon("./icons/runcher.ico");
+    res.set_icon("./../icons/runcher.ico");
     res.set("LegalCopyright","Copyright (c) - Ismael Gutiérrez González");
     res.set("ProductName","Runcher");
     if let Err(error) = res.compile() { println!("Error: {}", error); }
 
     // Copy the icon theme so it can be accessed by debug builds.
-    DirBuilder::new().recursive(true).create("./target/debug/data/icons/breeze/").unwrap();
-    DirBuilder::new().recursive(true).create("./target/debug/data/icons/breeze-dark/").unwrap();
-    copy("./icons/breeze-icons.rcc", "./target/debug/data/icons/breeze/breeze-icons.rcc").unwrap();
-    copy("./icons/breeze-icons-dark.rcc", "./target/debug/data/icons/breeze-dark/breeze-icons-dark.rcc").unwrap();
+    DirBuilder::new().recursive(true).create("./../target/debug/data/icons/breeze/").unwrap();
+    DirBuilder::new().recursive(true).create("./../target/debug/data/icons/breeze-dark/").unwrap();
+    copy("./../icons/breeze-icons.rcc", "./../target/debug/data/icons/breeze/breeze-icons.rcc").unwrap();
+    copy("./../icons/breeze-icons-dark.rcc", "./../target/debug/data/icons/breeze-dark/breeze-icons-dark.rcc").unwrap();
 }
 
 /// Linux Build Script.
@@ -54,7 +54,7 @@ fn main() {
     common_config();
 
     // This compiles the custom widgets lib.
-    match Command::new("make").current_dir("./3rdparty/src/qt_runcher_extensions/").output() {
+    match Command::new("make").current_dir("./../3rdparty/src/qt_runcher_extensions/").output() {
         Ok(output) => {
             stdout().write_all(&output.stdout).unwrap();
             stderr().write_all(&output.stderr).unwrap();
@@ -73,7 +73,7 @@ fn main() {
     common_config();
 
     // This compiles the custom widgets lib.
-    match Command::new("gmake").current_dir("./3rdparty/src/qt_runcher_extensions/").output() {
+    match Command::new("gmake").current_dir("./../3rdparty/src/qt_runcher_extensions/").output() {
         Ok(output) => {
             stdout().write_all(&output.stdout).unwrap();
             stderr().write_all(&output.stderr).unwrap();
@@ -108,7 +108,7 @@ fn common_config() {
         .arg("-o")
         .arg("Makefile")
         .arg("qt_runcher_extensions.pro")
-        .current_dir("./3rdparty/src/qt_runcher_extensions/").output() {
+        .current_dir("./../3rdparty/src/qt_runcher_extensions/").output() {
         Ok(output) => {
             stdout().write_all(&output.stdout).unwrap();
             stderr().write_all(&output.stderr).unwrap();

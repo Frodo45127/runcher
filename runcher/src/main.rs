@@ -145,7 +145,7 @@ const GITHUB_URL: &str = "https://github.com/Frodo45127/runcher";
 const DISCORD_URL: &str = "https://discord.gg/moddingden";
 const PATREON_URL: &str = "https://www.patreon.com/RPFM";
 
-const FALLBACK_LOCALE_EN: &str = include_str!("../locale/English_en.ftl");
+const FALLBACK_LOCALE_EN: &str = include_str!("../../locale/English_en.ftl");
 const SENTRY_DSN_KEY: &str = "https://4c058b715c304d55b928c3e44a63b4ff@o152833.ingest.sentry.io/4504851217711104";
 
 fn main() {
