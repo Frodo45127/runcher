@@ -1814,7 +1814,7 @@ impl AppUI {
         if let Some(receiver) = receiver {
             let response = CENTRAL_COMMAND.recv_try(receiver);
             match response {
-                Response::VecWorkshopItem(workshop_items) => {
+                Response::VecMod(workshop_items) => {
                     let mut mods = self.game_config().write().unwrap();
                     if let Some(ref mut mods) = *mods {
                         let game = self.game_selected().read().unwrap();

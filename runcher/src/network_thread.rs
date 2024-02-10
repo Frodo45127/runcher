@@ -83,7 +83,7 @@ pub fn network_loop() {
             Command::RequestModsData(mod_ids) => {
                 match request_mods_data(&mod_ids) {
                     Ok(mods_data) => {
-                        CentralCommand::send_back(&sender, Response::VecWorkshopItem(mods_data))
+                        CentralCommand::send_back(&sender, Response::VecMod(mods_data))
                     },
                     Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
                 }

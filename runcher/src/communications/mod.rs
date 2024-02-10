@@ -12,14 +12,13 @@ use qt_core::QEventLoop;
 
 use anyhow::Error;
 use crossbeam::channel::{Receiver, Sender, unbounded};
-use steam_workshop_api::interfaces::WorkshopItem;
 
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use rpfm_lib::integrations::{log::{error, info}, git::GitResponse};
 
-use crate::mod_manager::{game_config::GameConfig, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::ShareableMod};
+use crate::mod_manager::{game_config::GameConfig, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::{Mod, ShareableMod}};
 use crate::updater_ui::APIResponse;
 
 /// This const is the standard message in case of message communication error. If this happens, crash the program.
@@ -72,7 +71,7 @@ pub enum Response {
     APIResponse(APIResponse),
     APIResponseGit(GitResponse),
     VecShareableMods(Vec<ShareableMod>),
-    VecWorkshopItem(Vec<WorkshopItem>),
+    VecMod(Vec<Mod>),
 }
 
 //-------------------------------------------------------------------------------//

@@ -12,7 +12,7 @@
 use anyhow::Result;
 use regex::Regex;
 use steam_workshop_api::client::Workshop;
-use steam_workshop_api::interfaces::{i_steam_remote_storage::*, i_steam_user::*, WorkshopItem};
+use steam_workshop_api::interfaces::{i_steam_remote_storage::*, i_steam_user::*};
 
 use std::collections::HashMap;
 
@@ -28,9 +28,29 @@ lazy_static::lazy_static! {
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
-pub fn request_mods_data(mod_ids: &[String]) -> Result<Vec<WorkshopItem>> {
+pub fn request_mods_data(mod_ids: &[String]) -> Result<Vec<Mod>> {
     let client = Workshop::new(None);
-    get_published_file_details(&client, mod_ids)
+    let workshop_items = get_published_file_details(&client, mod_ids)?;
+
+    let mut mods = vec![];
+    for workshop_item in workshop_items {
+        if *workshop_item.result() == 1 {
+            let mut modd = Mod::default();
+            modd.set_name(workshop_item.title().clone().unwrap());
+            modd.set_creator(workshop_item.creator().clone().unwrap());
+            modd.set_file_name(workshop_item.filename().clone().unwrap());
+            modd.set_file_size(workshop_item.file_size().unwrap());
+            modd.set_file_url(workshop_item.file_url().clone().unwrap());
+            modd.set_preview_url(workshop_item.preview_url().clone().unwrap());
+            modd.set_description(workshop_item.description().clone().unwrap());
+            modd.set_time_created(workshop_item.time_created().unwrap());
+            modd.set_time_updated(workshop_item.time_updated().unwrap());
+
+            mods.push(modd);
+        }
+    }
+
+    Ok(mods)
 }
 
 pub fn request_user_names(user_ids: &[String]) -> Result<HashMap<String, String>> {
@@ -44,22 +64,23 @@ pub fn request_user_names(user_ids: &[String]) -> Result<HashMap<String, String>
     }
 }
 
-pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_items: &[WorkshopItem], last_update_date: u64) -> Result<()> {
+pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_items: &[Mod], last_update_date: u64) -> Result<()> {
     for workshop_item in workshop_items {
-        if *workshop_item.result() == 1 {
-            if let Some(modd) = mods.values_mut().filter(|modd| modd.steam_id().is_some()).find(|modd| &modd.steam_id().clone().unwrap() == workshop_item.publishedfileid()) {
-                modd.set_name(workshop_item.title().clone().unwrap());
-                modd.set_creator(workshop_item.creator().clone().unwrap());
-                modd.set_file_name(workshop_item.filename().clone().unwrap());
-                modd.set_file_size(workshop_item.file_size().unwrap());
-                modd.set_file_url(workshop_item.file_url().clone().unwrap());
-                modd.set_preview_url(workshop_item.preview_url().clone().unwrap());
-                modd.set_description(workshop_item.description().clone().unwrap());
-                modd.set_time_created(workshop_item.time_created().unwrap());
-                modd.set_time_updated(workshop_item.time_updated().unwrap());
+        if let Some(modd) = mods.values_mut()
+            .filter(|modd| modd.steam_id().is_some())
+            .find(|modd| modd.steam_id() == workshop_item.steam_id()) {
 
-                modd.set_outdated(last_update_date > *modd.time_updated() as u64);
-            }
+            modd.set_name(workshop_item.name().to_string());
+            modd.set_creator(workshop_item.creator().to_string());
+            modd.set_file_name(workshop_item.file_name().to_string());
+            modd.set_file_size(*workshop_item.file_size());
+            modd.set_file_url(workshop_item.file_url().to_string());
+            modd.set_preview_url(workshop_item.preview_url().to_string());
+            modd.set_description(workshop_item.description().to_string());
+            modd.set_time_created(*workshop_item.time_created());
+            modd.set_time_updated(*workshop_item.time_updated());
+
+            modd.set_outdated(last_update_date > *modd.time_updated() as u64);
         }
     }
 
