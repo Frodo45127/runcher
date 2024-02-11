@@ -623,7 +623,7 @@ pub fn init_config_path() -> Result<()> {
 
     // Within the config path we need to create a folder to store the temp packs of each game.
     // Otherwise they interfere with each other due to being movie packs.
-    for (_, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
+    for game in SUPPORTED_GAMES.games_sorted().iter() {
         if game.key() != KEY_ARENA {
             DirBuilder::new().recursive(true).create(config_path()?.join("temp_packs").join(game.key()))?;
         }
@@ -668,7 +668,7 @@ pub fn translations_remote_path() -> Result<PathBuf> {
 }
 
 pub fn last_game_update_date(game: &GameInfo, game_path: &Path) -> Result<u64> {
-    Ok(if let Some(exe_path) = game.executable_path(&game_path) {
+    Ok(if let Some(exe_path) = game.executable_path(game_path) {
         if let Ok(exe) = File::open(exe_path) {
             if cfg!(target_os = "windows") {
                 exe.metadata()?.created()?.duration_since(UNIX_EPOCH)?.as_secs()

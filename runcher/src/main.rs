@@ -19,7 +19,8 @@
     clippy::match_wild_err_arm,             // Disabled because, despite being a bad practice, it's the intended behavior in the code it warns about.
     clippy::clone_on_copy,                  // Disabled because triggers false positives on qt cloning.
     clippy::mutex_atomic,                   // Disabled because in the only instance it triggers, we do it on purpose.
-    clippy::too_many_arguments              // Disabled because it gets annoying really quick.
+    clippy::too_many_arguments,             // Disabled because it gets annoying really quick.
+    clippy::enum_variant_names              // Disabled due to useless warnings.
 )]
 
 // This disables the terminal window on windows on release builds.

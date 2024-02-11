@@ -154,7 +154,7 @@ impl DataListUI {
             let vanilla_paths = game.ca_packs_paths(game_path)?;
             let movie_paths = load_order.movies().iter()
                 .filter_map(|mod_id| game_config.mods().get(mod_id))
-                .filter_map(|modd| modd.paths().get(0))
+                .filter_map(|modd| modd.paths().first())
                 .cloned()
                 .collect::<Vec<_>>();
 

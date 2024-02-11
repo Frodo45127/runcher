@@ -137,7 +137,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
         if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
             for row in data.data_mut() {
 
-                if let Some(DecodedData::StringU8(key)) = row.get(0).cloned() {
+                if let Some(DecodedData::StringU8(key)) = row.first().cloned() {
 
                     // Battle width change.
                     if key == "unit_max_drag_width" {
@@ -186,7 +186,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
     for table in &mut kv_unit_ability_scaling_rules {
         if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
             for row in data.data_mut() {
-                if let Some(DecodedData::StringU8(key)) = row.get(0).cloned() {
+                if let Some(DecodedData::StringU8(key)) = row.first().cloned() {
                     if key == "direct_damage_large" || key == "direct_damage_medium" || key == "direct_damage_small" || key == "direct_damage_ultra" {
                         if let Some(DecodedData::F32(value)) = row.get_mut(1) {
                             *value *= unit_multiplier as f32;
@@ -232,10 +232,8 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                         // Cavalry and some weird mounts, like sky junks.
                         if let Some(column) = num_mounts_column {
                             if let Some(DecodedData::I32(value)) = row.get(column) {
-                                if !is_engine && *value > 0 {
-                                    if !mount_amount.contains_key(&key_value) {
-                                        mount_amount.insert(key_value.to_owned(), *value);
-                                    }
+                                if !is_engine && *value > 0 && !mount_amount.contains_key(&key_value) {
+                                    mount_amount.insert(key_value.to_owned(), *value);
                                 }
                             }
                         }

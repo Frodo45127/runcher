@@ -80,7 +80,7 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_pa
         if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
             for row in data.data_mut() {
 
-                if let Some(DecodedData::StringU8(key)) = row.get(0).cloned() {
+                if let Some(DecodedData::StringU8(key)) = row.first().cloned() {
 
                     if INTRO_MOVIE_KEYS.contains(&&*key) {
                         if let Some(DecodedData::StringU8(value)) = row.get_mut(0) {

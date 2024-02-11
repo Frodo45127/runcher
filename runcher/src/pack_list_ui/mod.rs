@@ -134,7 +134,7 @@ impl PackListUI {
     pub unsafe fn load(&self, game_config: &GameConfig, game_info: &GameInfo, game_path: &Path, load_order: &LoadOrder) -> Result<()> {
         self.model().clear();
 
-        let secondary_mods_path = secondary_mods_path(&game_config.game_key()).unwrap_or_else(|_| PathBuf::new());
+        let secondary_mods_path = secondary_mods_path(game_config.game_key()).unwrap_or_else(|_| PathBuf::new());
 
         if !game_path.to_string_lossy().is_empty() {
             if let Ok(game_data_folder) = game_info.data_path(game_path) {
@@ -169,12 +169,12 @@ impl PackListUI {
                                 if let Some(ref id) = modd.steam_id() {
                                     format!("Secondary ({})", id)
                                 } else {
-                                    format!("Secondary (Non-Steam)")
+                                    "Secondary (Non-Steam)".to_string()
                                 }
                             } else if let Some(ref id) = modd.steam_id() {
                                 format!("Content ({})", id)
                             } else {
-                                format!("Where the fuck is this pack?")
+                                "Where the fuck is this pack?".to_string()
                             }
                         ));
 

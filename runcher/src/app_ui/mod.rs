@@ -405,7 +405,7 @@ impl AppUI {
         init_settings(&app_ui.main_window().static_upcast());
 
         // Disable the games we don't have a path for (uninstalled) and Shogun 2, as it's not supported yet.
-        for (_, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
+        for game in SUPPORTED_GAMES.games_sorted().iter() {
             let has_exe = game.executable_path(&setting_path(game.key())).filter(|path| path.is_file()).is_some();
             match game.key() {
                 KEY_PHARAOH => app_ui.game_selected_pharaoh().set_enabled(has_exe),
@@ -754,7 +754,7 @@ impl AppUI {
                     *self.tools().write().unwrap() = Tools::load().unwrap_or_else(|_| Tools::default());
 
                     // Disable the games we don't have a path for (uninstalled) and Shogun 2, as it's not supported yet.
-                    for (_, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
+                    for game in SUPPORTED_GAMES.games_sorted().iter() {
                         let has_exe = game.executable_path(&setting_path(game.key())).filter(|path| path.is_file()).is_some();
                         match game.key() {
                             KEY_PHARAOH => self.game_selected_pharaoh().set_enabled(has_exe),
@@ -1290,7 +1290,7 @@ impl AppUI {
             for modd in shareable_mod_list {
                 match game_config.mods_mut().get_mut(modd.id()) {
                     Some(modd_local) => {
-                        if let Some(path) = modd_local.paths().get(0) {
+                        if let Some(path) = modd_local.paths().first() {
                             if !modd.hash().is_empty() {
                                 let current_hash = try_digest(path.as_path())?;
                                 if &current_hash != modd.hash() {
@@ -1885,7 +1885,7 @@ impl AppUI {
                     let tags = game.steam_workshop_tags()?;
 
                     for tag in &tags {
-                        tag_combo_box.add_item_q_string(&QString::from_std_str(&tag));
+                        tag_combo_box.add_item_q_string(&QString::from_std_str(tag));
                     }
 
                     match modd.steam_id() {
@@ -1915,7 +1915,7 @@ impl AppUI {
                             title = modd.id().to_string();
                         }
 
-                        crate::mod_manager::integrations::upload_mod_to_workshop(&game, modd, &title, &description, &tags, &changelog).map(|x| Some(x))
+                        crate::mod_manager::integrations::upload_mod_to_workshop(&game, modd, &title, &description, &tags, &changelog).map(Some)
                     } else {
                         Ok(None)
                     }
