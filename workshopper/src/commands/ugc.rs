@@ -17,7 +17,7 @@ use std::fmt::Write;
 use std::path::Path;
 use std::thread::JoinHandle;
 
-use rpfm_lib::integrations::log::{error, info};
+use rpfm_lib::{games::GameInfo, integrations::log::{error, info}};
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -297,9 +297,32 @@ fn upload_item_content(
         .content_path(pack_path)
         .preview_path(preview_path)
         .title(title)
-        .tags(tags.to_vec(), false)
         .visibility(visibility);
 
+    // NOTE: Tags are tricky. While the workshop accepts multiple tags per-item, CA only uses one.
+    // And they don't want people adding custom tags to the workshop. So we need to limit it to one tag from the list of existing tags.
+    //
+    // This is a Total War-specific limit. For other games, ignore it.
+    let mut tags = tags.to_vec();
+    if let Ok(game) = GameInfo::game_by_steam_id(app_id as u64) {
+        if let Ok(valid_tags) = game.steam_workshop_tags() {
+            tags.retain(|tag| valid_tags.contains(tag));
+
+            // If there's more than one tag, use only the first one.
+            if tags.len() > 1 {
+                tags = vec![tags[0].to_string()];
+            }
+
+            // If all tags got deleted, add the first one from the list of valid tags.
+            if tags.is_empty() {
+                tags.push(valid_tags.first().unwrap().to_owned());
+            }
+        }
+    }
+
+    handle = handle.tags(tags, false);
+
+    // TODO: Check if description is really mandatory.
     if let Some(ref description) = description {
         handle = handle.description(description);
     }
