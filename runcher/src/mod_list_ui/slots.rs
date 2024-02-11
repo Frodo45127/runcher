@@ -83,6 +83,8 @@ impl ModListUISlots {
             view.open_in_explorer.set_enabled(all_mods);
             view.open_in_steam.set_enabled(all_mods);
             view.open_in_tool_menu.set_enabled(all_mods);
+
+            view.upload_to_workshop.set_enabled(all_mods && selection.len() == 1);
         }));
 
         let open_in_explorer = SlotNoArgs::new(&view.tree_view, clone!(

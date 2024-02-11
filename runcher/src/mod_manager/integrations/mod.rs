@@ -16,6 +16,8 @@ use anyhow::Result;
 
 use std::collections::HashMap;
 
+use rpfm_lib::games::GameInfo;
+
 use crate::mod_manager::mods::Mod;
 
 mod steam;
@@ -30,5 +32,8 @@ pub fn request_mods_data(mod_ids: &[String]) -> Result<Vec<Mod>> {
 
 pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_items: &[Mod], last_update_date: u64) -> Result<()> {
     steam::populate_mods_with_online_data(mods, workshop_items, last_update_date)
+}
 
+pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, description: &str, tags: &[String], changelog: &str) -> Result<()> {
+    steam::upload_mod_to_workshop(game, modd, title, description, tags, changelog)
 }

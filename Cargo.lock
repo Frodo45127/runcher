@@ -889,9 +889,9 @@ dependencies = [
 
 [[package]]
 name = "fraction"
-version = "0.15.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "864d054a996544d325470be9db9ff3be18319e568ad90b3b59f1b8bea046ab2f"
+checksum = "b486ab61634f05b11b591c38c71fb25139cb55e22be4fb6ecf649cc3736c074a"
 dependencies = [
  "lazy_static",
  "num",
@@ -2237,7 +2237,7 @@ dependencies = [
 [[package]]
 name = "rpfm_extensions"
 version = "4.2.5"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#ba95feed412a59a63b9d80650efcab72bdf472f0"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#3659d5495b7f2d9a024f3867151d9a210ec89570"
 dependencies = [
  "bincode",
  "caseless",
@@ -2257,7 +2257,7 @@ dependencies = [
 [[package]]
 name = "rpfm_lib"
 version = "4.2.5"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#ba95feed412a59a63b9d80650efcab72bdf472f0"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#3659d5495b7f2d9a024f3867151d9a210ec89570"
 dependencies = [
  "backtrace",
  "bincode",
@@ -2299,7 +2299,7 @@ dependencies = [
 [[package]]
 name = "rpfm_ui_common"
 version = "4.2.5"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#ba95feed412a59a63b9d80650efcab72bdf472f0"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#3659d5495b7f2d9a024f3867151d9a210ec89570"
 dependencies = [
  "anyhow",
  "cpp_core",

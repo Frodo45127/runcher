@@ -207,3 +207,10 @@ import_string_runcher_mode = Runcher Mode
 
 settings_secondary_mods_folder = Secondary Mods Folder
 settings_secondary_mods_folder_ph = This is an alternative folder to place mods, so /data doesn't get too crowded.
+
+upload_to_workshop_title = Upload/Update To Workshop
+upload_to_workshop = Upload/Update To Workshop
+upload_workshop_title = Title
+upload_workshop_description = Description
+upload_workshop_changelog = Changelog
+upload_workshop_tag = Tag

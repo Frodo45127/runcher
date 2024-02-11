@@ -23,7 +23,6 @@ use rpfm_extensions::translator::*;
 use rpfm_lib::files::{Container, FileType, loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
 use rpfm_lib::games::{*, supported_games::*};
 use rpfm_lib::integrations::git::GitResponse;
-use rpfm_lib::schema::Schema;
 
 use rpfm_ui_common::locale::tre;
 use rpfm_ui_common::settings::*;
@@ -552,7 +551,7 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
             // If we have a fixes file for the vanilla translation, apply it before everything else.
             if let Some(remote_path) = paths.last() {
                 let fixes_loc_path = remote_path.join(format!("{}/{}{}.tsv", game.key(), VANILLA_FIXES_NAME, language));
-                if let Ok(mut fixes_loc) = RFile::tsv_import_from_path(&fixes_loc_path, &Schema::default()) {
+                if let Ok(mut fixes_loc) = RFile::tsv_import_from_path(&fixes_loc_path, &None) {
                     fixes_loc.guess_file_type()?;
                     if let Ok(Some(RFileDecoded::Loc(fixes_loc))) = fixes_loc.decode(&None, false, true) {
                         loc_data.append(&mut fixes_loc.data().to_vec());
@@ -574,7 +573,7 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
                 loc.set_data(&loc_data)?;
                 if let Some(remote_path) = paths.last() {
                     let vanilla_loc_path = remote_path.join(format!("{}/{}", game.key(), VANILLA_LOC_NAME));
-                    if let Ok(mut vanilla_loc) = RFile::tsv_import_from_path(&vanilla_loc_path, &Schema::default()) {
+                    if let Ok(mut vanilla_loc) = RFile::tsv_import_from_path(&vanilla_loc_path, &None) {
                         vanilla_loc.guess_file_type()?;
                         vanilla_loc.decode(&None, true, false)?;
 

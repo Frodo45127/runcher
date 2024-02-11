@@ -9,20 +9,25 @@
 //---------------------------------------------------------------------------//
 
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use regex::Regex;
 use steam_workshop_api::client::Workshop;
 use steam_workshop_api::interfaces::{i_steam_remote_storage::*, i_steam_user::*};
 
 use std::collections::HashMap;
+use std::process::Command;
+#[cfg(target_os = "windows")]use std::os::windows::process::CommandExt;
 
-use rpfm_ui_common::settings::setting_string;
+use rpfm_lib::games::GameInfo;
+use rpfm_ui_common::settings::{setting_path, setting_string};
 
 use crate::mod_manager::mods::Mod;
 
 lazy_static::lazy_static! {
     pub static ref REGEX_URL: Regex = Regex::new(r"(\[url=)(.*)(\])(.*)(\[/url\])").unwrap();
 }
+
+const WORKSHOPPER_EXE: &str = "workshopper.exe";
 
 //-------------------------------------------------------------------------------//
 //                             Implementations
@@ -33,9 +38,13 @@ pub fn request_mods_data(mod_ids: &[String]) -> Result<Vec<Mod>> {
     let workshop_items = get_published_file_details(&client, mod_ids)?;
 
     let mut mods = vec![];
+
+    // Note: this processes mods retrieved through the Web API. Mods owned by the user but hidden are not here.
     for workshop_item in workshop_items {
         if *workshop_item.result() == 1 {
             let mut modd = Mod::default();
+            modd.set_steam_id(Some(workshop_item.publishedfileid().to_owned()));
+
             modd.set_name(workshop_item.title().clone().unwrap());
             modd.set_creator(workshop_item.creator().clone().unwrap());
             modd.set_file_name(workshop_item.filename().clone().unwrap());
@@ -103,4 +112,69 @@ pub fn populate_mods_with_author_names(mods: &mut HashMap<String, Mod>, user_nam
             modd.set_creator_name(creator_name.to_string());
         }
     }
+}
+
+/// This function uploads a mod to the workshop through workshopper.
+///
+/// If the mod doesn't yet exists in the workshop, it creates it. If it already exists, it updates it.
+pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, description: &str, tags: &[String], changelog: &str) -> Result<()> {
+    let game_path = setting_path(game.key());
+    let steam_id = game.steam_id(&game_path)? as u32;
+
+    let pack_path = if modd.paths().is_empty() {
+        return Err(anyhow!("Mod Path not found."));
+    } else {
+        &modd.paths()[0]
+    };
+
+    let exe_path = if cfg!(debug_assertions) {
+        format!(".\\target\\debug\\{}", WORKSHOPPER_EXE)
+    } else {
+        WORKSHOPPER_EXE.to_string()
+    };
+
+    let mut command = Command::new("cmd");
+    command.arg("/C");
+    command.arg(exe_path);
+
+    // If we have a published_file_id, it means this file exists in the workshop.
+    //
+    // So, instead of uploading, we just update it.
+    match modd.steam_id() {
+        Some(published_file_id) => {
+            command.arg("update");
+            command.arg("--published_file_id");
+            command.arg(published_file_id);
+        }
+        None => {
+            command.arg("upload");
+        }
+    }
+
+    command.arg("-s");
+    command.arg(steam_id.to_string());
+    command.arg("-p");
+    command.arg(pack_path.to_string_lossy().to_string());
+    command.arg("-t");
+    command.arg(title);
+
+    if !description.is_empty() {
+        command.arg("-d");
+        command.arg(description);
+    }
+
+    command.arg("--tags");
+    command.arg(tags.join(","));
+
+    if !changelog.is_empty() {
+        command.arg("-c");
+        command.arg(changelog);
+    }
+
+    // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
+    #[cfg(target_os = "windows")]command.creation_flags(0x00000008);
+
+    command.spawn()?;
+
+    Ok(())
 }

@@ -12,6 +12,8 @@ use qt_widgets::QAction;
 use qt_widgets::QActionGroup;
 use qt_widgets::QApplication;
 use qt_widgets::QButtonGroup;
+use qt_widgets::QComboBox;
+use qt_widgets::QLineEdit;
 use qt_widgets::QRadioButton;
 use qt_widgets::QTabWidget;
 use qt_widgets::QToolBar;
@@ -98,6 +100,9 @@ pub mod slots;
 
 const LOAD_ORDER_STRING_VIEW_DEBUG: &str = "ui_templates/load_order_string_dialog.ui";
 const LOAD_ORDER_STRING_VIEW_RELEASE: &str = "ui/load_order_string_dialog.ui";
+
+const WORKSHOP_UPLOAD_VIEW_DEBUG: &str = "ui_templates/workshop_upload_dialog.ui";
+const WORKSHOP_UPLOAD_VIEW_RELEASE: &str = "ui/workshop_upload_dialog.ui";
 
 pub const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
 pub const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
@@ -504,6 +509,7 @@ impl AppUI {
         self.patreon_button().released().connect(slots.patreon_link());
 
         self.mod_list_ui().model().item_changed().connect(slots.update_pack_list());
+        self.mod_list_ui().upload_to_workshop().triggered().connect(slots.upload_to_workshop());
         self.mod_list_ui().context_menu().about_to_show().connect(slots.mod_list_context_menu_open());
         self.mod_list_ui().enable_selected().triggered().connect(slots.enable_selected());
         self.mod_list_ui().disable_selected().triggered().connect(slots.disable_selected());
@@ -1841,5 +1847,88 @@ impl AppUI {
         }
 
         Ok(())
+    }
+
+    pub unsafe fn upload_mod_to_workshop(&self) -> Result<Option<()>> {
+
+        // Load the UI Template.
+        let template_path = if cfg!(debug_assertions) { WORKSHOP_UPLOAD_VIEW_DEBUG } else { WORKSHOP_UPLOAD_VIEW_RELEASE };
+        let main_widget = load_template(self.main_window(), template_path)?;
+        let dialog = main_widget.static_downcast::<QDialog>();
+
+        let title_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "title_label")?;
+        let description_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "description_label")?;
+        let changelog_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "changelog_label")?;
+        let tag_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "tag_label")?;
+
+        let title_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "title_line_edit")?;
+        let description_text_edit: QPtr<QTextEdit> = find_widget(&main_widget.static_upcast(), "description_text_edit")?;
+        let changelog_text_edit: QPtr<QTextEdit> = find_widget(&main_widget.static_upcast(), "changelog_text_edit")?;
+        let tag_combo_box: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "tag_combo_box")?;
+
+        let button_box: QPtr<QDialogButtonBox> = find_widget(&main_widget.static_upcast(), "button_box")?;
+        button_box.button(StandardButton::Ok).released().connect(dialog.slot_accept());
+
+        dialog.set_window_title(&qtr("upload_to_workshop_title"));
+        title_label.set_text(&qtr("upload_workshop_title"));
+        description_label.set_text(&qtr("upload_workshop_description"));
+        changelog_label.set_text(&qtr("upload_workshop_changelog"));
+        tag_label.set_text(&qtr("upload_workshop_tag"));
+
+        let selection = self.mod_list_selection();
+        if selection.len() == 1 && !selection[0].data_1a(VALUE_IS_CATEGORY).to_bool() {
+            let mod_id = selection[0].data_1a(VALUE_MOD_ID).to_string().to_std_string();
+            let game_config = self.game_config().read().unwrap();
+            if let Some(ref game_config) = *game_config {
+                if let Some(modd) = game_config.mods().get(&mod_id) {
+                    let game = self.game_selected().read().unwrap();
+                    let tags = game.steam_workshop_tags()?;
+
+                    for tag in &tags {
+                        tag_combo_box.add_item_q_string(&QString::from_std_str(&tag));
+                    }
+
+                    match modd.steam_id() {
+
+                        // If the mod has been published, use the current published values as default.
+                        Some(_) => {
+                            title_line_edit.set_text(&QString::from_std_str(modd.name()));
+                            description_text_edit.set_plain_text(&QString::from_std_str(modd.description()));
+                            changelog_text_edit.set_plain_text(&QString::from_std_str("me forgot changelog. Me sorry."));
+                        }
+
+                        // If the mod has not been published, setup default values.
+                        None => {
+                            title_line_edit.set_text(&QString::from_std_str(modd.id()));
+                            changelog_text_edit.set_plain_text(&QString::from_std_str("Initial release."));
+                        }
+                    }
+
+                    if dialog.exec() == 1 {
+                        let mut title = title_line_edit.text().to_std_string();
+                        let description = description_text_edit.to_plain_text().to_std_string();
+                        let changelog = changelog_text_edit.to_plain_text().to_std_string();
+                        let tags = vec![tag_combo_box.current_text().to_std_string()];
+
+                        // We need at least a title. So if we don't have one, use the default one.
+                        if title.is_empty() {
+                            title = modd.id().to_string();
+                        }
+
+                        crate::mod_manager::integrations::upload_mod_to_workshop(&game, modd, &title, &description, &tags, &changelog).map(|x| Some(x))
+                    } else {
+                        Ok(None)
+                    }
+
+                    // All the following elses should never really trigger unless it's a bug.
+                } else {
+                    Ok(None)
+                }
+            } else {
+                Ok(None)
+            }
+        } else {
+            Ok(None)
+        }
     }
 }

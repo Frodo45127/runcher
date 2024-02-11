@@ -79,6 +79,7 @@ pub struct AppUISlots {
 
     enable_selected: QBox<SlotNoArgs>,
     disable_selected: QBox<SlotNoArgs>,
+    upload_to_workshop: QBox<SlotNoArgs>,
     category_create: QBox<SlotNoArgs>,
     category_delete: QBox<SlotNoArgs>,
     category_rename: QBox<SlotNoArgs>,
@@ -421,6 +422,14 @@ impl AppUISlots {
             }
         ));
 
+        let upload_to_workshop = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                if let Err(error) = view.upload_mod_to_workshop() {
+                    show_dialog(view.main_window(), error, false);
+                }
+            }
+        ));
+
         let category_create = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 if let Err(error) = view.create_category() {
@@ -568,6 +577,7 @@ impl AppUISlots {
 
             enable_selected,
             disable_selected,
+            upload_to_workshop,
             category_create,
             category_delete,
             category_rename,
