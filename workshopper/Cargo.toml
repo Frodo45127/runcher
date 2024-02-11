@@ -1,0 +1,38 @@
+[package]
+name = "workshopper"
+build = "build.rs"
+version = "0.1.0"
+
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+
+# Internal dependencies, mainly for logging support.
+rpfm_lib = { git = "https://github.com/Frodo45127/rpfm.git", branch = "develop", features = ["integration_log"] }
+
+# Error managing.
+anyhow = "1.0"
+
+# Config dependencies.
+directories = "^5.0"
+lazy_static = "^1.2"
+
+# CLI parsing, formatting and color support.
+clap = { version = "^4", features = ["derive", "wrap_help"] }
+
+# Multithread iterator support.
+rayon = "^1.3"
+
+# Multi-thread support.
+crossbeam = "^0.8"
+
+# Progress bar support.
+indicatif = "^0.17"
+
+# Steam Workshop support.
+steamworks = "^0.11"
+
+# Windows resources support.
+[target.'cfg(windows)'.build-dependencies]
+winres = "^0.1"
