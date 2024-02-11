@@ -50,16 +50,17 @@ fn main() {
         Commands::Update { steam_id, published_file_id, pack_path, title, description, tags, changelog } => crate::commands::ugc::update(None, None, PublishedFileId(published_file_id), steam_id, &pack_path, &title, &description, &tags, &changelog)
     };
 
-    // Output the result of the commands, then give people 30 seconds to read them before exiting.
+    // Output the result of the commands, then give people 60 seconds to read them before exiting.
     match result {
         Ok(_) => {
-            info!("Done.");
-            std::thread::sleep(std::time::Duration::from_millis(30000));
+            info!("Done. This terminal will close itself in 60 seconds to give you some time to read the log, but if you want, you can close it now.");
+            std::thread::sleep(std::time::Duration::from_millis(60000));
             exit(0)
         },
         Err(error) => {
             error!("{}", error.to_string());
-            std::thread::sleep(std::time::Duration::from_millis(30000));
+            info!("This terminal will close itself in 60 seconds to give you some time to read the log, but if you want, you can close it now.");
+            std::thread::sleep(std::time::Duration::from_millis(60000));
             exit(1);
         },
     }
