@@ -300,7 +300,7 @@ pub fn update(
 
                     // If stuff happened too quickly and the commit didn't trigger, do it here.
                     if let Some(ref bar) = bar {
-                        bar.set_position(prev_total);
+                        bar.finish();
                     }
 
                     return finish(tx, callback_thread)
@@ -331,8 +331,11 @@ pub fn update(
                     UpdateStatus::UploadingContent => {
                         if prev_status != UpdateStatus::UploadingContent {
                             prev_status = UpdateStatus::UploadingContent;
-                            info!("Uploading content of size: {}.", total);
+                        }
 
+                        // Total takes some time to update after changing status.
+                        if prev_total == 0 && total > 0 {
+                            info!("Uploading content of size: {}.", total);
                             prev_total = total;
                             bar = Some(progress_bar(total));
                         }
@@ -347,11 +350,15 @@ pub fn update(
 
                             // Fill the previous bar before making the new one.
                             if let Some(ref bar) = bar {
-                                bar.set_position(prev_total);
+                                bar.finish();
                             }
 
-                            info!("Uploading preview file of size: {}.", total);
+                            prev_total = 0;
+                        }
 
+                        // Total takes some time to update after changing status.
+                        if prev_total == 0 && total > 0 {
+                            info!("Uploading preview file of size: {}.", total);
                             prev_total = total;
                             bar = Some(progress_bar(total));
                         }
@@ -366,7 +373,7 @@ pub fn update(
 
                             // Fill the previous bar before killing it.
                             if let Some(ref bar) = bar {
-                                bar.set_position(prev_total);
+                                bar.finish();
                             }
 
                             bar = None;
@@ -378,7 +385,6 @@ pub fn update(
                     // Invalid is usually completed. So just return Ok.
                     UpdateStatus::Invalid => {
                         info!("Invalid UpdateStatus. This is an error, or the upload finished.");
-                        return finish(tx, callback_thread)
                     },
                 }
 
