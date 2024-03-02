@@ -176,7 +176,7 @@ pub fn published_file_details(steam_id: u32, published_file_ids: &str) -> Result
     }
 
     // Initialize the API.
-    let (client, tx, callback_thread) = init(steam_id)?;
+    let (client, tx, callback_thread) = init(steam_id, Some(IPC_NAME_GET_PUBLISHED_FILE_DETAILS))?;
     let ugc = client.ugc();
 
     // Create the query and request the results.
@@ -224,7 +224,7 @@ pub fn upload(
 ) -> Result<()> {
 
     // Initialize the API.
-    let (client, tx, callback_thread) = init(steam_id)?;
+    let (client, tx, callback_thread) = init(steam_id, None)?;
     let ugc = client.ugc();
 
     // Create the item.
@@ -276,7 +276,7 @@ pub fn update(
 ) -> Result<()> {
 
     // Initialize the API.
-    let (client, tx, callback_thread) = api.unwrap_or_else(|| init(steam_id))?;
+    let (client, tx, callback_thread) = api.unwrap_or_else(|| init(steam_id, None))?;
     let ugc = ugc.unwrap_or_else(|| client.ugc());
 
     // Prepare the preview path. We replicate the same behavior as the vanilla launcher.
@@ -402,8 +402,19 @@ pub fn update(
 //---------------------------------------------------------------------------//
 
 /// This function initializes the client and callback thread. DO NOT CALL IT IF THERE'S ALREADY A CLIENT ALIVE.
-fn init(steam_id: u32) -> Result<(Client, Sender<SteamWorksThreadMessage>, JoinHandle<()>)> {
-    let (client, single) = Client::init_app(steam_id)?;
+fn init(steam_id: u32, channel: Option<&str>) -> Result<(Client, Sender<SteamWorksThreadMessage>, JoinHandle<()>)> {
+    let (client, single) = match Client::init_app(steam_id) {
+        Ok(client) => client,
+        Err(error) => {
+            if let Some(channel) = channel {
+                if let Ok(mut stream) = LocalSocketStream::connect(channel) {
+                    let _ = stream.write("{}".as_bytes());
+                }
+            }
+
+            return Err(From::from(error));
+        }
+    };
     let (tx, rx) = unbounded();
 
     let thread = std::thread::spawn(move || { callback_loop(single, rx); });
