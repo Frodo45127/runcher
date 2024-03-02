@@ -52,8 +52,8 @@ pub fn request_mods_data(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<Mod>
     steam::request_mods_data(game, mod_ids)
 }
 
-pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str) -> Result<PreUploadInfo> {
-    steam::request_pre_upload_info(game, mod_id)
+pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str, owner_id: &str) -> Result<PreUploadInfo> {
+    steam::request_pre_upload_info(game, mod_id, owner_id)
 }
 
 pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_items: &[Mod]) -> Result<()> {

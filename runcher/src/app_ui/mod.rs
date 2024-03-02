@@ -1861,7 +1861,7 @@ impl AppUI {
                     //
                     // We use the updated data to populate the dialog. If it was never uploaded (no steam id), we just load the dialog.
                     let mod_data = if let Some(steam_id) = modd.steam_id() {
-                        request_pre_upload_info(&game, &steam_id)?
+                        request_pre_upload_info(&game, &steam_id, &modd.creator())?
                     } else {
                         PreUploadInfo::default()
                     };

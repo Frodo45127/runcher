@@ -96,14 +96,19 @@ pub enum FileTypeDerive {
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
-pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str) -> Result<PreUploadInfo> {
+pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str, owner_id: &str) -> Result<PreUploadInfo> {
     let workshop_items = request_mods_data_raw(game, &[mod_id.to_owned()])?;
     if workshop_items.is_empty() {
         return Err(anyhow!("Mod with SteamId {} not found in the Workshop.", mod_id));
     }
 
-    // TODO: Check if we're the author.
-    // TODO2: Check if the associated image to the mod is smaller than 1mb.
+    // If we're not the author, do not even let us upload it.
+    let steam_user_id = setting_string("steam_user_id");
+    if steam_user_id.is_empty() || owner_id != steam_user_id {
+        return Err(anyhow!("You're not the original uploader of this mod, or steam hasn't been detected on your system."));
+    }
+
+    // TODO3: Check that steam has launched before starting runcher.
 
     let workshop_item = workshop_items.first().unwrap();
     let data = PreUploadInfo::from(workshop_item);
