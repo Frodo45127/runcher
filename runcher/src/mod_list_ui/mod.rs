@@ -469,8 +469,8 @@ impl ModListUI {
         self.model.set_horizontal_header_item(2, item_creator.into_ptr());
         self.model.set_horizontal_header_item(3, item_pack_type.into_ptr());
         self.model.set_horizontal_header_item(4, item_file_size.into_ptr());
-        self.model.set_horizontal_header_item(7, item_time_created.into_ptr());
-        self.model.set_horizontal_header_item(8, item_time_updated.into_ptr());
+        self.model.set_horizontal_header_item(5, item_time_created.into_ptr());
+        self.model.set_horizontal_header_item(6, item_time_updated.into_ptr());
 
         html_item_delegate_safe(&self.tree_view().static_upcast::<QObject>().as_ptr(), 0);
         flags_item_delegate_safe(&self.tree_view().static_upcast::<QObject>().as_ptr(), 1);
