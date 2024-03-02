@@ -31,7 +31,16 @@ crossbeam = "^0.8"
 indicatif = "^0.17"
 
 # Steam Workshop support.
-steamworks = "^0.11"
+#steamworks = { version = "^0.11", features = ["serde"] }
+steamworks = { path = "./../../steamworks-rs", features = ["serde"] }
+
+# Serialization support.
+serde = "^1.0"
+serde_derive = "^1.0"
+serde_json = "^1.0"
+
+# IPC Support
+interprocess = "^1.2"
 
 # Windows resources support.
 [target.'cfg(windows)'.build-dependencies]

@@ -29,15 +29,26 @@ pub(crate) struct Cli {
 #[derive(Debug, Subcommand)]
 pub enum Commands {
 
+    GetPublishedFileDetails {
+
+        /// SteamId/AppId of the game we're going to upload the mod for.
+        #[arg(short, long, value_name = "STEAM_ID")]
+        steam_id: u32,
+
+        /// List of published file ids, separated by comma.
+        #[arg(short, long, required = true, value_name = "PUBLISHED_FILE_IDS")]
+        published_file_ids: String,
+    },
+
     Upload {
 
         /// SteamId/AppId of the game we're going to upload the mod for.
         #[arg(short, long, value_name = "STEAM_ID")]
         steam_id: u32,
 
-        /// Path of the Pack this operation will use.
+        /// Path of the file (Pack in Total War) this operation will use.
         #[arg(short, long, required = true, value_name = "PATH")]
-        pack_path: PathBuf,
+        file_path: PathBuf,
 
         /// Title the mod will receive.
         #[arg(short, long, required = true, value_name = "TITLE")]
@@ -66,9 +77,9 @@ pub enum Commands {
         #[arg(long, value_name = "PUBLISHED_FILE_ID")]
         published_file_id: u64,
 
-        /// Path of the Pack this operation will use.
+        /// Path of the file (Pack in Total War) this operation will use.
         #[arg(short, long, required = true, value_name = "PATH")]
-        pack_path: PathBuf,
+        file_path: PathBuf,
 
         /// Title the mod will receive.
         #[arg(short, long, required = true, value_name = "TITLE")]
