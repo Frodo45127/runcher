@@ -26,6 +26,8 @@ use rpfm_ui_common::settings::{setting_path, setting_string};
 
 use crate::mod_manager::mods::Mod;
 
+use super::{PreUploadInfo, PublishedFileVisibilityDerive};
+
 lazy_static::lazy_static! {
     pub static ref REGEX_URL: Regex = Regex::new(r"(\[url=)(.*)(\])(.*)(\[/url\])").unwrap();
 
@@ -70,14 +72,6 @@ pub struct QueryResultDerive {
     pub num_children: u32,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
-pub enum PublishedFileVisibilityDerive {
-    Public,
-    FriendsOnly,
-    Private,
-    Unlisted,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum FileTypeDerive {
     Community,
@@ -102,7 +96,44 @@ pub enum FileTypeDerive {
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
+pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str) -> Result<PreUploadInfo> {
+    let workshop_items = request_mods_data_raw(game, &[mod_id.to_owned()])?;
+    if workshop_items.is_empty() {
+        return Err(anyhow!("Mod with SteamId {} not found in the Workshop.", mod_id));
+    }
+
+    // TODO: Check if we're the author.
+    // TODO2: Check if the associated image to the mod is smaller than 1mb.
+
+    let workshop_item = workshop_items.first().unwrap();
+    let data = PreUploadInfo::from(workshop_item);
+
+    Ok(data)
+}
+
 pub fn request_mods_data(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<Mod>> {
+    let workshop_items = request_mods_data_raw(game, mod_ids)?;
+
+    let mut mods = vec![];
+    for workshop_item in &workshop_items {
+        let mut modd = Mod::default();
+        modd.set_steam_id(Some(workshop_item.published_file_id.to_string()));
+
+        modd.set_name(workshop_item.title.to_owned());
+        modd.set_creator(workshop_item.owner.to_string());
+        modd.set_file_name(workshop_item.file_name.to_owned());
+        modd.set_file_size(workshop_item.file_size as u64);
+        modd.set_description(workshop_item.description.to_owned());
+        modd.set_time_created(workshop_item.time_created as usize);
+        modd.set_time_updated(workshop_item.time_updated as usize);
+
+        mods.push(modd);
+    }
+
+    Ok(mods)
+}
+
+pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<QueryResultDerive>> {
     let game_path = setting_path(game.key());
     let steam_id = game.steam_id(&game_path)? as u32;
     let published_file_ids = mod_ids.join(",");
@@ -130,25 +161,7 @@ pub fn request_mods_data(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<Mod>
     let mut message = String::new();
     stream.read_to_string(&mut message)?;
 
-    let deserialized_data: Vec<QueryResultDerive> = serde_json::from_str(&message)?;
-
-    let mut mods = vec![];
-    for workshop_item in &deserialized_data {
-        let mut modd = Mod::default();
-        modd.set_steam_id(Some(workshop_item.published_file_id.to_string()));
-
-        modd.set_name(workshop_item.title.to_owned());
-        modd.set_creator(workshop_item.owner.to_string());
-        modd.set_file_name(workshop_item.file_name.to_owned());
-        modd.set_file_size(workshop_item.file_size as u64);
-        modd.set_description(workshop_item.description.to_owned());
-        modd.set_time_created(workshop_item.time_created as usize);
-        modd.set_time_updated(workshop_item.time_updated as usize);
-
-        mods.push(modd);
-    }
-
-    Ok(mods)
+    serde_json::from_str(&message).map_err(From::from)
 }
 
 pub fn request_user_names(user_ids: &[String]) -> Result<HashMap<String, String>> {
@@ -202,7 +215,7 @@ pub fn populate_mods_with_author_names(mods: &mut HashMap<String, Mod>, user_nam
 /// This function uploads a mod to the workshop through workshopper.
 ///
 /// If the mod doesn't yet exists in the workshop, it creates it. If it already exists, it updates it.
-pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, description: &str, tags: &[String], changelog: &str) -> Result<()> {
+pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, description: &str, tags: &[String], changelog: &str, visibility: &Option<u32>) -> Result<()> {
     let game_path = setting_path(game.key());
     let steam_id = game.steam_id(&game_path)? as u32;
 
@@ -222,7 +235,7 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
     match modd.steam_id() {
         Some(published_file_id) => {
             command.arg("update");
-            command.arg("--published_file_id");
+            command.arg("--published-file-id");
             command.arg(published_file_id);
         }
         None => {
@@ -232,7 +245,7 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
 
     command.arg("-s");
     command.arg(steam_id.to_string());
-    command.arg("-p");
+    command.arg("-f");
     command.arg(pack_path.to_string_lossy().to_string());
     command.arg("-t");
     command.arg(title);
@@ -250,10 +263,27 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
         command.arg(changelog);
     }
 
+    if let Some(visibility) = visibility {
+        command.arg("--visibility");
+        command.arg(visibility.to_string());
+    }
+
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
     #[cfg(target_os = "windows")]command.creation_flags(0x00000008);
 
     command.spawn()?;
 
     Ok(())
+}
+
+impl From<&QueryResultDerive> for PreUploadInfo {
+    fn from(value: &QueryResultDerive) -> Self {
+        Self {
+            published_file_id: value.published_file_id.clone(),
+            title: value.title.clone(),
+            description: value.description.clone(),
+            visibility: value.visibility.clone(),
+            tags: value.tags.to_vec(),
+        }
+    }
 }

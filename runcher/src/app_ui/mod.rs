@@ -81,7 +81,7 @@ use crate::DARK_PALETTE;
 use crate::data_ui::DataListUI;
 use crate::ffi::*;
 use crate::games::*;
-use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, integrations::populate_mods_with_online_data, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::ShareableMod, profiles::Profile, saves::Save, tools::Tools};
+use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, integrations::*, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::ShareableMod, profiles::Profile, saves::Save, tools::Tools};
 use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::*;
@@ -1846,31 +1846,6 @@ impl AppUI {
     }
 
     pub unsafe fn upload_mod_to_workshop(&self) -> Result<Option<()>> {
-
-        // Load the UI Template.
-        let template_path = if cfg!(debug_assertions) { WORKSHOP_UPLOAD_VIEW_DEBUG } else { WORKSHOP_UPLOAD_VIEW_RELEASE };
-        let main_widget = load_template(self.main_window(), template_path)?;
-        let dialog = main_widget.static_downcast::<QDialog>();
-
-        let title_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "title_label")?;
-        let description_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "description_label")?;
-        let changelog_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "changelog_label")?;
-        let tag_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "tag_label")?;
-
-        let title_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "title_line_edit")?;
-        let description_text_edit: QPtr<QTextEdit> = find_widget(&main_widget.static_upcast(), "description_text_edit")?;
-        let changelog_text_edit: QPtr<QTextEdit> = find_widget(&main_widget.static_upcast(), "changelog_text_edit")?;
-        let tag_combo_box: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "tag_combo_box")?;
-
-        let button_box: QPtr<QDialogButtonBox> = find_widget(&main_widget.static_upcast(), "button_box")?;
-        button_box.button(StandardButton::Ok).released().connect(dialog.slot_accept());
-
-        dialog.set_window_title(&qtr("upload_to_workshop_title"));
-        title_label.set_text(&qtr("upload_workshop_title"));
-        description_label.set_text(&qtr("upload_workshop_description"));
-        changelog_label.set_text(&qtr("upload_workshop_changelog"));
-        tag_label.set_text(&qtr("upload_workshop_tag"));
-
         let selection = self.mod_list_selection();
         if selection.len() == 1 && !selection[0].data_1a(VALUE_IS_CATEGORY).to_bool() {
             let mod_id = selection[0].data_1a(VALUE_MOD_ID).to_string().to_std_string();
@@ -1878,26 +1853,80 @@ impl AppUI {
             if let Some(ref game_config) = *game_config {
                 if let Some(modd) = game_config.mods().get(&mod_id) {
                     let game = self.game_selected().read().unwrap();
-                    let tags = game.steam_workshop_tags()?;
 
+                    // Before loading the dialog, we need to do some sanity checks, which include:
+                    // - Check if the mod was previously uploaded.
+                    // - Retrieve updated data from the workshop if the file is already uploaded.
+                    // - Check if you're actually the author of the mod.
+                    //
+                    // We use the updated data to populate the dialog. If it was never uploaded (no steam id), we just load the dialog.
+                    let mod_data = if let Some(steam_id) = modd.steam_id() {
+                        request_pre_upload_info(&game, &steam_id)?
+                    } else {
+                        PreUploadInfo::default()
+                    };
+
+                    // If no errors were found, load the UI Template.
+                    let template_path = if cfg!(debug_assertions) { WORKSHOP_UPLOAD_VIEW_DEBUG } else { WORKSHOP_UPLOAD_VIEW_RELEASE };
+                    let main_widget = load_template(self.main_window(), template_path)?;
+                    let dialog = main_widget.static_downcast::<QDialog>();
+
+                    let title_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "title_label")?;
+                    let description_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "description_label")?;
+                    let changelog_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "changelog_label")?;
+                    let tag_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "tag_label")?;
+                    let visibility_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "visibility_label")?;
+
+                    let title_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "title_line_edit")?;
+                    let description_text_edit: QPtr<QTextEdit> = find_widget(&main_widget.static_upcast(), "description_text_edit")?;
+                    let changelog_text_edit: QPtr<QTextEdit> = find_widget(&main_widget.static_upcast(), "changelog_text_edit")?;
+                    let tag_combo_box: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "tag_combo_box")?;
+                    let visibility_combo_box: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "visibility_combo_box")?;
+
+                    let button_box: QPtr<QDialogButtonBox> = find_widget(&main_widget.static_upcast(), "button_box")?;
+                    button_box.button(StandardButton::Ok).released().connect(dialog.slot_accept());
+
+                    dialog.set_window_title(&qtr("upload_to_workshop_title"));
+                    title_label.set_text(&qtr("upload_workshop_title"));
+                    description_label.set_text(&qtr("upload_workshop_description"));
+                    changelog_label.set_text(&qtr("upload_workshop_changelog"));
+                    tag_label.set_text(&qtr("upload_workshop_tag"));
+                    visibility_label.set_text(&qtr("upload_workshop_visibility"));
+
+                    let tags = game.steam_workshop_tags()?;
                     for tag in &tags {
                         tag_combo_box.add_item_q_string(&QString::from_std_str(tag));
                     }
 
-                    match modd.steam_id() {
+                    visibility_combo_box.add_item_q_string(&qtr("upload_workshop_visibility_public"));
+                    visibility_combo_box.add_item_q_string(&qtr("upload_workshop_visibility_friends_only"));
+                    visibility_combo_box.add_item_q_string(&qtr("upload_workshop_visibility_private"));
+                    visibility_combo_box.add_item_q_string(&qtr("upload_workshop_visibility_unlisted"));
 
-                        // If the mod has been published, use the current published values as default.
-                        Some(_) => {
-                            title_line_edit.set_text(&QString::from_std_str(modd.name()));
-                            description_text_edit.set_plain_text(&QString::from_std_str(modd.description()));
-                            changelog_text_edit.set_plain_text(&QString::from_std_str("me forgot changelog. Me sorry."));
+                    // If we got data from the workshop, populate it with that.
+                    if mod_data.published_file_id > 0 {
+                        title_line_edit.set_text(&QString::from_std_str(mod_data.title));
+                        description_text_edit.set_plain_text(&QString::from_std_str(mod_data.description));
+                        changelog_text_edit.set_plain_text(&QString::from_std_str("me forgot changelog. Me sorry."));
+
+                        // For tag selection, we expect to have two. We need to pick the one that's not "mod".
+                        if let Some(selected_tag) = mod_data.tags.iter().find_or_first(|x| &**x != "mod") {
+                            tag_combo_box.set_current_text(&QString::from_std_str(selected_tag));
                         }
 
-                        // If the mod has not been published, setup default values.
-                        None => {
-                            title_line_edit.set_text(&QString::from_std_str(modd.id()));
-                            changelog_text_edit.set_plain_text(&QString::from_std_str("Initial release."));
-                        }
+                        visibility_combo_box.set_current_index(match mod_data.visibility {
+                            PublishedFileVisibilityDerive::Public => 0,
+                            PublishedFileVisibilityDerive::FriendsOnly => 1,
+                            PublishedFileVisibilityDerive::Private => 2,
+                            PublishedFileVisibilityDerive::Unlisted => 3,
+                        });
+                    }
+
+                    // Otherwise, put default data there.
+                    else {
+                        title_line_edit.set_text(&QString::from_std_str(modd.id()));
+                        changelog_text_edit.set_plain_text(&QString::from_std_str("Initial release."));
+                        visibility_combo_box.set_current_index(2);
                     }
 
                     if dialog.exec() == 1 {
@@ -1905,13 +1934,14 @@ impl AppUI {
                         let description = description_text_edit.to_plain_text().to_std_string();
                         let changelog = changelog_text_edit.to_plain_text().to_std_string();
                         let tags = vec![tag_combo_box.current_text().to_std_string()];
+                        let visibility = visibility_combo_box.current_index() as u32;
 
                         // We need at least a title. So if we don't have one, use the default one.
                         if title.is_empty() {
                             title = modd.id().to_string();
                         }
 
-                        crate::mod_manager::integrations::upload_mod_to_workshop(&game, modd, &title, &description, &tags, &changelog).map(Some)
+                        crate::mod_manager::integrations::upload_mod_to_workshop(&game, modd, &title, &description, &tags, &changelog, &Some(visibility)).map(Some)
                     } else {
                         Ok(None)
                     }

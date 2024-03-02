@@ -219,7 +219,8 @@ pub fn upload(
     title: &str,
     description: &Option<String>,
     tags: &[String],
-    changelog: &Option<String>
+    changelog: &Option<String>,
+    visibility: &Option<u32>,
 ) -> Result<()> {
 
     // Initialize the API.
@@ -255,7 +256,7 @@ pub fn upload(
     };
 
     // Finally update it with the local file.
-    update(Some(Ok((client, tx, callback_thread))), Some(ugc), published_file_id, steam_id, pack_path, title, description, tags, changelog)
+    update(Some(Ok((client, tx, callback_thread))), Some(ugc), published_file_id, steam_id, pack_path, title, description, tags, changelog, visibility)
 }
 
 /// This function is used to update an existing mod on the Workshop. For new mods, do not use this. Use upload instead.
@@ -270,7 +271,8 @@ pub fn update(
     title: &str,
     description: &Option<String>,
     tags: &[String],
-    changelog: &Option<String>
+    changelog: &Option<String>,
+    visibility: &Option<u32>,
 ) -> Result<()> {
 
     // Initialize the API.
@@ -282,7 +284,7 @@ pub fn update(
     preview_pack.set_extension("png");
 
     let (tx_query, rx_query): (Sender<SteamWorksThreadMessage>, Receiver<SteamWorksThreadMessage>) = unbounded();
-    let update_handle = upload_item_content(&ugc, tx_query, steam_id, published_file_id, pack_path, &preview_pack, title, description, tags, changelog, PublishedFileVisibility::Private);
+    let update_handle = upload_item_content(&ugc, tx_query, steam_id, published_file_id, pack_path, &preview_pack, title, description, tags, changelog, visibility);
 
     // Initialize the progress bar. The upload is a 5-step process, and the bar should come at 3 and 4.
     let mut bar: Option<ProgressBar> = None;
@@ -372,9 +374,11 @@ pub fn update(
                             info!("Committing changes...");
                         }
                     },
+
+                    // Invalid is usually completed. So just return Ok.
                     UpdateStatus::Invalid => {
-                        finish(tx, callback_thread)?;
-                        return Err(anyhow!("Invalid UpdateStatus."));
+                        info!("Invalid UpdateStatus. This is an error, or the upload finished.");
+                        return finish(tx, callback_thread)
                     },
                 }
 
@@ -514,7 +518,7 @@ fn upload_item_content(
     description: &Option<String>,
     tags: &[String],
     changelog: &Option<String>,
-    visibility: PublishedFileVisibility,
+    visibility: &Option<u32>,
 ) -> UpdateWatchHandle<ClientManager> {
 
     // uploading the content of the workshop item
@@ -536,8 +540,17 @@ fn upload_item_content(
     let mut handle = ugc.start_item_update(AppId(app_id), published_id)
         .content_path(pack_path)
         .preview_path(preview_path)
-        .title(title)
-        .visibility(visibility);
+        .title(title);
+
+    if let Some(visibility) = visibility {
+        handle = handle.visibility(match visibility {
+            0 => PublishedFileVisibility::Public,
+            1 => PublishedFileVisibility::FriendsOnly,
+            2 => PublishedFileVisibility::Private,
+            3 => PublishedFileVisibility::Unlisted,
+            _ => panic!("Invalid Visibility"),
+        });
+    }
 
     let mut tags = tags.to_vec();
 

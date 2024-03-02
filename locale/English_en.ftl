@@ -214,3 +214,9 @@ upload_workshop_title = Title
 upload_workshop_description = Description
 upload_workshop_changelog = Changelog
 upload_workshop_tag = Tag
+upload_workshop_visibility = Visibility
+
+upload_workshop_visibility_public = Public
+upload_workshop_visibility_friends_only = Friends Only
+upload_workshop_visibility_private = Private
+upload_workshop_visibility_unlisted = Unlisted

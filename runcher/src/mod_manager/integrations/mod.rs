@@ -13,6 +13,7 @@
 //! For now we only support steam workshop, so all calls are redirected to the steam module.
 
 use anyhow::Result;
+use serde::Deserialize;
 
 use std::collections::HashMap;
 
@@ -23,6 +24,27 @@ use crate::mod_manager::mods::Mod;
 mod steam;
 
 //-------------------------------------------------------------------------------//
+//                              Enums & Structs
+//-------------------------------------------------------------------------------//
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
+pub enum PublishedFileVisibilityDerive {
+    Public,
+    FriendsOnly,
+    #[default] Private,
+    Unlisted,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct PreUploadInfo {
+    pub published_file_id: u64,
+    pub title: String,
+    pub description: String,
+    pub visibility: PublishedFileVisibilityDerive,
+    pub tags: Vec<String>,
+}
+
+//-------------------------------------------------------------------------------//
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
@@ -30,10 +52,14 @@ pub fn request_mods_data(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<Mod>
     steam::request_mods_data(game, mod_ids)
 }
 
+pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str) -> Result<PreUploadInfo> {
+    steam::request_pre_upload_info(game, mod_id)
+}
+
 pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_items: &[Mod]) -> Result<()> {
     steam::populate_mods_with_online_data(mods, workshop_items)
 }
 
-pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, description: &str, tags: &[String], changelog: &str) -> Result<()> {
-    steam::upload_mod_to_workshop(game, modd, title, description, tags, changelog)
+pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, description: &str, tags: &[String], changelog: &str, visibility: &Option<u32>) -> Result<()> {
+    steam::upload_mod_to_workshop(game, modd, title, description, tags, changelog, visibility)
 }

@@ -64,7 +64,11 @@ pub enum Commands {
 
         /// Changelog for the initial release.
         #[arg(short, long, required = false, value_name = "CHANGELOG")]
-        changelog: Option<String>
+        changelog: Option<String>,
+
+        /// New visibility status.
+        #[arg(short, long, required = false, value_name = "VISIBILITY")]
+        visibility: Option<u32>,
     },
 
     Update {
@@ -95,6 +99,10 @@ pub enum Commands {
 
         /// Changelog for this specific release.
         #[arg(short, long, required = false, value_name = "CHANGELOG")]
-        changelog: Option<String>
+        changelog: Option<String>,
+
+        /// New visibility status.
+        #[arg(short, long, required = false, value_name = "VISIBILITY")]
+        visibility: Option<u32>,
     },
 }
