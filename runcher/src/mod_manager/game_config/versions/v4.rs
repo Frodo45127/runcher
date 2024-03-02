@@ -20,27 +20,28 @@ use std::io::{BufReader, BufWriter, Read, Write};
 use rpfm_lib::games::{GameInfo, supported_games::SupportedGames};
 
 use crate::game_config_path;
-use crate::mod_manager::game_config::DEFAULT_CATEGORY;
-use crate::mod_manager::mods::versions::{v3::ModV3, v4::ModV4};
+use crate::mod_manager::mods::{Mod as ModV5, versions::v4::ModV4};
 
-use super::v4::GameConfigV4;
+use super::GameConfigV5;
 
 #[derive(Clone, Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
 #[getset(get = "pub", get_mut = "pub", set = "pub")]
-pub struct GameConfigV3 {
+pub struct GameConfigV4 {
     pub game_key: String,
-    pub mods: HashMap<String, ModV3>,
+    pub mods: HashMap<String, ModV4>,
+    pub categories: BTreeMap<String, Vec<String>>,
+    pub categories_order: Vec<String>,
 }
 
-impl GameConfigV3 {
+impl GameConfigV4 {
     pub fn update(game_name: &str) -> Result<()> {
         let games = SupportedGames::default();
         if let Some(game_info) = games.game(game_name) {
             if let Ok(config) = Self::load(game_info, false) {
 
                 // Check that it fails with v4, because v4 files for some reason are readable with v3.
-                if GameConfigV4::load(game_info, false).is_err() {
-                    let mut config_new = GameConfigV4::from(&config);
+                if GameConfigV5::load(game_info, false).is_err() {
+                    let mut config_new = GameConfigV5::from(&config);
                     config_new.save(game_info)?;
                 }
             }
@@ -81,32 +82,13 @@ impl GameConfigV3 {
     }
 }
 
-impl From<&GameConfigV3> for GameConfigV4 {
-    fn from(value: &GameConfigV3) -> Self {
-
-        // Migrate to the new categories list.
-        let mut categories: BTreeMap<String, Vec<String>> = BTreeMap::new();
-        let mut categories_order = vec![];
-        for (key, modd) in &value.mods {
-            let category = modd.category.clone().unwrap_or_else(|| DEFAULT_CATEGORY.to_string());
-            match categories.get_mut(&category) {
-                Some(mods) => mods.push(key.to_owned()),
-                None => { categories.insert(category.to_string(), vec![key.to_owned()]); },
-            }
-
-            if !categories_order.contains(&category) && category != DEFAULT_CATEGORY {
-                categories_order.push(category);
-            }
-        }
-
-        // Make sure the default category is always last when updating files.
-        categories_order.push(DEFAULT_CATEGORY.to_owned());
-
+impl From<&GameConfigV4> for GameConfigV5 {
+    fn from(value: &GameConfigV4) -> Self {
         Self {
             game_key: value.game_key.to_owned(),
-            mods: value.mods.iter().map(|(key, value)| (key.to_owned(), ModV4::from(value))).collect::<HashMap<_, _>>(),
-            categories,
-            categories_order,
+            mods: value.mods.iter().map(|(key, value)| (key.to_owned(), ModV5::from(value))).collect::<HashMap<_, _>>(),
+            categories: value.categories.clone(),
+            categories_order: value.categories_order.clone(),
         }
     }
 }

@@ -58,12 +58,6 @@ pub struct Mod {
     /// Size of the file in bytes.
     file_size: u64,
 
-    /// URL of the mod in the workshop.
-    file_url: String,
-
-    /// URL of the mod's preview image in the workshop.
-    preview_url: String,
-
     /// Description of the mod in the workshop.
     description: String,
 
@@ -72,12 +66,6 @@ pub struct Mod {
 
     /// Time the mod was last updated on the workshop.
     time_updated: usize,
-
-    /// If the mod has to be flagged as outdated.
-    outdated: bool,
-
-    /// Time stamp of the last time we checked. So we don't spam steam.
-    last_check: u64,
 }
 
 #[derive(Clone, Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
@@ -103,5 +91,13 @@ impl From<&Mod> for ShareableMod {
             steam_id: value.steam_id().to_owned(),
             hash,
         }
+    }
+}
+
+impl Mod {
+
+    /// Returns if the mod is outdated or not. Requires the date of the last update of the game.
+    pub fn outdated(&self, game_last_update_date: u64) -> bool {
+        game_last_update_date > *self.time_updated() as u64
     }
 }

@@ -30,8 +30,8 @@ pub fn request_mods_data(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<Mod>
     steam::request_mods_data(game, mod_ids)
 }
 
-pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_items: &[Mod], last_update_date: u64) -> Result<()> {
-    steam::populate_mods_with_online_data(mods, workshop_items, last_update_date)
+pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_items: &[Mod]) -> Result<()> {
+    steam::populate_mods_with_online_data(mods, workshop_items)
 }
 
 pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, description: &str, tags: &[String], changelog: &str) -> Result<()> {

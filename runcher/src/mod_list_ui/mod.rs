@@ -50,7 +50,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::time::UNIX_EPOCH;
 
-use rpfm_lib::games::pfh_file_type::PFHFileType;
+use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
 
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
@@ -58,6 +58,7 @@ use rpfm_ui_common::utils::*;
 
 use crate::ffi::*;
 use crate::mod_manager::{game_config::GameConfig, mods::Mod};
+use crate::settings_ui::last_game_update_date;
 
 use self::slots::ModListUISlots;
 
@@ -219,12 +220,15 @@ impl ModListUI {
         self.collapse_all().triggered().connect(slots.collapse_all());
     }
 
-    pub unsafe fn load(&self, game_config: &GameConfig) -> Result<()> {
+    pub unsafe fn load(&self, game: &GameInfo, game_config: &GameConfig) -> Result<()> {
         self.model().clear();
         self.setup_columns();
 
         let date_format_str = setting_string("date_format");
         let date_format = time::format_description::parse(&date_format_str).unwrap();
+
+        let game_path = setting_path(game.key());
+        let game_last_update_date = last_game_update_date(game, &game_path)?;
 
         // This loads mods per category, meaning all installed mod have to be in the categories list!!!!
         for category in game_config.categories_order() {
@@ -253,18 +257,14 @@ impl ModListUI {
 
                             if let Some(ref parent) = parent {
                                 let row = QListOfQStandardItem::new();
-                                //let pack = Pack::read_and_merge(&[modd.pack().to_path_buf()], true, false)?;
 
                                 let item_mod_name = Self::new_item();
                                 let item_flags = Self::new_item();
                                 let item_creator = Self::new_item();
                                 let item_type = Self::new_item();
                                 let item_file_size = Self::new_item();
-                                let item_file_url = Self::new_item();
-                                let item_preview_url = Self::new_item();
                                 let item_time_created = Self::new_item();
                                 let item_time_updated = Self::new_item();
-                                let item_last_check = Self::new_item();
 
                                 let mod_name = if modd.name() != modd.id() {
                                     if !modd.file_name().is_empty() {
@@ -300,7 +300,7 @@ impl ModListUI {
                                 };
 
                                 let mut flags_description = String::new();
-                                if *modd.outdated() {
+                                if modd.outdated(game_last_update_date) {
                                     flags_description.push_str(&tr("mod_outdated_description"));
                                     item_flags.set_data_2a(&QVariant::from_bool(true), FLAG_MOD_IS_OUTDATED);
                                 }
@@ -312,17 +312,13 @@ impl ModListUI {
 
                                 item_time_created.set_data_2a(&QVariant::from_i64(*modd.time_created() as i64), VALUE_TIMESTAMP);
                                 item_time_updated.set_data_2a(&QVariant::from_i64(*modd.time_updated() as i64), VALUE_TIMESTAMP);
-                                item_last_check.set_data_2a(&QVariant::from_i64(*modd.last_check() as i64), VALUE_TIMESTAMP);
 
                                 item_mod_name.set_text(&QString::from_std_str(mod_name));
                                 item_creator.set_text(&QString::from_std_str(modd.creator_name()));
                                 item_type.set_text(&QString::from_std_str(modd.pack_type().to_string()));
                                 item_file_size.set_text(&QString::from_std_str(&mod_size));
-                                item_file_url.set_text(&QString::from_std_str(modd.file_url()));
-                                item_preview_url.set_text(&QString::from_std_str(modd.preview_url()));
                                 item_time_created.set_text(&QString::from_std_str(&time_created));
                                 item_time_updated.set_text(&QString::from_std_str(&time_updated));
-                                item_last_check.set_text(&QString::from_std_str(modd.last_check().to_string()));
 
                                 item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.id())), VALUE_MOD_ID);
                                 item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.paths()[0].to_string_lossy())), VALUE_PACK_PATH);
@@ -344,23 +340,13 @@ impl ModListUI {
                                     item_mod_name.set_check_state(CheckState::Checked);
                                 }
 
-                                //if !modd.description().is_empty() {
-                                //    if modd.description().contains("for all regions") {
-                                //        println!("{}", parse_to_html(modd.description()));
-                                //    }
-                                //    item.set_tool_tip(&QString::from_std_str(parse_to_html(modd.description())));
-                                //}
-
                                 row.append_q_standard_item(&item_mod_name.into_ptr().as_mut_raw_ptr());
                                 row.append_q_standard_item(&item_flags.into_ptr().as_mut_raw_ptr());
                                 row.append_q_standard_item(&item_creator.into_ptr().as_mut_raw_ptr());
                                 row.append_q_standard_item(&item_type.into_ptr().as_mut_raw_ptr());
                                 row.append_q_standard_item(&item_file_size.into_ptr().as_mut_raw_ptr());
-                                row.append_q_standard_item(&item_file_url.into_ptr().as_mut_raw_ptr());
-                                row.append_q_standard_item(&item_preview_url.into_ptr().as_mut_raw_ptr());
                                 row.append_q_standard_item(&item_time_created.into_ptr().as_mut_raw_ptr());
                                 row.append_q_standard_item(&item_time_updated.into_ptr().as_mut_raw_ptr());
-                                row.append_q_standard_item(&item_last_check.into_ptr().as_mut_raw_ptr());
                                 parent.append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
 
                             }
@@ -369,10 +355,6 @@ impl ModListUI {
                 }
             }
         }
-
-        self.tree_view().hide_column(5);
-        self.tree_view().hide_column(6);
-        self.tree_view().hide_column(9);
 
         // If we have no api key, don't show the author column, as we cannot get it without api key.
         if setting_string("steam_api_key").is_empty() {
@@ -385,11 +367,14 @@ impl ModListUI {
         Ok(())
     }
 
-    pub unsafe fn update(&self, mods: &HashMap<String, Mod>) -> Result<()> {
+    pub unsafe fn update(&self, game: &GameInfo, mods: &HashMap<String, Mod>) -> Result<()> {
         self.model().block_signals(true);
 
         let date_format_str = setting_string("date_format");
         let date_format = time::format_description::parse(&date_format_str).unwrap();
+
+        let game_path = setting_path(game.key());
+        let game_last_update_date = last_game_update_date(game, &game_path)?;
 
         for category_index in 0..self.model().row_count_0a() {
             let category = self.model().item_2a(category_index, 0);
@@ -402,11 +387,8 @@ impl ModListUI {
                         let item_creator = category.child_2a(mod_index, 2);
                         let item_type = category.child_2a(mod_index, 3);
                         let item_file_size = category.child_2a(mod_index, 4);
-                        let item_file_url = category.child_2a(mod_index, 5);
-                        let item_preview_url = category.child_2a(mod_index, 6);
-                        let item_time_created = category.child_2a(mod_index, 7);
-                        let item_time_updated = category.child_2a(mod_index, 8);
-                        let item_last_check = category.child_2a(mod_index, 9);
+                        let item_time_created = category.child_2a(mod_index, 5);
+                        let item_time_updated = category.child_2a(mod_index, 6);
 
                         let mod_name = if modd.name() != modd.id() {
                             if !modd.file_name().is_empty() {
@@ -442,7 +424,7 @@ impl ModListUI {
                         };
 
                         let mut flags_description = String::new();
-                        if *modd.outdated() {
+                        if modd.outdated(game_last_update_date) {
                             flags_description.push_str(&tr("mod_outdated_description"));
                             item_flags.set_data_2a(&QVariant::from_bool(true), FLAG_MOD_IS_OUTDATED);
                         }
@@ -454,17 +436,13 @@ impl ModListUI {
 
                         item_time_created.set_data_2a(&QVariant::from_i64(*modd.time_created() as i64), VALUE_TIMESTAMP);
                         item_time_updated.set_data_2a(&QVariant::from_i64(*modd.time_updated() as i64), VALUE_TIMESTAMP);
-                        item_last_check.set_data_2a(&QVariant::from_i64(*modd.last_check() as i64), VALUE_TIMESTAMP);
 
                         item_mod_name.set_text(&QString::from_std_str(mod_name));
                         item_creator.set_text(&QString::from_std_str(modd.creator_name()));
                         item_type.set_text(&QString::from_std_str(modd.pack_type().to_string()));
                         item_file_size.set_text(&QString::from_std_str(&mod_size));
-                        item_file_url.set_text(&QString::from_std_str(modd.file_url()));
-                        item_preview_url.set_text(&QString::from_std_str(modd.preview_url()));
                         item_time_created.set_text(&QString::from_std_str(&time_created));
                         item_time_updated.set_text(&QString::from_std_str(&time_updated));
-                        item_last_check.set_text(&QString::from_std_str(modd.last_check().to_string()));
                     }
                 }
             }
@@ -476,29 +454,23 @@ impl ModListUI {
     }
 
     pub unsafe fn setup_columns(&self) {
-        self.model.set_column_count(10);
+        self.model.set_column_count(7);
 
         let item_mod_name = QStandardItem::from_q_string(&qtr("mod_name"));
         let item_flags = QStandardItem::from_q_string(&qtr("flags"));
         let item_creator = QStandardItem::from_q_string(&qtr("creator"));
         let item_pack_type = QStandardItem::from_q_string(&qtr("pack_type"));
         let item_file_size = QStandardItem::from_q_string(&qtr("file_size"));
-        let item_file_url = QStandardItem::from_q_string(&qtr("file_url"));
-        let item_preview_url = QStandardItem::from_q_string(&qtr("preview_url"));
         let item_time_created = QStandardItem::from_q_string(&qtr("time_created"));
         let item_time_updated = QStandardItem::from_q_string(&qtr("time_updated"));
-        let item_last_check = QStandardItem::from_q_string(&qtr("last_check"));
 
         self.model.set_horizontal_header_item(0, item_mod_name.into_ptr());
         self.model.set_horizontal_header_item(1, item_flags.into_ptr());
         self.model.set_horizontal_header_item(2, item_creator.into_ptr());
         self.model.set_horizontal_header_item(3, item_pack_type.into_ptr());
         self.model.set_horizontal_header_item(4, item_file_size.into_ptr());
-        self.model.set_horizontal_header_item(5, item_file_url.into_ptr());
-        self.model.set_horizontal_header_item(6, item_preview_url.into_ptr());
         self.model.set_horizontal_header_item(7, item_time_created.into_ptr());
         self.model.set_horizontal_header_item(8, item_time_updated.into_ptr());
-        self.model.set_horizontal_header_item(9, item_last_check.into_ptr());
 
         html_item_delegate_safe(&self.tree_view().static_upcast::<QObject>().as_ptr(), 0);
         flags_item_delegate_safe(&self.tree_view().static_upcast::<QObject>().as_ptr(), 1);

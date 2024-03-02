@@ -141,8 +141,6 @@ pub fn request_mods_data(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<Mod>
         modd.set_creator(workshop_item.owner.to_string());
         modd.set_file_name(workshop_item.file_name.to_owned());
         modd.set_file_size(workshop_item.file_size as u64);
-        modd.set_file_url(workshop_item.url.to_owned());
-        //modd.set_preview_url(workshop_item.preview_url.clone().unwrap());
         modd.set_description(workshop_item.description.to_owned());
         modd.set_time_created(workshop_item.time_created as usize);
         modd.set_time_updated(workshop_item.time_updated as usize);
@@ -164,7 +162,7 @@ pub fn request_user_names(user_ids: &[String]) -> Result<HashMap<String, String>
     }
 }
 
-pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_items: &[Mod], last_update_date: u64) -> Result<()> {
+pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_items: &[Mod]) -> Result<()> {
     for workshop_item in workshop_items {
         if let Some(modd) = mods.values_mut()
             .filter(|modd| modd.steam_id().is_some())
@@ -174,13 +172,9 @@ pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_
             modd.set_creator(workshop_item.creator().to_string());
             modd.set_file_name(workshop_item.file_name().to_string());
             modd.set_file_size(*workshop_item.file_size());
-            modd.set_file_url(workshop_item.file_url().to_string());
-            modd.set_preview_url(workshop_item.preview_url().to_string());
             modd.set_description(workshop_item.description().to_string());
             modd.set_time_created(*workshop_item.time_created());
             modd.set_time_updated(*workshop_item.time_updated());
-
-            modd.set_outdated(last_update_date > *modd.time_updated() as u64);
         }
     }
 

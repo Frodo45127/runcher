@@ -723,7 +723,7 @@ impl AppUI {
             let mut load_order = self.game_load_order().write().unwrap();
             let network_receiver = mods.update_mod_list(game, game_path, &mut load_order, skip_network_update)?;
 
-            self.mod_list_ui().load(mods)?;
+            self.mod_list_ui().load(&game, mods)?;
             self.pack_list_ui().load(mods, game, game_path, &load_order)?;
 
             Ok(network_receiver)
@@ -1317,7 +1317,7 @@ impl AppUI {
             load_order.save(&game)?;
 
             let game_path = setting_path(game.key());
-            self.mod_list_ui().load(game_config)?;
+            self.mod_list_ui().load(&game, game_config)?;
             self.pack_list_ui().load(game_config, &game, &game_path, &load_order)?;
             self.data_list_ui().set_enabled(false);
 
@@ -1824,17 +1824,13 @@ impl AppUI {
                     let mut mods = self.game_config().write().unwrap();
                     if let Some(ref mut mods) = *mods {
                         let game = self.game_selected().read().unwrap();
-                        let game_path_str = setting_string(game.key());
-                        let game_path = PathBuf::from(&game_path_str);
 
-                        // Get the modified date of the game's exe, to check if a mod is outdated or not.
-                        let last_update_date = last_game_update_date(&game, &game_path).unwrap_or(0);
-                        if populate_mods_with_online_data(mods.mods_mut(), &workshop_items, last_update_date).is_ok() {
+                        if populate_mods_with_online_data(mods.mods_mut(), &workshop_items).is_ok() {
                             mods.save(&game)?;
 
                             // If we got a successfull network update, then proceed to update the UI with the new data.
                             // It's faster than a full rebuild, and looks more modern and async.
-                            self.mod_list_ui().update(mods.mods())?;
+                            self.mod_list_ui().update(&game, mods.mods())?;
                         }
                     }
                 }

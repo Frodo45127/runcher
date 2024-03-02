@@ -121,7 +121,8 @@ impl GameConfig {
         //let _ = versions::v0::GameConfigV0::update(game_name);
         //let _ = versions::v1::GameConfigV1::update(game_name);
         //let _ = versions::v2::GameConfigV2::update(game_name);
-        let _ = versions::v3::GameConfigV3::update(game_name);
+        //let _ = versions::v3::GameConfigV3::update(game_name);
+        let _ = versions::v4::GameConfigV4::update(game_name);
 
         Ok(())
     }
@@ -180,9 +181,6 @@ impl GameConfig {
     pub fn update_mod_list(&mut self, game: &GameInfo, game_path: &Path, load_order: &mut LoadOrder, skip_network_update: bool) -> Result<Option<Receiver<Response>>> {
         let mut receiver = None;
 
-        // Get the modified date of the game's exe, to check if a mod is outdated or not.
-        let last_update_date = last_game_update_date(game, game_path)?;
-
         // Clear the mod paths, just in case a failure while loading them leaves them unclean.
         self.mods_mut().values_mut().for_each(|modd| modd.paths_mut().clear());
 
@@ -225,7 +223,6 @@ impl GameConfig {
                                         let metadata = modd.paths().last().unwrap().metadata()?;
                                         #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                         modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                        modd.set_outdated(last_update_date > *modd.time_updated() as u64);
                                     }
                                     None => {
                                         let mut modd = Mod::default();
@@ -237,7 +234,6 @@ impl GameConfig {
                                         let metadata = modd.paths()[0].metadata()?;
                                         #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                         modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                        modd.set_outdated(last_update_date > *modd.time_updated() as u64);
 
                                         // Get the steam id from the path, if possible.
                                         let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
@@ -334,7 +330,6 @@ impl GameConfig {
                                         let metadata = modd.paths()[0].metadata()?;
                                         #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                         modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                        modd.set_outdated(last_update_date > *modd.time_updated() as u64);
                                     }
                                     None => {
                                         let mut modd = Mod::default();
@@ -346,7 +341,7 @@ impl GameConfig {
                                         let metadata = modd.paths()[0].metadata()?;
                                         #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                         modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                        modd.set_outdated(last_update_date > *modd.time_updated() as u64);
+
                                         self.mods_mut().insert(pack_name, modd);
                                     }
                                 }
@@ -387,7 +382,6 @@ impl GameConfig {
                                     let metadata = modd.paths()[0].metadata()?;
                                     #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                     modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                    modd.set_outdated(last_update_date > *modd.time_updated() as u64);
                                 } else {
                                     match self.mods_mut().get_mut(&pack_name) {
                                         Some(modd) => {
@@ -399,7 +393,6 @@ impl GameConfig {
                                             let metadata = modd.paths()[0].metadata()?;
                                             #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                             modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                            modd.set_outdated(last_update_date > *modd.time_updated() as u64);
                                         }
                                         None => {
                                             let mut modd = Mod::default();
@@ -411,7 +404,7 @@ impl GameConfig {
                                             let metadata = modd.paths()[0].metadata()?;
                                             #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                             modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                            modd.set_outdated(last_update_date > *modd.time_updated() as u64);
+
                                             self.mods_mut().insert(pack_name, modd);
                                         }
                                     }

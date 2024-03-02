@@ -8,16 +8,15 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
-use getset::*;
 use serde::{Deserialize, Serialize};
 
 use std::path::PathBuf;
 
 use rpfm_lib::games::pfh_file_type::PFHFileType;
 
-use super::ModV4;
+use super::v4::ModV4;
 
-#[derive(Clone, Debug, Default, Getters, MutGetters, Setters, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ModV3 {
     pub name: String,
     pub id: String,
