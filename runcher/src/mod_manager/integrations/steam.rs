@@ -108,8 +108,6 @@ pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str, owner_id: &str) ->
         return Err(anyhow!("You're not the original uploader of this mod, or steam hasn't been detected on your system."));
     }
 
-    // TODO3: Check that steam has launched before starting runcher.
-
     let workshop_item = workshop_items.first().unwrap();
     let data = PreUploadInfo::from(workshop_item);
 

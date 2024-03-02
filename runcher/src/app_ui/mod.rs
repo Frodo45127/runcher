@@ -440,6 +440,13 @@ impl AppUI {
         let font = QFont::from_q_string_int(&QString::from_std_str(font_name), font_size);
         QApplication::set_font_1a(&font);
 
+        // Check that Steam is running, so any usage of the Steamworks API doesn't silently fail.
+        let sys = sysinfo::System::new_with_specifics(sysinfo::RefreshKind::new().with_processes(sysinfo::ProcessRefreshKind::new()));
+        if sys.processes_by_exact_name("steam.exe").count() == 0 {
+            show_dialog(app_ui.main_window(), "Steam is not running. Make sure Steam is running or some parts of the launcher may not work as expected.", false);
+            exit(1)
+        }
+
         // Initialization logic. This takes care of parsing args for stuff like profile shortcuts,
         // or setting the game selected.
         //

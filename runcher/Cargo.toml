@@ -82,6 +82,9 @@ clap = { version = "^4", features = ["derive", "wrap_help"] }
 # IPC Support
 interprocess = "^1.2"
 
+# For checking if steam is running.
+sysinfo = "^0.30"
+
 # Windows shortcut support.
 [target.'cfg(windows)'.dependencies]
 mslnk = "^0.1"
