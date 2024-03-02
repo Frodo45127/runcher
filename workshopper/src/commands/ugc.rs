@@ -26,6 +26,8 @@ use rpfm_lib::{games::GameInfo, integrations::log::{error, info}};
 
 const IPC_NAME_GET_PUBLISHED_FILE_DETAILS: &str = "runcher_get_published_file_details";
 
+const TOTAL_WAR_BASE_TAG: &str = "mod";
+
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
 //-------------------------------------------------------------------------------//
@@ -537,24 +539,34 @@ fn upload_item_content(
         .title(title)
         .visibility(visibility);
 
-    // NOTE: Tags are tricky. While the workshop accepts multiple tags per-item, CA only uses one.
-    // And they don't want people adding custom tags to the workshop. So we need to limit it to one tag from the list of existing tags.
-    //
-    // This is a Total War-specific limit. For other games, ignore it.
     let mut tags = tags.to_vec();
+
+    // This is a Total War-specific limit. For other games, ignore the tag sanitizing.
     if let Ok(game) = GameInfo::game_by_steam_id(app_id as u64) {
         if let Ok(valid_tags) = game.steam_workshop_tags() {
+
+            // NOTE: Tags are tricky. All mods uploaded to the workshop contain two tags: "mod" and one from a list of available tags.
+            // And CA don't want people adding custom tags to the workshop. So we need to limit it to one tag from the list of existing tags.
             tags.retain(|tag| valid_tags.contains(tag));
 
+            // Remove duplicated tags.
+            tags.sort();
+            tags.dedup();
 
-            // TODO: Investigate the requeriment of mod tag.
-            // If there's more than one tag, use only the first one.
-            if tags.len() > 1 {
-                tags = vec![tags[0].to_string()];
+            // "mod" has to be the first tag. The second one is user-chosen.
+            if let Some(pos) = tags.iter().position(|x| x == TOTAL_WAR_BASE_TAG) {
+                tags.remove(pos);
             }
 
-            // If all tags got deleted, add the first one from the list of valid tags.
-            if tags.is_empty() {
+            tags.insert(0, TOTAL_WAR_BASE_TAG.to_owned());
+
+            // Reduce if we have more than two tags, trim it.
+            if tags.len() > 2 {
+                let _ = tags.split_off(2);
+            }
+
+            // If all tags got deleted and we only have mod, add the first one from the list of valid tags.
+            if tags.len() == 1 {
                 tags.push(valid_tags.first().unwrap().to_owned());
             }
         }
