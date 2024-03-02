@@ -26,8 +26,8 @@ mod steam;
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
-pub fn request_mods_data(mod_ids: &[String]) -> Result<Vec<Mod>> {
-    steam::request_mods_data(mod_ids)
+pub fn request_mods_data(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<Mod>> {
+    steam::request_mods_data(game, mod_ids)
 }
 
 pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_items: &[Mod], last_update_date: u64) -> Result<()> {

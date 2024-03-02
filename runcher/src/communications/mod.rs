@@ -16,6 +16,7 @@ use crossbeam::channel::{Receiver, Sender, unbounded};
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use rpfm_lib::games::GameInfo;
 use rpfm_lib::integrations::{log::{error, info}, git::GitResponse};
 
 use crate::mod_manager::{game_config::GameConfig, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::{Mod, ShareableMod}};
@@ -57,7 +58,7 @@ pub enum Command {
     UpdateTranslations,
     GetStringFromLoadOrder(GameConfig, LoadOrder),
     GetLoadOrderFromString(ImportedLoadOrderMode),
-    RequestModsData(Vec<String>),
+    RequestModsData(GameInfo, Vec<String>),
 }
 
 /// This enum defines the responses (messages) you can send to the to the UI thread as result of a command.

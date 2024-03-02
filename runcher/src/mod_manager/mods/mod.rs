@@ -26,39 +26,57 @@ pub mod versions;
 #[getset(get = "pub", get_mut = "pub", set = "pub")]
 pub struct Mod {
 
-    // Visual name of the mod. Title if the mod is from the workshop.
+    /// Visual name of the mod. Title if the mod is from the workshop.
     name: String,
 
-    // Pack name of the mod.
+    /// Pack name of the mod.
     id: String,
 
-    // Steam Workshop's id of this mod.
+    /// Steam Workshop's id of this mod. AKA PublishedFileId.
     steam_id: Option<String>,
 
-    // If the mod is enabled or not.
+    /// If the mod is enabled or not.
     enabled: bool,
 
-    // Pack Type of the mod. If there are multiple ones, this corresponds to the first path.
+    /// Pack Type of the mod. If there are multiple paths, this corresponds to the first path.
     pack_type: PFHFileType,
 
-    // Multiple paths in case it's both in data and in a secondary folder. /data always takes priority.
+    /// Multiple paths in case it's both in data and in a secondary folder. /data always takes priority, then /secondary, then content.
     paths: Vec<PathBuf>,
 
-    // Creator of the mod.
+    /// Numeric Id of the creator/owner of the mod.
     creator: String,
+
+    /// Nick of the creator/owner of the mod.
     creator_name: String,
 
-    // File name. If present, it's the name we need to give to the file when converting from bin to pack.
+    /// File name. If present, it's the name we need to give to the file when converting from bin to pack.
+    ///
+    /// Only present in old games for .bin files. Used as name when moving a .bin file to /data.
     file_name: String,
+
+    /// Size of the file in bytes.
     file_size: u64,
+
+    /// URL of the mod in the workshop.
     file_url: String,
+
+    /// URL of the mod's preview image in the workshop.
     preview_url: String,
+
+    /// Description of the mod in the workshop.
     description: String,
+
+    /// Time the mod was either created on the workshop, or on the filesystem for local mods.
     time_created: usize,
+
+    /// Time the mod was last updated on the workshop.
     time_updated: usize,
+
+    /// If the mod has to be flagged as outdated.
     outdated: bool,
 
-    // Time stamp of the last time we checked. So we don't spam steam.
+    /// Time stamp of the last time we checked. So we don't spam steam.
     last_check: u64,
 }
 

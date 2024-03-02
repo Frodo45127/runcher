@@ -100,7 +100,7 @@ pub fn background_loop() {
                 }
             }
 
-            Command::CheckUpdates | Command::CheckSchemaUpdates | Command::CheckTranslationsUpdates | Command::RequestModsData(_) => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
+            Command::CheckUpdates | Command::CheckSchemaUpdates | Command::CheckTranslationsUpdates | Command::RequestModsData(_,_) => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
         }
     }
 }

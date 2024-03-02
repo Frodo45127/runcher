@@ -79,6 +79,9 @@ reqwest = "^0.11"
 # CLI parsing, formatting and color support.
 clap = { version = "^4", features = ["derive", "wrap_help"] }
 
+# IPC Support
+interprocess = "^1.2"
+
 # Windows shortcut support.
 [target.'cfg(windows)'.dependencies]
 mslnk = "^0.1"

@@ -254,7 +254,7 @@ impl GameConfig {
 
                 // Ignore network population errors for now.
                 if !skip_network_update {
-                    receiver = Some(CENTRAL_COMMAND.send_network(Command::RequestModsData(steam_ids)));
+                    receiver = Some(CENTRAL_COMMAND.send_network(Command::RequestModsData(game.clone(), steam_ids)));
                 }
 
                 // If any of the mods has a .bin file, we need to copy it to /data and turn it into a Pack.
