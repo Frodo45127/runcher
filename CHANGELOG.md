@@ -13,11 +13,15 @@ If you're looking for the changes included in the latest beta (against the lates
 - Implemented "Open Workshop Links on Steam" setting. 
 - Implemented "Secondary Mods Folder" feature.
 - Implemented "Import ModList" feature.
+- Implemented "Workshopper" companion program for interaction with the SteamWorks API.
+- Implemented "Upload/Update to Workshop" feature.
 
 ### Changed
 - When renaming a category, its current name is the default value in the dialog.
 - Network request done while loading a game's data (requesting steam workshop info about the downloaded mods) are now done "partially async". 
     + This means starting the program or changing the game selected takes a few less seconds.
+- Steam Workshop data request (for getting mod info from the workshop) has been moved to use the SteamWorks API.
+- Runcher now requires Steam to be running in order to start.
 
 ### Fixed
 - Fixed mysterious error when launching Runcher with no game path configured.
