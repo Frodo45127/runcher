@@ -45,23 +45,29 @@ fn main() {
     info!("{:?}", cli.command);
 
     // Execute the commands.
-    let result: Result<()> = match cli.command {
-        Commands::GetPublishedFileDetails { steam_id, published_file_ids } => crate::commands::ugc::published_file_details(steam_id, &published_file_ids),
-        Commands::Upload { steam_id, file_path, title, description, tags, changelog, visibility } => crate::commands::ugc::upload(steam_id, &file_path, &title, &description, &tags, &changelog, &visibility),
-        Commands::Update { steam_id, published_file_id, file_path, title, description, tags, changelog, visibility } => crate::commands::ugc::update(None, None, PublishedFileId(published_file_id), steam_id, &file_path, &title, &description, &tags, &changelog, &visibility)
+    let (result, wait): (Result<()>, bool) = match cli.command {
+        Commands::GetPublishedFileDetails { steam_id, published_file_ids } => (crate::commands::ugc::published_file_details(steam_id, &published_file_ids), false),
+        Commands::Upload { steam_id, file_path, title, description, tags, changelog, visibility } => (crate::commands::ugc::upload(steam_id, &file_path, &title, &description, &tags, &changelog, &visibility), true),
+        Commands::Update { steam_id, published_file_id, file_path, title, description, tags, changelog, visibility } => (crate::commands::ugc::update(None, None, PublishedFileId(published_file_id), steam_id, &file_path, &title, &description, &tags, &changelog, &visibility), true)
     };
 
     // Output the result of the commands, then give people 60 seconds to read them before exiting.
     match result {
         Ok(_) => {
             info!("Done. This terminal will close itself in 60 seconds to give you some time to read the log, but if you want, you can close it now.");
-            std::thread::sleep(std::time::Duration::from_millis(60000));
+            if cfg!(debug_assertions) || wait {
+               std::thread::sleep(std::time::Duration::from_millis(60000));
+            }
+
             exit(0)
         },
         Err(error) => {
             error!("{}", error.to_string());
             info!("This terminal will close itself in 60 seconds to give you some time to read the log, but if you want, you can close it now.");
-            std::thread::sleep(std::time::Duration::from_millis(60000));
+            if cfg!(debug_assertions) || wait {
+               std::thread::sleep(std::time::Duration::from_millis(60000));
+            }
+
             exit(1);
         },
     }

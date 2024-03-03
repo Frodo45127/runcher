@@ -154,6 +154,8 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
     #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
         command.creation_flags(0x00000008);
+    } else {
+        command.creation_flags(0x08000000);
     }
 
     command.spawn()?;
