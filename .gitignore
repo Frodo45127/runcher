@@ -47,3 +47,4 @@ tools.json
 # Ignore the reserved pack and the merged pack.
 \!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!run_you_fool_*.pack
 merge_me_sideways_honey_*.pack
+get_published_file_details.json
