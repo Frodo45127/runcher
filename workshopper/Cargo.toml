@@ -32,7 +32,7 @@ indicatif = "^0.17"
 
 # Steam Workshop support.
 #steamworks = { version = "^0.11", features = ["serde"] }
-steamworks = { path = "./../../steamworks-rs", features = ["serde"] }
+steamworks = { git = "https://github.com/Frodo45127/steamworks-rs.git", features = ["serde"] }
 
 # Serialization support.
 serde = "^1.0"
