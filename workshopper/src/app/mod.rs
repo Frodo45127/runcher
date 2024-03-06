@@ -42,6 +42,10 @@ pub enum Commands {
 
     Upload {
 
+        /// If we're going to pass title, description, and changelog as base64 strings. Use this when any of those includes special characters.
+        #[arg(short, long, required = false)]
+        base64: bool,
+
         /// SteamId/AppId of the game we're going to upload the mod for.
         #[arg(short, long, value_name = "STEAM_ID")]
         steam_id: u32,
@@ -72,6 +76,10 @@ pub enum Commands {
     },
 
     Update {
+
+        /// If we're going to pass title, description, and changelog as base64 strings. Use this when any of those includes special characters.
+        #[arg(short, long, required = false)]
+        base64: bool,
 
         /// SteamId/AppId of the game we're going to upload the mod for.
         #[arg(short, long, value_name = "STEAM_ID")]

@@ -9,6 +9,7 @@
 //---------------------------------------------------------------------------//
 
 use anyhow::{anyhow, Result};
+use base64::prelude::*;
 use crossbeam::channel::{Sender, Receiver, TryRecvError, unbounded};
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use interprocess::local_socket::LocalSocketStream;
@@ -214,6 +215,7 @@ pub fn published_file_details(steam_id: u32, published_file_ids: &str) -> Result
 
 /// This function is used to upload a new mod to the Workshop. For updating mods, do not use this. Use update instead.
 pub fn upload(
+    base64: bool,
     steam_id: u32,
     pack_path: &Path,
     title: &str,
@@ -256,7 +258,7 @@ pub fn upload(
     };
 
     // Finally update it with the local file.
-    update(Some(Ok((client, tx, callback_thread))), Some(ugc), published_file_id, steam_id, pack_path, title, description, tags, changelog, visibility)
+    update(Some(Ok((client, tx, callback_thread))), Some(ugc), base64, published_file_id, steam_id, pack_path, title, description, tags, changelog, visibility)
 }
 
 /// This function is used to update an existing mod on the Workshop. For new mods, do not use this. Use upload instead.
@@ -265,6 +267,7 @@ pub fn upload(
 pub fn update(
     api: Option<Result<(Client, Sender<SteamWorksThreadMessage>, JoinHandle<()>)>>,
     ugc: Option<UGC<ClientManager>>,
+    base64: bool,
     published_file_id: PublishedFileId,
     steam_id: u32,
     pack_path: &Path,
@@ -284,7 +287,27 @@ pub fn update(
     preview_pack.set_extension("png");
 
     let (tx_query, rx_query): (Sender<SteamWorksThreadMessage>, Receiver<SteamWorksThreadMessage>) = unbounded();
-    let update_handle = upload_item_content(&ugc, tx_query, steam_id, published_file_id, pack_path, &preview_pack, title, description, tags, changelog, visibility);
+
+    // If we're in base64 mode, decode the problematic fields.
+    let title = if base64 {
+        String::from_utf8(BASE64_STANDARD.decode(title)?)?
+    } else {
+        title.to_owned()
+    };
+
+    let mut description = description.clone();
+    let mut changelog = changelog.clone();
+    if base64 {
+        if let Some(ref mut description) = description {
+            *description = String::from_utf8(BASE64_STANDARD.decode(description.clone())?)?;
+        }
+
+        if let Some(ref mut changelog) = changelog {
+            *changelog = String::from_utf8(BASE64_STANDARD.decode(changelog.clone())?)?;
+        }
+    }
+
+    let update_handle = upload_item_content(&ugc, tx_query, steam_id, published_file_id, pack_path, &preview_pack, &title, &description, tags, &changelog, visibility);
 
     // Initialize the progress bar. The upload is a 5-step process, and the bar should come at 3 and 4.
     let mut bar: Option<ProgressBar> = None;

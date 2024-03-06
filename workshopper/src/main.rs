@@ -47,8 +47,8 @@ fn main() {
     // Execute the commands.
     let (result, wait): (Result<()>, bool) = match cli.command {
         Commands::GetPublishedFileDetails { steam_id, published_file_ids } => (crate::commands::ugc::published_file_details(steam_id, &published_file_ids), false),
-        Commands::Upload { steam_id, file_path, title, description, tags, changelog, visibility } => (crate::commands::ugc::upload(steam_id, &file_path, &title, &description, &tags, &changelog, &visibility), true),
-        Commands::Update { steam_id, published_file_id, file_path, title, description, tags, changelog, visibility } => (crate::commands::ugc::update(None, None, PublishedFileId(published_file_id), steam_id, &file_path, &title, &description, &tags, &changelog, &visibility), true)
+        Commands::Upload { base64, steam_id, file_path, title, description, tags, changelog, visibility } => (crate::commands::ugc::upload(base64, steam_id, &file_path, &title, &description, &tags, &changelog, &visibility), true),
+        Commands::Update { base64, steam_id, published_file_id, file_path, title, description, tags, changelog, visibility } => (crate::commands::ugc::update(None, None, base64, PublishedFileId(published_file_id), steam_id, &file_path, &title, &description, &tags, &changelog, &visibility), true)
     };
 
     // Output the result of the commands, then give people 60 seconds to read them before exiting.

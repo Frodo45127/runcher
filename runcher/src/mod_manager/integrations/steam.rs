@@ -10,6 +10,7 @@
 
 
 use anyhow::{anyhow, Result};
+use base64::prelude::*;
 use interprocess::local_socket::LocalSocketListener;
 use regex::Regex;
 use serde::Deserialize;
@@ -248,16 +249,18 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
         }
     }
 
+    // Due to issues passing certain characters to the terminal, we encode the strings to base64 and pass -b.
+    command.arg("-b");
     command.arg("-s");
     command.arg(steam_id.to_string());
     command.arg("-f");
     command.arg(pack_path.to_string_lossy().to_string());
     command.arg("-t");
-    command.arg(title);
+    command.arg(BASE64_STANDARD.encode(title));
 
     if !description.is_empty() {
         command.arg("-d");
-        command.arg(description);
+        command.arg(BASE64_STANDARD.encode(description));
     }
 
     command.arg("--tags");
@@ -265,7 +268,7 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
 
     if !changelog.is_empty() {
         command.arg("-c");
-        command.arg(changelog);
+        command.arg(BASE64_STANDARD.encode(changelog));
     }
 
     if let Some(visibility) = visibility {
