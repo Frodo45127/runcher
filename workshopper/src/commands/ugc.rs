@@ -18,7 +18,7 @@ use serde_json::to_string_pretty;
 use steamworks::{AppId, Client, ClientManager, FileType, PublishedFileId, PublishedFileVisibility, QueryResult, SingleClient, SteamId, UpdateStatus, UpdateWatchHandle, UGC};
 
 use std::fmt::Write as FmtWrite;
-use std::fs::File;
+use std::fs::{DirBuilder, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
@@ -282,9 +282,16 @@ pub fn update(
     let (client, tx, callback_thread) = api.unwrap_or_else(|| init(steam_id, None))?;
     let ugc = ugc.unwrap_or_else(|| client.ugc());
 
+    // Sanitize the pack_path.
+    let pack_path = if pack_path.to_string_lossy().starts_with("\\\\?\\") {
+        PathBuf::from(pack_path.to_string_lossy()[4..].to_owned())
+    } else {
+        pack_path.to_path_buf()
+    };
+
     // Prepare the preview path. We replicate the same behavior as the vanilla launcher.
-    let mut preview_pack = pack_path.to_path_buf();
-    preview_pack.set_extension("png");
+    let mut preview_path = pack_path.to_path_buf();
+    preview_path.set_extension("png");
 
     let (tx_query, rx_query): (Sender<SteamWorksThreadMessage>, Receiver<SteamWorksThreadMessage>) = unbounded();
 
@@ -307,7 +314,41 @@ pub fn update(
         }
     }
 
-    let update_handle = upload_item_content(&ugc, tx_query, steam_id, published_file_id, pack_path, &preview_pack, &title, &description, tags, &changelog, visibility);
+    // TODO: Make this only trigger when doing it on a Total War game.
+
+    // NOTE: CA seems to be doing a "copy pack and preview to folder, then upload" thing, to get both uploaded.
+    // We want to keep this behavior because otherwise downloaded mods have no preview.
+    let upload_path = if cfg!(debug_assertions) {
+        PathBuf::from("./mod_uploads/")
+    } else {
+        let mut upload_path = std::env::current_exe().unwrap();
+        upload_path.pop();
+        upload_path.push("mod_uploads");
+        upload_path
+    };
+
+    info!("Copying pack and preview from {} to {}", pack_path.to_string_lossy(), upload_path.to_string_lossy());
+
+    // Clean the mod_uploads folder.
+    if upload_path.is_dir() {
+        std::fs::remove_dir_all(&upload_path)?;
+    }
+
+    DirBuilder::new().recursive(true).create(&upload_path)?;
+
+    // Copy the pack and preview to the upload folder.
+    let mut pack_path_dest = upload_path.to_path_buf();
+    pack_path_dest.push(pack_path.file_name().unwrap());
+
+    let mut preview_path_dest = upload_path.to_path_buf();
+    preview_path_dest.push(preview_path.file_name().unwrap());
+
+    std::fs::copy(&pack_path, pack_path_dest)?;
+    std::fs::copy(&preview_path, &preview_path_dest)?;
+
+    info!("Copying done, preparing upload.");
+
+    let update_handle = upload_item_content(&ugc, tx_query, steam_id, published_file_id, &upload_path, &preview_path, &title, &description, tags, &changelog, visibility);
 
     // Initialize the progress bar. The upload is a 5-step process, and the bar should come at 3 and 4.
     let mut bar: Option<ProgressBar> = None;
@@ -325,6 +366,15 @@ pub fn update(
                     if let Some(ref bar) = bar {
                         bar.finish();
                     }
+
+                    info!("Upload done, deleting temp files.");
+
+                    // Delete the folder once it's done so we don't occupy space we shouldn't.
+                    if upload_path.is_dir() {
+                        std::fs::remove_dir_all(&upload_path)?;
+                    }
+
+                    info!("Temp files deleted.");
 
                     return finish(tx, callback_thread)
                 },
@@ -552,7 +602,7 @@ fn upload_item_content(
     sender: Sender<SteamWorksThreadMessage>,
     app_id: u32,
     published_id: PublishedFileId,
-    pack_path: &Path,
+    upload_path: &Path,
     preview_path: &Path,
     title: &str,
     description: &Option<String>,
@@ -578,7 +628,7 @@ fn upload_item_content(
     // - once an upload is started, it cannot be cancelled!
     // - content_path is the path to a folder which houses the content you wish to upload
     let mut handle = ugc.start_item_update(AppId(app_id), published_id)
-        .content_path(pack_path)
+        .content_path(upload_path)
         .preview_path(preview_path)
         .title(title);
 
