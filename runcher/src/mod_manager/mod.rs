@@ -44,7 +44,9 @@ pub fn secondary_mods_path(game: &str) -> Result<PathBuf> {
     }
 
     // Canonicalization is required due to some issues with the game not loading not properly formatted paths.
-    let path = std::fs::canonicalize(PathBuf::from(base_path_str).join(game))?;
+    let path = std::fs::canonicalize(PathBuf::from(base_path_str))?;
+    let game_path = path.join(game);
+
     if !path.is_dir() {
         DirBuilder::new().recursive(true).create(&path)?;
     }
