@@ -81,7 +81,7 @@ use crate::DARK_PALETTE;
 use crate::data_ui::DataListUI;
 use crate::ffi::*;
 use crate::games::*;
-use crate::mod_manager::{game_config::{GameConfig, DEFAULT_CATEGORY}, integrations::*, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::ShareableMod, profiles::Profile, saves::Save, tools::Tools};
+use crate::mod_manager::{*, game_config::{GameConfig, DEFAULT_CATEGORY}, integrations::*, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::ShareableMod, profiles::Profile, saves::Save, tools::Tools};
 use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::*;
@@ -909,6 +909,35 @@ impl AppUI {
             load_order.build_load_order_string(game_config, &game, &data_path, &mut pack_list, &mut folder_list);
         }
 
+        // If our folder list contains the secondary folder, we need to make sure we create the masks folder in it,
+        // and mask in there all non-enabled movie files.
+        let secondary_mods_path = secondary_mods_path(game.key()).unwrap_or_else(|_| PathBuf::new());
+        if secondary_mods_path.is_dir() && folder_list.contains(&secondary_mods_path.to_string_lossy().to_string()) {
+            let masks_path = secondary_mods_path.join(SECONDARY_FOLDER_NAME);
+
+            // Remove all files in it so previous maskings do not interfere.
+            if masks_path.is_dir() {
+                std::fs::remove_dir_all(&masks_path)?;
+            }
+
+            DirBuilder::new().recursive(true).create(&masks_path)?;
+
+            let mut mask_pack = Pack::new_with_version(game.pfh_version_by_file_type(PFHFileType::Movie));
+            mask_pack.set_pfh_file_type(PFHFileType::Movie);
+
+            if let Some(ref game_config) = *self.game_config().read().unwrap() {
+                for path in std::fs::read_dir(secondary_mods_path)? {
+                    let file_name = path?.file_name().to_string_lossy().to_string();
+
+                    if let Some(modd) = game_config.mods().get(&file_name) {
+                        if modd.pack_type() == &PFHFileType::Movie && !modd.enabled(&data_path) {
+                            mask_pack.save(Some(&masks_path.join(file_name)), &game, &None)?;
+                        }
+                    }
+                }
+            }
+        }
+
         // Check if we are loading a save. First option is no save load. Any index above that is a save.
         let mut extra_args = vec![];
         let save_index = self.actions_ui.save_combobox().current_index();
@@ -1083,6 +1112,10 @@ impl AppUI {
 
                 self.mod_list_ui().model().block_signals(false);
 
+                let game_info = self.game_selected().read().unwrap();
+                let game_path = setting_path(game_info.key());
+                let game_data_path = game_info.data_path(&game_path)?;
+
                 // Then do the same for the backend. Keep in mind that if it's an autostart we have to avoid saving these changes to disk.
                 if let Some(ref mut game_config) = *self.game_config().write().unwrap() {
                     game_config.mods_mut().values_mut().for_each(|modd| { modd.set_enabled(false); });
@@ -1096,10 +1129,9 @@ impl AppUI {
                     // Replace the current load order with the one from the profile, and update it.
                     *self.game_load_order().write().unwrap() = profile.load_order().clone();
                     let mut load_order = self.game_load_order().write().unwrap();
-                    load_order.update(game_config);
+                    load_order.update(game_config, &game_data_path);
 
                     // Reload the pack list.
-                    let game_info = self.game_selected().read().unwrap();
 
                     // No need to do the expensive stuff on autostart, as it'll never get shown.
                     if !is_autostart {
@@ -1317,13 +1349,15 @@ impl AppUI {
             //
             // We need manual order to respect the provided load order, as it may not be automatic.
             let game = self.game_selected().read().unwrap();
+            let game_path = setting_path(game.key());
+            let game_data_path = game.data_path(&game_path)?;
+
             let mut load_order = self.game_load_order().write().unwrap();
             load_order.set_mods(ids);
             load_order.set_automatic(false);
-            load_order.update(game_config);
+            load_order.update(game_config, &game_data_path);
             load_order.save(&game)?;
 
-            let game_path = setting_path(game.key());
             self.mod_list_ui().load(&game, game_config)?;
             self.pack_list_ui().load(game_config, &game, &game_path, &load_order)?;
             self.data_list_ui().set_enabled(false);
@@ -1398,8 +1432,10 @@ impl AppUI {
             // Reload the pack view.
             let game_info = self.game_selected().read().unwrap();
             let game_path = setting_path(game_info.key());
+            let game_data_path = game_info.data_path(&game_path)?;
             let mut load_order = self.game_load_order().write().unwrap();
-            load_order.update(game_config);
+
+            load_order.update(game_config, &game_data_path);
             load_order.save(&game_info)?;
 
             self.pack_list_ui().load(game_config, &game_info, &game_path, &load_order)?;

@@ -50,7 +50,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::time::UNIX_EPOCH;
 
-use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
+use rpfm_lib::games::GameInfo;
 
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
@@ -229,6 +229,7 @@ impl ModListUI {
 
         let game_path = setting_path(game.key());
         let game_last_update_date = last_game_update_date(game, &game_path)?;
+        let game_data_path = game.data_path(&game_path)?;
 
         // This loads mods per category, meaning all installed mod have to be in the categories list!!!!
         for category in game_config.categories_order() {
@@ -330,15 +331,22 @@ impl ModListUI {
                                 item_mod_name.set_data_2a(&QVariant::from_bool(false), VALUE_IS_CATEGORY);
                                 item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.pack_type().to_string())), VALUE_PACK_TYPE);
 
-                                if *modd.pack_type() == PFHFileType::Mod {
+                                if modd.can_be_toggled(&game_data_path) {
                                     item_mod_name.set_checkable(true);
+
+                                    if modd.enabled(&game_data_path) {
+                                        item_mod_name.set_check_state(CheckState::Checked);
+                                    }
+                                }
+
+                                // This is for movie mods in /data.
+                                else {
+                                    item_mod_name.set_checkable(true);
+                                    item_mod_name.set_check_state(CheckState::Checked);
+                                    item_mod_name.set_enabled(false);
                                 }
 
                                 item_file_size.set_text_alignment(AlignmentFlag::AlignVCenter | AlignmentFlag::AlignRight);
-
-                                if *modd.enabled() && item_mod_name.is_checkable() {
-                                    item_mod_name.set_check_state(CheckState::Checked);
-                                }
 
                                 row.append_q_standard_item(&item_mod_name.into_ptr().as_mut_raw_ptr());
                                 row.append_q_standard_item(&item_flags.into_ptr().as_mut_raw_ptr());
@@ -348,7 +356,6 @@ impl ModListUI {
                                 row.append_q_standard_item(&item_time_created.into_ptr().as_mut_raw_ptr());
                                 row.append_q_standard_item(&item_time_updated.into_ptr().as_mut_raw_ptr());
                                 parent.append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
-
                             }
                         }
                     }

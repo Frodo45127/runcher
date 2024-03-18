@@ -12,7 +12,7 @@ use getset::*;
 use serde::{Deserialize, Serialize};
 use sha256::try_digest;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use rpfm_lib::games::pfh_file_type::PFHFileType;
 
@@ -36,6 +36,7 @@ pub struct Mod {
     steam_id: Option<String>,
 
     /// If the mod is enabled or not.
+    #[getset(skip)]
     enabled: bool,
 
     /// Pack Type of the mod. If there are multiple paths, this corresponds to the first path.
@@ -99,5 +100,69 @@ impl Mod {
     /// Returns if the mod is outdated or not. Requires the date of the last update of the game.
     pub fn outdated(&self, game_last_update_date: u64) -> bool {
         game_last_update_date > *self.time_updated() as u64
+    }
+
+    /// Returns if the mod is enabled or not.
+    pub fn enabled(&self, data_path: &Path) -> bool {
+
+        // For mod packs we just return it.
+        // For movie packs:
+        // - If it's in /data it's always enabled.
+        // - If it's in /secondary or /content, we respect the bool.
+        if self.pack_type == PFHFileType::Mod {
+            self.enabled
+        } else {
+            if let Some(path) = self.paths().first() {
+                let mut data_path_str = data_path.to_string_lossy().to_string();
+                if data_path_str.starts_with("\\\\?\\") {
+                    data_path_str = data_path_str[4..].to_string();
+                }
+
+                let mut path_str = path.to_string_lossy().to_string();
+                if path_str.starts_with("\\\\?\\") {
+                    path_str = path_str[4..].to_string();
+                }
+
+                if path_str.starts_with(&data_path_str) {
+                    true
+                } else {
+                    self.enabled
+                }
+            }
+
+            // If no path is found, this is not a mod we have in use.
+            else {
+                false
+            }
+        }
+    }
+
+    pub fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
+    }
+
+    pub fn can_be_toggled(&self, data_path: &Path) -> bool {
+        if self.pack_type == PFHFileType::Mod {
+            true
+        } else {
+            if let Some(path) = self.paths().first() {
+                let mut data_path_str = data_path.to_string_lossy().to_string();
+                if data_path_str.starts_with("\\\\?\\") {
+                    data_path_str = data_path_str[4..].to_string();
+                }
+
+                let mut path_str = path.to_string_lossy().to_string();
+                if path_str.starts_with("\\\\?\\") {
+                    path_str = path_str[4..].to_string();
+                }
+
+                !path_str.starts_with(&data_path_str)
+            }
+
+            // If no path is found, this is not a mod we have in use.
+            else {
+                false
+            }
+        }
     }
 }

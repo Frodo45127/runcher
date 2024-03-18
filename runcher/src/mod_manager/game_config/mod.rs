@@ -446,7 +446,8 @@ impl GameConfig {
         }
 
         // Update the current load order to reflect any change related to mods no longer being installed or being added as new.
-        load_order.update(self);
+        let game_data_path = game.data_path(game_path)?;
+        load_order.update(self, &game_data_path);
         load_order.save(game)?;
 
         // Save the GameConfig or we may lost the population.

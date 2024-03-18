@@ -14,6 +14,7 @@ use anyhow::Error;
 use crossbeam::channel::{Receiver, Sender, unbounded};
 
 use std::fmt::Debug;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use rpfm_lib::games::GameInfo;
@@ -56,7 +57,7 @@ pub enum Command {
     UpdateSchemas(String),
     CheckTranslationsUpdates,
     UpdateTranslations,
-    GetStringFromLoadOrder(GameConfig, LoadOrder),
+    GetStringFromLoadOrder(GameConfig, PathBuf, LoadOrder),
     GetLoadOrderFromString(ImportedLoadOrderMode),
     RequestModsData(GameInfo, Vec<String>),
 }

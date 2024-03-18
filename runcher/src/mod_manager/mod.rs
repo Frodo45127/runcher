@@ -30,6 +30,8 @@ pub mod profiles;
 pub mod saves;
 pub mod tools;
 
+pub const SECONDARY_FOLDER_NAME: &str = "masks";
+
 pub fn secondary_mods_path(game: &str) -> Result<PathBuf> {
     match SUPPORTED_GAMES.game(game) {
         Some(game_info) => if game_info.raw_db_version() < &1 {
@@ -51,14 +53,18 @@ pub fn secondary_mods_path(game: &str) -> Result<PathBuf> {
         DirBuilder::new().recursive(true).create(&path)?;
     }
 
-    Ok(path)
+    if !game_path.is_dir() {
+        DirBuilder::new().recursive(true).create(&game_path)?;
+    }
+
+    Ok(game_path)
 }
 
 pub fn secondary_mods_packs_paths(game: &str) -> Option<Vec<PathBuf>> {
     let path = secondary_mods_path(game).ok()?;
     let mut paths = vec![];
 
-    for path in files_from_subdir(&path, true).ok()?.iter() {
+    for path in files_from_subdir(&path, false).ok()?.iter() {
         match path.extension() {
             Some(extension) => if extension == "pack" || extension == "bin" { paths.push(path.to_path_buf()); }
             None => continue,

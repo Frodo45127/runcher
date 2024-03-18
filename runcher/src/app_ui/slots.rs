@@ -254,21 +254,24 @@ impl AppUISlots {
                     // Reload the pack view.
                     let game_info = view.game_selected().read().unwrap();
                     let game_path = setting_path(game_info.key());
-                    let mut load_order = view.game_load_order().write().unwrap();
-                    load_order.update(game_config);
+                    if let Ok(game_data_path) = game_info.data_path(&game_path) {
 
-                    if let Err(error) = load_order.save(&game_info) {
-                        show_dialog(view.main_window(), error, false);
-                    }
+                        let mut load_order = view.game_load_order().write().unwrap();
+                        load_order.update(game_config, &game_data_path);
 
-                    if let Err(error) = view.pack_list_ui().load(game_config, &game_info, &game_path, &load_order) {
-                        show_dialog(view.main_window(), error, false);
-                    }
+                        if let Err(error) = load_order.save(&game_info) {
+                            show_dialog(view.main_window(), error, false);
+                        }
 
-                    view.data_list_ui().set_enabled(false);
+                        if let Err(error) = view.pack_list_ui().load(game_config, &game_info, &game_path, &load_order) {
+                            show_dialog(view.main_window(), error, false);
+                        }
 
-                    if let Err(error) = game_config.save(&game_info) {
-                        show_dialog(view.main_window(), error, false);
+                        view.data_list_ui().set_enabled(false);
+
+                        if let Err(error) = game_config.save(&game_info) {
+                            show_dialog(view.main_window(), error, false);
+                        }
                     }
                 }
             }
@@ -320,20 +323,25 @@ impl AppUISlots {
                 if let Some(ref game_config) = *view.game_config().read().unwrap() {
                     view.toggle_main_window(false);
 
-                    let load_order = view.game_load_order().read().unwrap().clone();
-                    let receiver = CENTRAL_COMMAND.send_background(Command::GetStringFromLoadOrder(game_config.clone(), load_order));
-                    let response = CENTRAL_COMMAND.recv_try(&receiver);
-                    match response {
-                        Response::String(response) => {
-                            if let Err(error) = view.load_order_string_dialog(Some(response)) {
-                                show_dialog(view.main_window(), error, false)
-                            }
-                        }
-                        Response::Error(error) => show_dialog(view.main_window(), error, false),
-                        _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
-                    }
+                    let game_info = view.game_selected().read().unwrap();
+                    let game_path = setting_path(game_info.key());
+                    if let Ok(game_data_path) = game_info.data_path(&game_path) {
 
-                    view.toggle_main_window(true);
+                        let load_order = view.game_load_order().read().unwrap().clone();
+                        let receiver = CENTRAL_COMMAND.send_background(Command::GetStringFromLoadOrder(game_config.clone(), game_data_path, load_order));
+                        let response = CENTRAL_COMMAND.recv_try(&receiver);
+                        match response {
+                            Response::String(response) => {
+                                if let Err(error) = view.load_order_string_dialog(Some(response)) {
+                                    show_dialog(view.main_window(), error, false)
+                                }
+                            }
+                            Response::Error(error) => show_dialog(view.main_window(), error, false),
+                            _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
+                        }
+
+                        view.toggle_main_window(true);
+                    }
                 }
             }
         ));
@@ -485,20 +493,23 @@ impl AppUISlots {
             view => move |toggled| {
                 if let Some(ref game_config) = *view.game_config().read().unwrap() {
                     let game = view.game_selected().read().unwrap();
-                    let mut load_order = view.game_load_order().write().unwrap();
-                    load_order.set_automatic(toggled);
-                    load_order.update(game_config);
-
-                    if let Err(error) = load_order.save(&game) {
-                        return show_dialog(view.main_window(), error, false);
-                    }
-
                     let game_path = setting_path(game.key());
-                    if let Err(error) = view.pack_list_ui().load(game_config, &game, &game_path, &load_order) {
-                        return show_dialog(view.main_window(), error, false);
-                    }
+                    if let Ok(game_data_path) = game.data_path(&game_path) {
+                        let mut load_order = view.game_load_order().write().unwrap();
+                        load_order.set_automatic(toggled);
+                        load_order.update(game_config, &game_data_path);
 
-                    view.data_list_ui().set_enabled(false);
+                        if let Err(error) = load_order.save(&game) {
+                            return show_dialog(view.main_window(), error, false);
+                        }
+
+                        let game_path = setting_path(game.key());
+                        if let Err(error) = view.pack_list_ui().load(game_config, &game, &game_path, &load_order) {
+                            return show_dialog(view.main_window(), error, false);
+                        }
+
+                        view.data_list_ui().set_enabled(false);
+                    }
                 }
             }
         ));
