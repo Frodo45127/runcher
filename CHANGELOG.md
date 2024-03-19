@@ -12,9 +12,11 @@ If you're looking for the changes included in the latest beta (against the lates
 - Implemented "Expand/Collapse All" actions in the mod list.
 - Implemented "Open Workshop Links on Steam" setting. 
 - Implemented "Secondary Mods Folder" feature.
+- Implemented "Copy/Move to Secondary" feature.
 - Implemented "Import ModList" feature.
 - Implemented "Workshopper" companion program for interaction with the SteamWorks API.
 - Implemented "Upload/Update to Workshop" feature.
+- Implemented support for toggling Movie packs not in /data.
 
 ### Changed
 - When renaming a category, its current name is the default value in the dialog.
