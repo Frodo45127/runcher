@@ -17,10 +17,13 @@ use anyhow::{anyhow, Result};
 use std::fs::DirBuilder;
 use std::path::PathBuf;
 
+use rpfm_lib::games::GameInfo;
 use rpfm_lib::utils::files_from_subdir;
-use rpfm_ui_common::settings::setting_string;
+use rpfm_ui_common::settings::*;
 
 use crate::SUPPORTED_GAMES;
+
+use self::game_config::GameConfig;
 
 pub mod game_config;
 pub mod integrations;
@@ -31,6 +34,148 @@ pub mod saves;
 pub mod tools;
 
 pub const SECONDARY_FOLDER_NAME: &str = "masks";
+
+pub fn copy_to_secondary(game: &GameInfo, game_config: &GameConfig, mod_ids: &[String]) -> Result<Vec<String>> {
+    let mut mods_failed = vec![];
+
+    let game_path = setting_path(game.key());
+    let secondary_path = secondary_mods_path(game.key())?;
+    let content_path = game.content_path(&game_path)?;
+    let mut secondary_path_str = secondary_path.to_string_lossy().to_string();
+    let mut content_path_str = std::fs::canonicalize(content_path)?.to_string_lossy().to_string();
+
+    if secondary_path_str.starts_with("\\\\?\\") {
+        secondary_path_str = secondary_path_str[4..].to_owned();
+    }
+
+    if content_path_str.starts_with("\\\\?\\") {
+        content_path_str = content_path_str[4..].to_owned();
+    }
+
+    for mod_id in mod_ids {
+        if let Some(modd) = game_config.mods().get(mod_id) {
+
+            // Apply only to mods on content, or both on content and secondary.
+            if modd.paths().len() <= 2 {
+                let mut decannon_paths = modd.paths()
+                    .iter()
+                    .map(|path| std::fs::canonicalize(path).unwrap().to_string_lossy().to_string())
+                    .collect::<Vec<_>>();
+
+                for path in &mut decannon_paths {
+                    if path.starts_with("\\\\?\\") {
+                        *path = path[4..].to_owned();
+                    }
+                }
+
+                // If there's only one path, check if it's in content.
+                if decannon_paths.len() == 1 && decannon_paths[0].starts_with(&content_path_str) {
+                    let new_path = secondary_path.join(modd.paths()[0].file_name().unwrap());
+                    if std::fs::copy(&modd.paths()[0], new_path).is_err() {
+                        mods_failed.push(modd.id().to_string());
+                    }
+
+                    // Copy the png too.
+                    else {
+
+                        let mut old_image_path = PathBuf::from(&decannon_paths[0]);
+                        old_image_path.set_extension("png");
+
+                        let mut new_image_path = secondary_path.join(modd.paths()[0].file_name().unwrap());
+                        new_image_path.set_extension("png");
+
+                        let _ = std::fs::copy(&old_image_path, &new_image_path);
+                    }
+                }
+
+                // If it's a file in content and secondary, allow to copy it to update the secondary one.
+                else if decannon_paths.len() == 2 && decannon_paths[0].starts_with(&secondary_path_str) && decannon_paths[1].starts_with(&content_path_str) {
+                    if std::fs::copy(&modd.paths()[1], &modd.paths()[0]).is_err() {
+                        mods_failed.push(modd.id().to_string());
+                    }
+
+                    // Copy the png too.
+                    else {
+                        let mut old_image_path = PathBuf::from(&decannon_paths[1]);
+                        old_image_path.set_extension("png");
+
+                        let mut new_image_path = PathBuf::from(&decannon_paths[0]);
+                        new_image_path.set_extension("png");
+
+                        let _ = std::fs::copy(&old_image_path, &new_image_path);
+                    }
+                }
+
+                // Any other case is not supported.
+                else {
+                    mods_failed.push(modd.id().to_string());
+                }
+            }
+        }
+    }
+
+    Ok(mods_failed)
+}
+
+pub fn move_to_secondary(game: &GameInfo, game_config: &GameConfig, mod_ids: &[String]) -> Result<Vec<String>> {
+    let mut mods_failed = vec![];
+
+    let game_path = setting_path(game.key());
+    let secondary_path = secondary_mods_path(game.key())?;
+    let data_path = game.data_path(&game_path)?;
+    let mut data_path_str = std::fs::canonicalize(data_path)?.to_string_lossy().to_string();
+
+    if data_path_str.starts_with("\\\\?\\") {
+        data_path_str = data_path_str[4..].to_owned();
+    }
+
+    for mod_id in mod_ids {
+        if let Some(modd) = game_config.mods().get(mod_id) {
+
+            // Apply only to mods on content, or both on content and secondary.
+            let mut decannon_paths = modd.paths()
+                .iter()
+                .map(|path| std::fs::canonicalize(path).unwrap().to_string_lossy().to_string())
+                .collect::<Vec<_>>();
+
+            for path in &mut decannon_paths {
+                if path.starts_with("\\\\?\\") {
+                    *path = path[4..].to_owned();
+                }
+            }
+
+            // If the first path is /data, proceed. If not, we cannot move this mod.
+            if decannon_paths[0].starts_with(&data_path_str) {
+                let new_path = secondary_path.join(modd.paths()[0].file_name().unwrap());
+                if std::fs::copy(&modd.paths()[0], new_path).is_err() {
+                    mods_failed.push(modd.id().to_string());
+                }
+
+                // Move the png too, and delete the originals if it worked.
+                else {
+
+                    let mut old_image_path = std::fs::canonicalize(PathBuf::from(&decannon_paths[0])).unwrap();
+                    old_image_path.set_extension("png");
+
+                    let mut new_image_path = secondary_path.join(modd.paths()[0].file_name().unwrap());
+                    new_image_path.set_extension("png");
+
+                    if std::fs::copy(&old_image_path, &new_image_path).is_ok() {
+                        let _ = std::fs::remove_file(&modd.paths()[0]);
+                        let _ = std::fs::remove_file(&old_image_path);
+                    }
+                }
+            }
+
+            // Any other case is not supported.
+            else {
+                mods_failed.push(modd.id().to_string());
+            }
+        }
+    }
+
+    Ok(mods_failed)
+}
 
 pub fn secondary_mods_path(game: &str) -> Result<PathBuf> {
     match SUPPORTED_GAMES.game(game) {

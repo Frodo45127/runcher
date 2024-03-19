@@ -86,6 +86,8 @@ pub struct AppUISlots {
     category_move: QBox<SlotOfQModelIndexInt>,
     category_sort: QBox<SlotNoArgs>,
     mod_list_context_menu_open: QBox<SlotNoArgs>,
+    copy_to_secondary: QBox<SlotNoArgs>,
+    move_to_secondary: QBox<SlotNoArgs>,
 
     pack_toggle_auto_sorting: QBox<SlotOfBool>,
     pack_move: QBox<SlotOfQModelIndexInt>,
@@ -485,6 +487,54 @@ impl AppUISlots {
             }
         ));
 
+        let copy_to_secondary = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                {
+                    let selection = view.mod_list_selection()
+                        .iter()
+                        .map(|x| x.data_1a(VALUE_MOD_ID).to_string().to_std_string())
+                        .collect::<Vec<_>>();
+
+                    let game = view.game_selected().read().unwrap();
+                    if let Some(ref game_config) = *view.game_config().read().unwrap() {
+                        match copy_to_secondary(&game, &game_config, &selection) {
+                            Ok(failed_mods) => if !failed_mods.is_empty() {
+                                let string = failed_mods.iter().map(|string| format!("<li>{}</li>", string)).join("");
+                                show_dialog(view.main_window(), tre("copy_to_secondary_failed", &[&string]), false)
+                            }
+                            Err(error) => show_dialog(view.main_window(), error, false),
+                        }
+                    }
+                }
+
+                view.actions_ui().reload_button().click();
+            }
+        ));
+
+        let move_to_secondary = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                {
+                    let selection = view.mod_list_selection()
+                        .iter()
+                        .map(|x| x.data_1a(VALUE_MOD_ID).to_string().to_std_string())
+                        .collect::<Vec<_>>();
+
+                    let game = view.game_selected().read().unwrap();
+                    if let Some(ref game_config) = *view.game_config().read().unwrap() {
+                        match move_to_secondary(&game, &game_config, &selection) {
+                            Ok(failed_mods) => if !failed_mods.is_empty() {
+                                let string = failed_mods.iter().map(|string| format!("<li>{}</li>", string)).join("");
+                                show_dialog(view.main_window(), tre("move_to_secondary_failed", &[&string]), false)
+                            }
+                            Err(error) => show_dialog(view.main_window(), error, false),
+                        }
+                    }
+                }
+
+                view.actions_ui().reload_button().click();
+            }
+        ));
+
         let github_link = SlotNoArgs::new(view.main_window(), || { QDesktopServices::open_url(&QUrl::new_1a(&QString::from_std_str(GITHUB_URL))); });
         let discord_link = SlotNoArgs::new(view.main_window(), || { QDesktopServices::open_url(&QUrl::new_1a(&QString::from_std_str(DISCORD_URL))); });
         let patreon_link = SlotNoArgs::new(view.main_window(), || { QDesktopServices::open_url(&QUrl::new_1a(&QString::from_std_str(PATREON_URL))); });
@@ -595,6 +645,8 @@ impl AppUISlots {
             category_move,
             category_sort,
             mod_list_context_menu_open,
+            copy_to_secondary,
+            move_to_secondary,
 
             pack_toggle_auto_sorting,
             pack_move,

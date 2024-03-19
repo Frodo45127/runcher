@@ -526,6 +526,9 @@ impl AppUI {
         self.mod_list_ui().category_sort().triggered().connect(slots.category_sort());
         draggable_tree_view_drop_signal(self.mod_list_ui().tree_view().static_upcast()).connect(slots.category_move());
 
+        self.mod_list_ui().copy_to_secondary().triggered().connect(slots.copy_to_secondary());
+        self.mod_list_ui().move_to_secondary().triggered().connect(slots.move_to_secondary());
+
         self.pack_list_ui().automatic_order_button().toggled().connect(slots.pack_toggle_auto_sorting());
         draggable_tree_view_drop_signal(self.pack_list_ui().tree_view().static_upcast()).connect(slots.pack_move());
 

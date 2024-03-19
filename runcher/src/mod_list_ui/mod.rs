@@ -109,6 +109,9 @@ pub struct ModListUI {
     open_in_tool_menu: QBox<QMenu>,
 
     upload_to_workshop: QPtr<QAction>,
+
+    copy_to_secondary: QPtr<QAction>,
+    move_to_secondary: QPtr<QAction>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -168,6 +171,10 @@ impl ModListUI {
         let upload_to_workshop = context_menu.add_action_q_string(&qtr("upload_to_workshop"));
         context_menu.insert_separator(&upload_to_workshop);
 
+        let copy_to_secondary = context_menu.add_action_q_string(&qtr("copy_to_secondary"));
+        let move_to_secondary = context_menu.add_action_q_string(&qtr("move_to_secondary"));
+        context_menu.insert_separator(&move_to_secondary);
+
         let expand_all = context_menu.add_action_q_string(&qtr("expand_all"));
         let collapse_all = context_menu.add_action_q_string(&qtr("collapse_all"));
         context_menu.insert_separator(&expand_all);
@@ -195,7 +202,10 @@ impl ModListUI {
             open_in_steam,
             open_in_tool_menu,
 
-            upload_to_workshop
+            upload_to_workshop,
+
+            copy_to_secondary,
+            move_to_secondary,
         });
 
         let slots = ModListUISlots::new(&list);

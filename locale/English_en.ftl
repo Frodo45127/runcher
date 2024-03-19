@@ -220,3 +220,18 @@ upload_workshop_visibility_public = Public
 upload_workshop_visibility_friends_only = Friends Only
 upload_workshop_visibility_private = Private
 upload_workshop_visibility_unlisted = Unlisted
+
+copy_to_secondary = Copy to Secondary folder
+move_to_secondary = Move to Secondary folder
+
+copy_to_secondary_failed = <p>Then following files failed to be copied:</p>
+    <ul>
+    {"{"}{"}"}
+    </ul>
+    <p>This can happen either becuase of an IO error, or because the file you're trying to copy is in /data. To move files from /data to /secondary use the move feature.</p>
+
+move_to_secondary_failed = <p>Then following files failed to be moved:</p>
+    <ul>
+    {"{"}{"}"}
+    </ul>
+    <p>This can happen either becuase of an IO error, or because the file you're trying to move is not /data.</p>
