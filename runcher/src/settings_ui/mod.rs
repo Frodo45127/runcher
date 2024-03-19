@@ -73,6 +73,7 @@ const VIEW_RELEASE: &str = "ui/settings_dialog.ui";
 
 pub const SLASH_DMY_DATE_FORMAT_STR: &str = "[day]/[month]/[year]";
 pub const SLASH_MDY_DATE_FORMAT_STR: &str = "[month]/[day]/[year]";
+pub const SLASH_YMD_DATE_FORMAT_STR: &str = "[year]/[month]/[day]";
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -184,6 +185,7 @@ impl SettingsUI {
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(BETA));
         date_format_combobox.add_item_q_string(&QString::from_std_str(SLASH_DMY_DATE_FORMAT_STR));
         date_format_combobox.add_item_q_string(&QString::from_std_str(SLASH_MDY_DATE_FORMAT_STR));
+        date_format_combobox.add_item_q_string(&QString::from_std_str(SLASH_YMD_DATE_FORMAT_STR));
 
         paths_groupbox.set_title(&qtr("game_paths"));
         language_label.set_text(&qtr("language"));
@@ -345,7 +347,7 @@ impl SettingsUI {
         }
 
         let date_format = setting_string_from_q_setting(&q_settings, "date_format");
-        for (index, format) in [SLASH_DMY_DATE_FORMAT_STR, SLASH_MDY_DATE_FORMAT_STR].iter().enumerate() {
+        for (index, format) in [SLASH_DMY_DATE_FORMAT_STR, SLASH_MDY_DATE_FORMAT_STR, SLASH_YMD_DATE_FORMAT_STR].iter().enumerate() {
             if format == &date_format {
                 self.date_format_combobox.set_current_index(index as i32);
                 break;
