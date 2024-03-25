@@ -53,11 +53,10 @@ use itertools::Itertools;
 use sha256::try_digest;
 
 use std::collections::HashMap;
-use std::fs::{copy, DirBuilder, File};
+use std::fs::{DirBuilder, File};
 use std::io::{BufWriter, Read, Write};
-#[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::{Command as SystemCommand, exit};
+use std::process::exit;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
@@ -95,9 +94,6 @@ use crate::updater_ui::*;
 use self::slots::AppUISlots;
 
 pub mod slots;
-
-#[cfg(target_os = "windows")] const CREATE_NO_WINDOW: u32 = 0x08000000;
-//const DETACHED_PROCESS: u32 = 0x00000008;
 
 const LOAD_ORDER_STRING_VIEW_DEBUG: &str = "ui_templates/load_order_string_dialog.ui";
 const LOAD_ORDER_STRING_VIEW_RELEASE: &str = "ui/load_order_string_dialog.ui";

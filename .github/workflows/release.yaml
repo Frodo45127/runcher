@@ -196,10 +196,7 @@ jobs:
           cp E:\runner_runcher\_work\runcher\runcher/target/release/runcher.exe ${{ matrix.DDISK }}:\deploy\runcher-release-assets
           cp E:\runner_runcher\_work\runcher\runcher/target/release/runcher.pdb ${{ matrix.DDISK }}:\deploy\runcher-release-assets
 
-          # Bouncer's exe, for shogun 2.
-          cp E:\runner_runcher\_work\runcher\runcher/target/release/bouncer.exe ${{ matrix.DDISK }}:\deploy\runcher-release-assets
-
-          # Workshopper for workshop support.
+          # Workshopper for workshop and steam launch support.
           cp ${{ matrix.DDISK }}:\steam_api64.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp E:\runner_runcher\_work\runcher\runcher/target/release/workshopper.exe ${{ matrix.DDISK }}:\deploy\runcher-release-assets
 

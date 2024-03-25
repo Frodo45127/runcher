@@ -2,7 +2,6 @@
 [workspace]
 resolver = "2"
 members = [
-    "bouncer",
     "runcher",
     "workshopper",
 ]
