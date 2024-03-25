@@ -284,6 +284,31 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
     Ok(())
 }
 
+/// This function launches a game through workshopper, with access to the Steam Api.
+pub fn launch_game(game: &GameInfo, command_to_pass: &str) -> Result<()> {
+    let game_path = setting_path(game.key());
+    let steam_id = game.steam_id(&game_path)? as u32;
+
+    let mut command = Command::new("cmd");
+    command.arg("/C");
+    command.arg(&*WORKSHOPPER_PATH);
+    command.arg("launch");
+
+    // Due to issues passing certain characters to the terminal, we encode the strings to base64 and pass -b.
+    command.arg("-b");
+    command.arg("-s");
+    command.arg(steam_id.to_string());
+    command.arg("-c");
+    command.arg(command_to_pass);
+
+    // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
+    #[cfg(target_os = "windows")]command.creation_flags(0x00000008);
+
+    command.spawn()?;
+
+    Ok(())
+}
+
 impl From<&QueryResultDerive> for PreUploadInfo {
     fn from(value: &QueryResultDerive) -> Self {
         Self {

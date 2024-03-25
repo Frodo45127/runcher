@@ -40,6 +40,21 @@ pub enum Commands {
         published_file_ids: String,
     },
 
+    Launch {
+
+        /// If we're going to pass the command as base64 string. Use this when any of those includes special characters.
+        #[arg(short, long, required = false)]
+        base64: bool,
+
+        /// SteamId/AppId of the game we're going to launch.
+        #[arg(short, long, value_name = "STEAM_ID")]
+        steam_id: u32,
+
+        /// Command to launch the game from it's exe. If base64 is true, this is expected to be a base64 string.
+        #[arg(short, long, required = false, value_name = "command")]
+        command: String,
+    },
+
     Upload {
 
         /// If we're going to pass title, description, and changelog as base64 strings. Use this when any of those includes special characters.

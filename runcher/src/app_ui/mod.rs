@@ -46,6 +46,7 @@ use cpp_core::CppBox;
 use cpp_core::Ref;
 
 use anyhow::{anyhow, Result};
+use base64::prelude::*;
 use crossbeam::channel::Receiver;
 use getset::Getters;
 use itertools::Itertools;
@@ -979,88 +980,33 @@ impl AppUI {
 
         file.flush()?;
 
+        // Launch is done through workshopper to getup the Steam Api.
+        //
+        // Here we just build the commands and pass them to workshopper.
         match game.executable_path(&game_path) {
             Some(exec_game) => {
                 if cfg!(target_os = "windows") {
 
                     // For post-shogun 2 games, we use the same command to bypass the launcher.
-                    if *game.raw_db_version() >= 2 {
+                    let command = if *game.raw_db_version() >= 1 {
 
-                        let mut command = SystemCommand::new("cmd");
-                        command.arg("/C");
-                        command.arg("start");
-                        command.arg("/d");
-                        command.arg(game_path.to_string_lossy().replace('\\', "/"));
-                        command.arg(exec_game.file_name().unwrap().to_string_lossy().to_string());
-                        command.arg(CUSTOM_MOD_LIST_FILE_NAME.to_string() + ";");
+                        let mut command = format!("cmd /C start /d \"{}\" \"{}\" {};", game_path.to_string_lossy().replace('\\', "/"), exec_game.file_name().unwrap().to_string_lossy().to_string(), CUSTOM_MOD_LIST_FILE_NAME.to_string());
 
                         for arg in &extra_args {
-                            command.arg(arg);
+                            command.push_str(" ");
+                            command.push_str(arg);
                         }
 
-                        // This disables the terminal when executing the command.
-                        #[cfg(target_os = "windows")]command.creation_flags(CREATE_NO_WINDOW);
-                        command.spawn()?;
+                        command
                     }
 
                     // Empire and Napoleon do not have a launcher. We can make our lives easier calling steam instead of launching the game manually.
-                    else if *game.raw_db_version() == 0 {
-                        match game.game_launch_command(&game_path) {
-                            Ok(command) => { let _ = open::that(command); },
-                            _ => show_dialog(self.main_window(), "The currently selected game cannot be launched from Steam.", false),
-                        }
-                    }
-
-                    // Shogun 2 has problems since we lost the hot ashigaru sex chat. The current theory I have is that launching from the exe seems to skip the steam checks,
-                    // meaning the game launches as if you do not own anything on it. Nor the base game nor the dlcs. Launching from the launcher works, as well as launching from steam.
-                    //
-                    // The only method I found that works is replacing the vanilla launcher with an exe that bounces of to the exe, so we launch the game from steam,
-                    // which does the ownership checks, that launches our custom launcher, which launches the exe of the game with the custom mod list.
-                    //
-                    // Also, is not my idea. Someone already did it on steam with an aut2exe script.
                     else {
-                        let mut launcher_path = game_path.join("launcher");
-                        let mut launcher_path_bak = launcher_path.to_path_buf();
-                        launcher_path.push("launcher.exe");
-                        launcher_path_bak.push("launcher.exe.bak");
+                        format!("cmd /C start /d \"{}\" \"{}\"", game_path.to_string_lossy().replace('\\', "/"), exec_game.file_name().unwrap().to_string_lossy().to_string())
+                    };
 
-                        // On debug mode, it's in third party libs. On release, it's in runcher's folder.
-                        let mut bouncer_path = std::env::current_exe()?;
-                        if cfg!(debug_assertions) {
-                            bouncer_path.pop();
-                            bouncer_path.pop();
-                            bouncer_path.pop();
-                            bouncer_path.push("3rdparty");
-                            bouncer_path.push("builds");
-                        } else {
-                            bouncer_path.pop();
-                        }
-                        bouncer_path.push("bouncer.exe");
-
-                        let replace_launcher = if let Ok(file) = File::open(&launcher_path) {
-                            if let Ok(metadata) = file.metadata() {
-
-                                // Vanilla launcher is about 50mb, bouncer is less than one.
-                                metadata.len() > 1_000_000
-                            } else {
-                                true
-                            }
-                        } else {
-                            true
-                        };
-
-                        // If this fails, report it.
-                        if replace_launcher {
-                            copy(&launcher_path, launcher_path_bak)?;
-                            copy(bouncer_path, launcher_path)?;
-                        }
-
-                        // Once we've replaced the launcher (if needed), launch the game from steam.
-                        match game.game_launch_command(&game_path) {
-                            Ok(command) => { let _ = open::that(command); },
-                            _ => show_dialog(self.main_window(), "The currently selected game cannot be launched from Steam.", false),
-                        }
-                    }
+                    let command = BASE64_STANDARD.encode(command);
+                    crate::mod_manager::integrations::launch_game(&game, &command)?;
 
                     Ok(())
                 } else if cfg!(target_os = "linux") {

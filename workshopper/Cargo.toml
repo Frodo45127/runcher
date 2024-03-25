@@ -34,6 +34,9 @@ indicatif = "^0.17"
 #steamworks = { version = "^0.11", features = ["serde"] }
 steamworks = { git = "https://github.com/Frodo45127/steamworks-rs.git", features = ["serde"] }
 
+# For parsing a string into a command.
+execute-command = "^0.3"
+
 # Serialization support.
 serde = "^1.0"
 serde_derive = "^1.0"
