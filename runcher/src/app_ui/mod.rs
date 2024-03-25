@@ -200,7 +200,7 @@ impl AppUI {
         let central_widget = QWidget::new_1a(&main_window);
         let central_layout = create_grid_layout(central_widget.static_upcast());
         main_window.set_central_widget(&central_widget);
-        main_window.resize_2a(1300, 1000);
+        main_window.resize_2a(1300, 1100);
         main_window.set_window_title(&QString::from_std_str("The Runcher"));
         QApplication::set_window_icon(&QIcon::from_q_string(&QString::from_std_str(format!("{}/icons/runcher.png", ASSETS_PATH.to_string_lossy()))));
 
