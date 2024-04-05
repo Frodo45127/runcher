@@ -232,14 +232,16 @@ impl LoadOrder {
                     continue;
                 }
 
-                // Check if the mod is from /data or from /content.
+                // Check if the mod is from /data, /secondary or /content.
                 //
                 // Loading from content is only supported on Rome2 and later games.
+                //
+                // Loading from secondary is only supported on a fully updated Shogun 2 and later games.
                 //
                 // Also, Shogun 2 requires some custom file management to move and convert mods to /data, but that's not done here.
                 let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
                 let path = &modd.paths()[0];
-                if !path.starts_with(game_data_path) && *game.raw_db_version() >= 2 {
+                if !path.starts_with(game_data_path) && *game.raw_db_version() >= 1 {
                     let mut folder_path = path.to_owned();
                     folder_path.pop();
 
@@ -281,7 +283,7 @@ impl LoadOrder {
                 if modd.can_be_toggled(&game_data_path) {
 
                     // This only works for Rome 2 and later games.
-                    if *game.raw_db_version() >= 2 {
+                    if *game.raw_db_version() >= 1 {
                         let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
                         let mut folder_path = modd.paths()[0].to_owned();
                         folder_path.pop();

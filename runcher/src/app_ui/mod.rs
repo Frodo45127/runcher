@@ -760,7 +760,7 @@ impl AppUI {
                     // Reload the tools, just in case they changed.
                     *self.tools().write().unwrap() = Tools::load().unwrap_or_else(|_| Tools::default());
 
-                    // Disable the games we don't have a path for (uninstalled) and Shogun 2, as it's not supported yet.
+                    // Disable the games we don't have a path for (uninstalled).
                     for game in SUPPORTED_GAMES.games_sorted().iter() {
                         let has_exe = game.executable_path(&setting_path(game.key())).filter(|path| path.is_file()).is_some();
                         match game.key() {
@@ -826,7 +826,7 @@ impl AppUI {
             let reserved_pack_name = if game.key() == KEY_SHOGUN_2 || game.key() == KEY_ROME_2 || game.key() == KEY_ATTILA || game.key() == KEY_THRONES_OF_BRITANNIA { RESERVED_PACK_NAME_ALTERNATIVE } else { RESERVED_PACK_NAME };
 
             // If the reserved pack is loaded from a custom folder we need to CLEAR SAID FOLDER before anything else. Otherwise we may end up with old packs messing up stuff.
-            if *game.raw_db_version() >= 2 {
+            if *game.raw_db_version() >= 1 {
                 let temp_packs_folder = temp_packs_folder(&game)?;
                 let files = files_from_subdir(&temp_packs_folder, false)?;
                 for file in &files {
@@ -835,7 +835,7 @@ impl AppUI {
             }
 
             // Support for add_working_directory seems to be only present in rome 2 and newer games. For older games, we drop the pack into /data.
-            let temp_path = if *game.raw_db_version() >= 2 {
+            let temp_path = if *game.raw_db_version() >= 1 {
                 let temp_packs_folder = temp_packs_folder(&game)?;
                 let temp_path = temp_packs_folder.join(reserved_pack_name);
                 folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_packs_folder.to_string_lossy()));
