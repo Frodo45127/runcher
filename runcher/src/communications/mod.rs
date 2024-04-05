@@ -128,7 +128,7 @@ impl<T: Send + Sync + Debug> CentralCommand<T> {
     /// This function serves to send a message back through a generated channel.
     pub fn send_back(sender: &Sender<T>, data: T) {
         if let Err(error) = sender.send(data) {
-            error!("{THREADS_SENDER_ERROR}: {error}");
+            panic!("{THREADS_SENDER_ERROR}: {error}");
         }
     }
 
