@@ -81,7 +81,8 @@ pub fn network_loop() {
             }
 
             Command::RequestModsData(game, mod_ids) => {
-                match request_mods_data(&game, &mod_ids) {
+                let request = request_mods_data(&game, &mod_ids);
+                match request {
                     Ok(mods_data) => CentralCommand::send_back(&sender, Response::VecMod(mods_data)),
                     Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
                 }

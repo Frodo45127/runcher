@@ -167,7 +167,11 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
     let mut message = String::new();
     stream.read_to_string(&mut message)?;
 
-    serde_json::from_str(&message).map_err(From::from)
+    if message == "{}" {
+        return Err(anyhow!("Error retrieving Steam Workshop data."))
+    } else {
+        serde_json::from_str(&message).map_err(From::from)
+    }
 }
 
 pub fn request_user_names(user_ids: &[String]) -> Result<HashMap<String, String>> {

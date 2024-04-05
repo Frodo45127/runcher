@@ -201,11 +201,20 @@ pub fn published_file_details(steam_id: u32, published_file_ids: &str) -> Result
                     file.write_all(to_string_pretty(&results)?.as_bytes())?;
                     file.flush()?;
                 }
+            } else {
+                if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_PUBLISHED_FILE_DETAILS) {
+                    let _ = stream.write(b"{}");
+                }
             }
 
             return finish(tx, callback_thread)
         },
         SteamWorksThreadMessage::Error(error) => {
+
+            if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_PUBLISHED_FILE_DETAILS) {
+                let _ = stream.write(b"{}");
+            }
+
             finish(tx, callback_thread)?;
             return Err(error)
         },
