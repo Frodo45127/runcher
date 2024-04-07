@@ -560,7 +560,7 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
             }
 
             // Only needed for modern games.
-            let keys_pre_opt = if use_old_multilanguage_logic{
+            let keys_pre_opt = if use_old_multilanguage_logic {
                 HashSet::new()
             } else {
                 loc_data.par_iter()
@@ -568,14 +568,20 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
                     .collect::<HashSet<_>>()
             };
 
+            let mut vanilla_english_loc = None;
+
             // Perform the optimisation BEFORE appending the vanilla loc, if we're appending it. Otherwise we'll lose valid entries.
-            if !loc_data.is_empty() {
-                loc.set_data(&loc_data)?;
-                if let Some(remote_path) = paths.last() {
-                    let vanilla_loc_path = remote_path.join(format!("{}/{}", game.key(), VANILLA_LOC_NAME));
-                    if let Ok(mut vanilla_loc) = RFile::tsv_import_from_path(&vanilla_loc_path, &None) {
-                        vanilla_loc.guess_file_type()?;
-                        vanilla_loc.decode(&None, true, false)?;
+            if let Some(remote_path) = paths.last() {
+                let vanilla_loc_path = remote_path.join(format!("{}/{}", game.key(), VANILLA_LOC_NAME));
+                if let Ok(mut vanilla_loc) = RFile::tsv_import_from_path(&vanilla_loc_path, &None) {
+                    vanilla_loc.guess_file_type()?;
+                    vanilla_loc.decode(&None, true, false)?;
+
+                    // Keep it in memory to reuse it when filling missing translation data.
+                    vanilla_english_loc = Some(vanilla_loc.clone());
+
+                    if !loc_data.is_empty() {
+                        loc.set_data(&loc_data)?;
 
                         // Workaround: We do not need a whole dependencies for this, just one file with the entire english loc combined.
                         // So we initialize an empty dependencies, the manually insert that loc.
@@ -645,6 +651,42 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
                     })
                     .collect::<Vec<_>>();
                 loc_data.append(&mut new_rows);
+
+                // There's a bug that sometimes surfaces in patches in which the english loc has lines the other locs don't have.
+                // We need to grab them from the english loc and added to our own post-optimizations.
+                //
+                // This is mainly for newer games that still get patched.
+                if let Some(mut vanilla_english_loc) = vanilla_english_loc {
+                    if let Ok(Some(RFileDecoded::Loc(vanilla_english_loc))) = vanilla_english_loc.decode(&None, false, true) {
+                        let mut missing_entries = vanilla_english_loc.data()
+                            .par_iter()
+                            .rev()
+                            .filter_map(|entry| {
+
+                                // Ignore entries already empty in english.
+                                if !entry[1].data_to_string().is_empty() {
+                                    match vanilla_loc_data_hash.get(&entry[0].data_to_string()) {
+                                        Some(vanilla_entry) => {
+                                            if vanilla_entry.is_empty() {
+                                                Some(entry.clone())
+                                            } else {
+                                                None
+                                            }
+                                        }
+
+                                        // Not found means is only in english.
+                                        None => Some(entry.clone())
+                                    }
+                                } else {
+                                    None
+                                }
+                            }).collect::<Vec<_>>();
+
+                        // These need to be on top of the file in order to overwrite empty lines.
+                        missing_entries.append(&mut loc_data);
+                        loc_data = missing_entries;
+                    }
+                }
             }
 
             if !loc_data.is_empty() {
