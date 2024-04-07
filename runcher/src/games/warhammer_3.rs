@@ -153,13 +153,6 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                         }
                     }
 
-                    // Tomb kings campaign mechanic.
-                    if key == "realm_of_souls_tier_1_death_threshold" || key == "realm_of_souls_tier_2_death_threshold" || key == "realm_of_souls_tier_3_death_threshold" {
-                        if let Some(DecodedData::F32(value)) = row.get_mut(1) {
-                            *value *= unit_multiplier as f32;
-                        }
-                    }
-
                     // Not sure what this do, but it seems to affect a few abilities.
                     if key == "unit_tier1_kills" || key == "unit_tier2_kills" || key == "unit_tier3_kills" {
                         if let Some(DecodedData::F32(value)) = row.get_mut(1) {
