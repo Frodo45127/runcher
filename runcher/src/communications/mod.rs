@@ -18,7 +18,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use rpfm_lib::games::GameInfo;
-use rpfm_lib::integrations::{log::{error, info}, git::GitResponse};
+use rpfm_lib::integrations::{log::info, git::GitResponse};
 
 use crate::mod_manager::{game_config::GameConfig, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::{Mod, ShareableMod}};
 use crate::updater_ui::APIResponse;
