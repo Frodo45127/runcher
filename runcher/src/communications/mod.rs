@@ -194,10 +194,7 @@ impl<T: Send + Sync + Debug> CentralCommand<T> {
             }
         }
 
-        // If we're locked due to another execution, use recv instead.
-        else {
-            info!("Race condition avoided? Two items calling recv_try on the same execution crashes.");
-            Self::recv(receiver)
-        }
+        info!("Race condition avoided? Two items calling recv_try on the same execution crashes.");
+        Self::recv(receiver)
     }
 }
