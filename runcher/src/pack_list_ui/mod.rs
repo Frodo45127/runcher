@@ -41,6 +41,7 @@ use std::rc::Rc;
 
 use rpfm_lib::files::pack::Pack;
 use rpfm_lib::games::GameInfo;
+use rpfm_lib::integrations::log::error;
 
 use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::utils::*;
@@ -146,50 +147,58 @@ impl PackListUI {
 
                         let row = QListOfQStandardItem::new();
                         let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                        let pack = Pack::read_and_merge(&[modd.paths()[0].to_path_buf()], true, false)?;
 
-                        let item_name = Self::new_item();
-                        let item_type = Self::new_item();
-                        let item_path = Self::new_item();
-                        let load_order = Self::new_item();
-                        let location = Self::new_item();
-                        let steam_id = Self::new_item();
+                        // This is needed to avoid errors with map packs before we process them.
+                        //
+                        // In practice if a bin pack loads here, there's a bug elsewhere.
+                        if pack_name.ends_with(".pack") {
+                            let pack = Pack::read_and_merge(&[modd.paths()[0].to_path_buf()], true, false)?;
 
-                        item_name.set_text(&QString::from_std_str(&pack_name));
-                        item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(mod_id)), VALUE_MOD_ID);
-                        item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str((pack.pfh_file_type() as u32).to_string() + &pack_name)), 20);
-                        item_type.set_text(&QString::from_std_str(&modd.pack_type().to_string()));
-                        item_path.set_text(&QString::from_std_str(&modd.paths()[0].to_string_lossy()));
-                        load_order.set_data_2a(&QVariant::from_int(index as i32), 2);
+                            let item_name = Self::new_item();
+                            let item_type = Self::new_item();
+                            let item_path = Self::new_item();
+                            let load_order = Self::new_item();
+                            let location = Self::new_item();
+                            let steam_id = Self::new_item();
 
-                        location.set_text(&QString::from_std_str(
-                            if modd.paths()[0].starts_with(&game_data_folder) {
-                                "Data".to_string()
-                            } else if secondary_mods_path.is_dir() && modd.paths()[0].starts_with(&secondary_mods_path) {
-                                if let Some(ref id) = modd.steam_id() {
-                                    format!("Secondary ({})", id)
+                            item_name.set_text(&QString::from_std_str(&pack_name));
+                            item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(mod_id)), VALUE_MOD_ID);
+                            item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str((pack.pfh_file_type() as u32).to_string() + &pack_name)), 20);
+                            item_type.set_text(&QString::from_std_str(&modd.pack_type().to_string()));
+                            item_path.set_text(&QString::from_std_str(&modd.paths()[0].to_string_lossy()));
+                            load_order.set_data_2a(&QVariant::from_int(index as i32), 2);
+
+                            location.set_text(&QString::from_std_str(
+                                if modd.paths()[0].starts_with(&game_data_folder) {
+                                    "Data".to_string()
+                                } else if secondary_mods_path.is_dir() && modd.paths()[0].starts_with(&secondary_mods_path) {
+                                    if let Some(ref id) = modd.steam_id() {
+                                        format!("Secondary ({})", id)
+                                    } else {
+                                        "Secondary (Non-Steam)".to_string()
+                                    }
+                                } else if let Some(ref id) = modd.steam_id() {
+                                    format!("Content ({})", id)
                                 } else {
-                                    "Secondary (Non-Steam)".to_string()
+                                    "Where the fuck is this pack?".to_string()
                                 }
-                            } else if let Some(ref id) = modd.steam_id() {
-                                format!("Content ({})", id)
-                            } else {
-                                "Where the fuck is this pack?".to_string()
+                            ));
+
+                            if let Some(id) = modd.steam_id() {
+                                steam_id.set_text(&QString::from_std_str(id));
                             }
-                        ));
 
-                        if let Some(id) = modd.steam_id() {
-                            steam_id.set_text(&QString::from_std_str(id));
+                            row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
+                            row.append_q_standard_item(&item_type.into_ptr().as_mut_raw_ptr());
+                            row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());
+                            row.append_q_standard_item(&load_order.into_ptr().as_mut_raw_ptr());
+                            row.append_q_standard_item(&location.into_ptr().as_mut_raw_ptr());
+                            row.append_q_standard_item(&steam_id.into_ptr().as_mut_raw_ptr());
+
+                            self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
+                        } else {
+                            error!("Error loading Pack to UI: {}", modd.paths()[0].to_string_lossy())
                         }
-
-                        row.append_q_standard_item(&item_name.into_ptr().as_mut_raw_ptr());
-                        row.append_q_standard_item(&item_type.into_ptr().as_mut_raw_ptr());
-                        row.append_q_standard_item(&item_path.into_ptr().as_mut_raw_ptr());
-                        row.append_q_standard_item(&load_order.into_ptr().as_mut_raw_ptr());
-                        row.append_q_standard_item(&location.into_ptr().as_mut_raw_ptr());
-                        row.append_q_standard_item(&steam_id.into_ptr().as_mut_raw_ptr());
-
-                        self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
                     }
                 }
             }
