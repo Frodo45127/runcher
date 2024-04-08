@@ -6,6 +6,20 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.8.2]
+### Added
+- Implemented support for secondary folder and temp packs for Shogun 2.
+- Implemented unit multiplier support for Three Kingdoms.
+
+### Changed
+- Changelog should now automatically open after an update.
+
+### Fixed
+- Fixed hangs and freezes when the steamworks api breaks and starts returning errors.
+- Fix rare situation where an breaking error will be logged but the program would not actually panic, staying open in a broken state.
+- Fixed translations not properly restoring lines that were in the vanilla english locs, but not in the translated vanilla locs, or were in the translated vanilla locs but they were empty.
+- Fixed unit multiplier causing Tomb Kings Realm of Souls to trigger later than expected.
+
 ## [0.8.1]
 ### Added
 - Implemented support for YYYY/MM/DD dates.
@@ -249,7 +263,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/Frodo45127/runcher/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/Frodo45127/runcher/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/Frodo45127/runcher/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/Frodo45127/runcher/compare/v0.6.0...v0.7.0
