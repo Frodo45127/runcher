@@ -497,7 +497,7 @@ impl AppUISlots {
 
                     let game = view.game_selected().read().unwrap();
                     if let Some(ref game_config) = *view.game_config().read().unwrap() {
-                        match copy_to_secondary(&game, &game_config, &selection) {
+                        match copy_to_secondary(&game, game_config, &selection) {
                             Ok(failed_mods) => if !failed_mods.is_empty() {
                                 let string = failed_mods.iter().map(|string| format!("<li>{}</li>", string)).join("");
                                 show_dialog(view.main_window(), tre("copy_to_secondary_failed", &[&string]), false)
@@ -521,7 +521,7 @@ impl AppUISlots {
 
                     let game = view.game_selected().read().unwrap();
                     if let Some(ref game_config) = *view.game_config().read().unwrap() {
-                        match move_to_secondary(&game, &game_config, &selection) {
+                        match move_to_secondary(&game, game_config, &selection) {
                             Ok(failed_mods) => if !failed_mods.is_empty() {
                                 let string = failed_mods.iter().map(|string| format!("<li>{}</li>", string)).join("");
                                 show_dialog(view.main_window(), tre("move_to_secondary_failed", &[&string]), false)

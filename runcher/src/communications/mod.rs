@@ -59,7 +59,7 @@ pub enum Command {
     UpdateTranslations,
     GetStringFromLoadOrder(GameConfig, PathBuf, LoadOrder),
     GetLoadOrderFromString(ImportedLoadOrderMode),
-    RequestModsData(GameInfo, Vec<String>),
+    RequestModsData(Box<GameInfo>, Vec<String>),
 }
 
 /// This enum defines the responses (messages) you can send to the to the UI thread as result of a command.

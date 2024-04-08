@@ -730,7 +730,7 @@ impl AppUI {
             let mut load_order = self.game_load_order().write().unwrap();
             let network_receiver = mods.update_mod_list(game, game_path, &mut load_order, skip_network_update)?;
 
-            self.mod_list_ui().load(&game, mods)?;
+            self.mod_list_ui().load(game, mods)?;
             self.pack_list_ui().load(mods, game, game_path, &load_order)?;
 
             Ok(network_receiver)
@@ -986,10 +986,10 @@ impl AppUI {
                     // For post-shogun 2 games, we use the same command to bypass the launcher.
                     let command = if *game.raw_db_version() >= 1 {
 
-                        let mut command = format!("cmd /C start /d \"{}\" \"{}\" {};", game_path.to_string_lossy().replace('\\', "/"), exec_game.file_name().unwrap().to_string_lossy().to_string(), CUSTOM_MOD_LIST_FILE_NAME.to_string());
+                        let mut command = format!("cmd /C start /d \"{}\" \"{}\" {};", game_path.to_string_lossy().replace('\\', "/"), exec_game.file_name().unwrap().to_string_lossy(), CUSTOM_MOD_LIST_FILE_NAME);
 
                         for arg in &extra_args {
-                            command.push_str(" ");
+                            command.push(' ');
                             command.push_str(arg);
                         }
 
@@ -998,7 +998,7 @@ impl AppUI {
 
                     // Empire and Napoleon do not have a launcher. We can make our lives easier calling steam instead of launching the game manually.
                     else {
-                        format!("cmd /C start /d \"{}\" \"{}\"", game_path.to_string_lossy().replace('\\', "/"), exec_game.file_name().unwrap().to_string_lossy().to_string())
+                        format!("cmd /C start /d \"{}\" \"{}\"", game_path.to_string_lossy().replace('\\', "/"), exec_game.file_name().unwrap().to_string_lossy())
                     };
 
                     let command = BASE64_STANDARD.encode(command);
@@ -1849,7 +1849,7 @@ impl AppUI {
                     //
                     // We use the updated data to populate the dialog. If it was never uploaded (no steam id), we just load the dialog.
                     let mod_data = if let Some(steam_id) = modd.steam_id() {
-                        request_pre_upload_info(&game, &steam_id, &modd.creator())?
+                        request_pre_upload_info(&game, steam_id, modd.creator())?
                     } else {
                         PreUploadInfo::default()
                     };

@@ -111,29 +111,27 @@ impl Mod {
         // - If it's in /secondary or /content, we respect the bool.
         if self.pack_type == PFHFileType::Mod {
             self.enabled
-        } else {
-            if let Some(path) = self.paths().first() {
-                let mut data_path_str = data_path.to_string_lossy().to_string();
-                if data_path_str.starts_with("\\\\?\\") {
-                    data_path_str = data_path_str[4..].to_string();
-                }
-
-                let mut path_str = path.to_string_lossy().to_string();
-                if path_str.starts_with("\\\\?\\") {
-                    path_str = path_str[4..].to_string();
-                }
-
-                if path_str.starts_with(&data_path_str) {
-                    true
-                } else {
-                    self.enabled
-                }
+        } else if let Some(path) = self.paths().first() {
+            let mut data_path_str = data_path.to_string_lossy().to_string();
+            if data_path_str.starts_with("\\\\?\\") {
+                data_path_str = data_path_str[4..].to_string();
             }
 
-            // If no path is found, this is not a mod we have in use.
-            else {
-                false
+            let mut path_str = path.to_string_lossy().to_string();
+            if path_str.starts_with("\\\\?\\") {
+                path_str = path_str[4..].to_string();
             }
+
+            if path_str.starts_with(&data_path_str) {
+                true
+            } else {
+                self.enabled
+            }
+        }
+
+        // If no path is found, this is not a mod we have in use.
+        else {
+            false
         }
     }
 
@@ -144,25 +142,23 @@ impl Mod {
     pub fn can_be_toggled(&self, data_path: &Path) -> bool {
         if self.pack_type == PFHFileType::Mod {
             true
-        } else {
-            if let Some(path) = self.paths().first() {
-                let mut data_path_str = data_path.to_string_lossy().to_string();
-                if data_path_str.starts_with("\\\\?\\") {
-                    data_path_str = data_path_str[4..].to_string();
-                }
-
-                let mut path_str = path.to_string_lossy().to_string();
-                if path_str.starts_with("\\\\?\\") {
-                    path_str = path_str[4..].to_string();
-                }
-
-                !path_str.starts_with(&data_path_str)
+        } else if let Some(path) = self.paths().first() {
+            let mut data_path_str = data_path.to_string_lossy().to_string();
+            if data_path_str.starts_with("\\\\?\\") {
+                data_path_str = data_path_str[4..].to_string();
             }
 
-            // If no path is found, this is not a mod we have in use.
-            else {
-                false
+            let mut path_str = path.to_string_lossy().to_string();
+            if path_str.starts_with("\\\\?\\") {
+                path_str = path_str[4..].to_string();
             }
+
+            !path_str.starts_with(&data_path_str)
+        }
+
+        // If no path is found, this is not a mod we have in use.
+        else {
+            false
         }
     }
 }

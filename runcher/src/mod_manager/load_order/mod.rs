@@ -280,7 +280,7 @@ impl LoadOrder {
         // Once we're done loading mods, we need to check for toggleable movie packs and add their paths as working folders if they're enabled.
         for mod_id in self.movies() {
             if let Some(modd) = game_config.mods().get(mod_id) {
-                if modd.can_be_toggled(&game_data_path) {
+                if modd.can_be_toggled(game_data_path) {
 
                     // This only works for Rome 2 and later games.
                     if *game.raw_db_version() >= 1 {

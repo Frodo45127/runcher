@@ -168,7 +168,7 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
     stream.read_to_string(&mut message)?;
 
     if message == "{}" {
-        return Err(anyhow!("Error retrieving Steam Workshop data."))
+        Err(anyhow!("Error retrieving Steam Workshop data."))
     } else {
         serde_json::from_str(&message).map_err(From::from)
     }
