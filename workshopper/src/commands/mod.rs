@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------//
-// Copyright (c) 2017-2023 Ismael Gutiérrez González. All rights reserved.
+// Copyright (c) 2017-2024 Ismael Gutiérrez González. All rights reserved.
 //
-// This file is part of the Rusted PackFile Manager (RPFM) project,
+// This file is part of the Rusted Launcher (Runcher) project,
 // which can be found here: https://github.com/Frodo45127/rpfm.
 //
 // This file is licensed under the MIT license, which can be found here:
