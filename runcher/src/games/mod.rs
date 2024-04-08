@@ -194,7 +194,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
-                app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -339,8 +339,8 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                 match game.key() {
                     KEY_PHARAOH => Ok(()),
                     KEY_WARHAMMER_3 => warhammer_3::prepare_unit_multiplier(app_ui, game, game_path, reserved_pack, schema),
-                    KEY_TROY |
-                    KEY_THREE_KINGDOMS |
+                    KEY_TROY => Ok(()),
+                    KEY_THREE_KINGDOMS => three_kingdoms::prepare_unit_multiplier(app_ui, game, game_path, reserved_pack, schema),
                     KEY_WARHAMMER_2 |
                     KEY_WARHAMMER |
                     KEY_THRONES_OF_BRITANNIA |
