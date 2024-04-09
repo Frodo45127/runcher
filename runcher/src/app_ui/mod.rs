@@ -1817,7 +1817,10 @@ impl AppUI {
 
     /// Function to move files from /content to /secondary, or /data.
     fn move_to_destination(&self, data_path: &Path, secondary_path: &Option<PathBuf>, steam_user_id: &str, game: &GameInfo, modd: &mut Mod, mod_name: &str, pack: &mut Pack, new_pack_type: bool) -> Result<()> {
+
+        // Sometimes they come canonicalized, sometimes dont. This kinda fixes it.
         let new_path_in_data = data_path.join(&mod_name);
+        let new_path_in_data = std::fs::canonicalize(new_path_in_data.clone()).unwrap_or(new_path_in_data);
         let mut in_secondary = false;
 
         // First try to move it to secondary if it's not in /data. Only if it's not in /data already.
@@ -2081,59 +2084,57 @@ impl AppUI {
                             // Shogun 2 mods need to be turned into packs and moved to either /data or /secondary.
                             let steam_user_id = setting_string("steam_user_id");
                             let secondary_path = secondary_mods_path(game.key()).ok();
+                            let game_data_path = game.data_path(&game_path);
 
                             for modd in game_config.mods_mut().values_mut() {
                                 if let Some(last_path) = modd.paths().last() {
-                                    if let Some(extension) = last_path.extension() {
 
-                                        // Only copy bins which are not yet in the destination folder and which are not made by the steam user.
-                                        // If the game is Shogun 2, also copy packs to /secondary or /data.
-                                        let legacy_mod = extension.to_string_lossy() == "bin" && !modd.file_name().is_empty();
-                                        if legacy_mod || (extension.to_string_lossy() == "pack" && game.key() == KEY_SHOGUN_2) {
+                                    // Only copy bins which are not yet in the destination folder and which are not made by the steam user.
+                                    let legacy_mod = modd.id().ends_with(".bin") && !modd.file_name().is_empty();
+                                    if legacy_mod {
 
-                                            // This is for Packs. Map mods use a different process.
-                                            if let Ok(mut pack) = Pack::read_and_merge(&[last_path.to_path_buf()], true, false) {
-                                                if let Ok(data_path) = game.data_path(&game_path) {
+                                        // This is for Packs. Map mods use a different process.
+                                        if let Ok(mut pack) = Pack::read_and_merge(&[last_path.to_path_buf()], true, false) {
+                                            if let Ok(ref data_path) = game_data_path {
 
-                                                    let mod_name = if legacy_mod {
-                                                        if let Some(name) = modd.file_name().split('/').last() {
-                                                            name.to_string()
-                                                        } else {
-                                                            modd.id().to_string()
-                                                        }
+                                                let mod_name = if legacy_mod {
+                                                    if let Some(name) = modd.file_name().split('/').last() {
+                                                        name.to_string()
                                                     } else {
                                                         modd.id().to_string()
-                                                    };
+                                                    }
+                                                } else {
+                                                    modd.id().to_string()
+                                                };
 
-                                                    let _ = self.move_to_destination(&data_path, &secondary_path, &steam_user_id, &game, modd, &mod_name, &mut pack, false);
-                                                }
+                                                let _ = self.move_to_destination(&data_path, &secondary_path, &steam_user_id, &game, modd, &mod_name, &mut pack, false);
                                             }
+                                        }
 
-                                            // If it's not a pack, but is reported as a legacy mod, is a map mod from Shogun 2.
-                                            else if legacy_mod && game.key() == KEY_SHOGUN_2 {
-                                                if let Some(name) = modd.file_name().clone().split('/').last() {
+                                        // If it's not a pack, but is reported as a legacy mod, is a map mod from Shogun 2.
+                                        else if legacy_mod && game.key() == KEY_SHOGUN_2 {
+                                            if let Some(name) = modd.file_name().clone().split('/').last() {
 
-                                                    // Maps only contain a folder name. We need to change it into a pack name.
-                                                    let name = name.replace(" ", "_");
-                                                    let pack_name = name.to_owned() + ".pack";
+                                                // Maps only contain a folder name. We need to change it into a pack name.
+                                                let name = name.replace(" ", "_");
+                                                let pack_name = name.to_owned() + ".pack";
 
-                                                    if let Ok(data_path) = game.data_path(&game_path) {
-                                                        if let Ok(file) = File::open(last_path) {
-                                                            let mut file = BufReader::new(file);
-                                                            if let Ok(metadata) = file.get_ref().metadata() {
-                                                                let mut data = Vec::with_capacity(metadata.len() as usize);
-                                                                if file.read_to_end(&mut data).is_ok() {
+                                                if let Ok(ref data_path) = game_data_path {
+                                                    if let Ok(file) = File::open(last_path) {
+                                                        let mut file = BufReader::new(file);
+                                                        if let Ok(metadata) = file.get_ref().metadata() {
+                                                            let mut data = Vec::with_capacity(metadata.len() as usize);
+                                                            if file.read_to_end(&mut data).is_ok() {
 
-                                                                    let reader = BufReader::new(Cursor::new(data.to_vec()));
-                                                                    let mut decompressor = ZlibDecoder::new(reader);
-                                                                    let mut data_dec = vec![];
+                                                                let reader = BufReader::new(Cursor::new(data.to_vec()));
+                                                                let mut decompressor = ZlibDecoder::new(reader);
+                                                                let mut data_dec = vec![];
 
-                                                                    if decompressor.read_to_end(&mut data_dec).is_ok() {
-                                                                        let mut pack = self.generate_map_pack(&game, &data_dec, &pack_name, &name)?;
+                                                                if decompressor.read_to_end(&mut data_dec).is_ok() {
+                                                                    let mut pack = self.generate_map_pack(&game, &data_dec, &pack_name, &name)?;
 
-                                                                        // Once done generating the pack, just do the same as with normal mods.
-                                                                        let _ = self.move_to_destination(&data_path, &secondary_path, &steam_user_id, &game, modd, &pack_name, &mut pack, false);
-                                                                    }
+                                                                    // Once done generating the pack, just do the same as with normal mods.
+                                                                    let _ = self.move_to_destination(&data_path, &secondary_path, &steam_user_id, &game, modd, &pack_name, &mut pack, false);
                                                                 }
                                                             }
                                                         }

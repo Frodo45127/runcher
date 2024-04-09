@@ -388,9 +388,8 @@ impl GameConfig {
                     let paths = paths.iter()
                         .filter(|path| {
                             if let Ok(canon_path) = std::fs::canonicalize(path) {
-                                !vanilla_packs.contains(&canon_path) &&
-                                    canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(String::new) != RESERVED_PACK_NAME &&
-                                    canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(String::new) != RESERVED_PACK_NAME_ALTERNATIVE
+                                let file_name = canon_path.file_name().map(|x| x.to_string_lossy().to_string()).unwrap_or_else(String::new);
+                                !vanilla_packs.contains(&canon_path) && file_name != RESERVED_PACK_NAME && file_name != RESERVED_PACK_NAME_ALTERNATIVE
                             } else {
                                 false
                             }
@@ -406,9 +405,12 @@ impl GameConfig {
                         if let Ok(pack) = pack {
                             if pack.pfh_file_type() == PFHFileType::Mod || pack.pfh_file_type() == PFHFileType::Movie {
 
+                                // These are not cannonicalized by default.
+                                let path = std::fs::canonicalize(path)?;
+
                                 // Check if the pack corresponds to a bin.
                                 if let Some((_, modd)) = self.mods_mut().iter_mut().find(|(_, modd)| !modd.file_name().is_empty() && modd.file_name().split('/').last().unwrap() == pack_name) {
-                                    if !modd.paths().contains(path) {
+                                    if !modd.paths().contains(&path) {
                                         modd.paths_mut().insert(0, path.to_path_buf());
                                     }
 
@@ -418,7 +420,7 @@ impl GameConfig {
                                 } else {
                                     match self.mods_mut().get_mut(&pack_name) {
                                         Some(modd) => {
-                                            if !modd.paths().contains(path) {
+                                            if !modd.paths().contains(&path) {
                                                 modd.paths_mut().insert(0, path.to_path_buf());
                                             }
                                             modd.set_pack_type(pack.pfh_file_type());
@@ -435,7 +437,7 @@ impl GameConfig {
                                                 .find(|modd| modd.alt_name().unwrap() == pack_name) {
 
                                                 Some(modd) => {
-                                                    if !modd.paths().contains(path) {
+                                                    if !modd.paths().contains(&path) {
                                                         modd.paths_mut().insert(0, path.to_path_buf());
                                                     }
                                                     modd.set_pack_type(pack.pfh_file_type());
