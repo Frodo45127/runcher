@@ -13,21 +13,19 @@
 use anyhow::Result;
 use crossbeam::channel::Receiver;
 use getset::*;
-use rayon::prelude::*;
+use rayon::{iter::Either, prelude::*};
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
 
 use std::collections::{BTreeMap, HashMap};
 use std::fs::{DirBuilder, File};
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter, Cursor, Read, Write};
 use std::path::Path;
 use std::time::UNIX_EPOCH;
 
 use rpfm_lib::files::pack::Pack;
-use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::KEY_SHOGUN_2};
+use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
 use rpfm_lib::integrations::log::error;
-
-use rpfm_ui_common::settings::setting_string;
 
 use crate::app_ui::{RESERVED_PACK_NAME, RESERVED_PACK_NAME_ALTERNATIVE};
 use crate::communications::{Command, Response};
@@ -200,47 +198,103 @@ impl GameConfig {
                 //
                 // These have less priority.
                 if let Some(ref paths) = content_paths {
-                    let packs = paths.par_iter()
-                        .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false)))
-                        .collect::<Vec<_>>();
+                    let (packs, maps): (Vec<_>, Vec<_>) = paths.par_iter()
+                        .partition_map(|path| match Pack::read_and_merge(&[path.to_path_buf()], true, false) {
+                            Ok(pack) => Either::Left((path, pack)),
+                            Err(_) => Either::Right(path),
+                        });
 
                     for (path, pack) in packs {
                         let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                        if let Ok(pack) = pack {
-                            if pack.pfh_file_type() == PFHFileType::Mod || pack.pfh_file_type() == PFHFileType::Movie {
-                                match self.mods_mut().get_mut(&pack_name) {
-                                    Some(modd) => {
-                                        if !modd.paths().contains(path) {
-                                            modd.paths_mut().push(path.to_path_buf());
-                                        }
-
-                                        // Get the steam id from the path, if possible.
-                                        let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
-                                        steam_ids.push(steam_id.to_owned());
-                                        modd.set_steam_id(Some(steam_id));
-                                        modd.set_pack_type(pack.pfh_file_type());
-
-                                        let metadata = modd.paths().last().unwrap().metadata()?;
-                                        #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                        modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                        if pack.pfh_file_type() == PFHFileType::Mod || pack.pfh_file_type() == PFHFileType::Movie {
+                            match self.mods_mut().get_mut(&pack_name) {
+                                Some(modd) => {
+                                    if !modd.paths().contains(path) {
+                                        modd.paths_mut().push(path.to_path_buf());
                                     }
-                                    None => {
-                                        let mut modd = Mod::default();
-                                        modd.set_name(pack_name.to_owned());
-                                        modd.set_id(pack_name.to_owned());
-                                        modd.set_paths(vec![path.to_path_buf()]);
-                                        modd.set_pack_type(pack.pfh_file_type());
 
-                                        let metadata = modd.paths()[0].metadata()?;
-                                        #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                        modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                    // Get the steam id from the path, if possible.
+                                    let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
+                                    steam_ids.push(steam_id.to_owned());
+                                    modd.set_steam_id(Some(steam_id));
+                                    modd.set_pack_type(pack.pfh_file_type());
 
-                                        // Get the steam id from the path, if possible.
-                                        let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
-                                        steam_ids.push(steam_id.to_owned());
-                                        modd.set_steam_id(Some(steam_id));
+                                    let metadata = modd.paths().last().unwrap().metadata()?;
+                                    #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                    modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                }
+                                None => {
+                                    let mut modd = Mod::default();
+                                    modd.set_name(pack_name.to_owned());
+                                    modd.set_id(pack_name.to_owned());
+                                    modd.set_paths(vec![path.to_path_buf()]);
+                                    modd.set_pack_type(pack.pfh_file_type());
 
-                                        self.mods_mut().insert(pack_name, modd);
+                                    let metadata = modd.paths()[0].metadata()?;
+                                    #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                    modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+
+                                    // Get the steam id from the path, if possible.
+                                    let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
+                                    steam_ids.push(steam_id.to_owned());
+                                    modd.set_steam_id(Some(steam_id));
+
+                                    self.mods_mut().insert(pack_name, modd);
+                                }
+                            }
+                        }
+                    }
+
+                    // Maps use their own logic.
+                    for path in &maps {
+                        let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
+                        if let Some(extension) = path.extension() {
+                            if extension == "bin" {
+                                let mut file = BufReader::new(File::open(path)?);
+                                let mut data = Vec::with_capacity(file.get_ref().metadata()?.len() as usize);
+                                file.read_to_end(&mut data)?;
+
+                                let reader = BufReader::new(Cursor::new(data.to_vec()));
+                                let mut decompressor = flate2::read::ZlibDecoder::new(reader);
+                                let mut data_dec = vec![];
+
+                                // If they got decompressed correctly, we assume is a map. Shogun 2 64-bit update not only broke extracting the maps, but also
+                                // loading them from /maps. So instead we treat them like mods, and we generate their Pack once we get their Steam.
+                                if decompressor.read_to_end(&mut data_dec).is_ok() {
+                                    match self.mods_mut().get_mut(&pack_name) {
+                                        Some(modd) => {
+                                            if !modd.paths().contains(path) {
+                                                modd.paths_mut().push(path.to_path_buf());
+                                            }
+
+                                            // Get the steam id from the path, if possible.
+                                            let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
+                                            steam_ids.push(steam_id.to_owned());
+                                            modd.set_steam_id(Some(steam_id));
+                                            modd.set_pack_type(PFHFileType::Mod);
+
+                                            let metadata = modd.paths().last().unwrap().metadata()?;
+                                            #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                            modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                        }
+                                        None => {
+                                            let mut modd = Mod::default();
+                                            modd.set_name(pack_name.to_owned());
+                                            modd.set_id(pack_name.to_owned());
+                                            modd.set_paths(vec![path.to_path_buf()]);
+                                            modd.set_pack_type(PFHFileType::Mod);
+
+                                            let metadata = modd.paths()[0].metadata()?;
+                                            #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                            modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+
+                                            // Get the steam id from the path, if possible.
+                                            let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
+                                            steam_ids.push(steam_id.to_owned());
+                                            modd.set_steam_id(Some(steam_id));
+
+                                            self.mods_mut().insert(pack_name, modd);
+                                        }
                                     }
                                 }
                             }
@@ -251,48 +305,6 @@ impl GameConfig {
                 // Ignore network population errors for now.
                 if !skip_network_update {
                     receiver = Some(CENTRAL_COMMAND.send_network(Command::RequestModsData(Box::new(game.clone()), steam_ids)));
-                }
-
-                // If any of the mods has a .bin file, we need to copy it to /data and turn it into a Pack.
-                // All the if lets are because we only want to do all this if nothing files and ignore failures.
-                let steam_user_id = setting_string("steam_user_id");
-                for modd in self.mods_mut().values_mut() {
-                    if let Some(last_path) = modd.paths().last() {
-                        if let Some(extension) = last_path.extension() {
-
-                            // Only copy bins which are not yet in the data folder and which are not made by the steam user.
-                            // If the game is Shogun 2, also copy packs to data. Shogun 2 doesn't support loading packs from outside /data.
-                            let legacy_mod = extension.to_string_lossy() == "bin" && !modd.file_name().is_empty();
-                            if legacy_mod || (extension.to_string_lossy() == "pack" && game.key() == KEY_SHOGUN_2) {
-                                if let Ok(mut pack) = Pack::read_and_merge(&[last_path.to_path_buf()], true, false) {
-                                    if let Ok(new_path) = game.data_path(game_path) {
-
-                                        // Filename is only populated on legacy bin files.
-                                        if legacy_mod {
-                                            if let Some(name) = modd.file_name().split('/').last() {
-                                                let new_path = new_path.join(name);
-
-                                                // Copy the files unless it exists and its ours.
-                                                if (!new_path.is_file() || (new_path.is_file() && &steam_user_id != modd.creator())) && pack.save(Some(&new_path), game, &None).is_ok() {
-                                                    modd.paths_mut().insert(0, new_path);
-                                                }
-                                            }
-                                        }
-
-                                        // Alternative logic for normal packs.
-                                        else {
-                                            let new_path = new_path.join(modd.id());
-
-                                            // Copy the files unless it exists and its ours.
-                                            if (!new_path.is_file() || (new_path.is_file() && &steam_user_id != modd.creator())) && pack.save(Some(&new_path), game, &None).is_ok() {
-                                                modd.paths_mut().insert(0, new_path);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
 
                 // Then, if the game supports secondary mod path (only since Shogun 2) we check for mods in there. These have middle priority.
@@ -332,17 +344,38 @@ impl GameConfig {
                                         modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                     }
                                     None => {
-                                        let mut modd = Mod::default();
-                                        modd.set_name(pack_name.to_owned());
-                                        modd.set_id(pack_name.to_owned());
-                                        modd.set_paths(vec![path.to_path_buf()]);
-                                        modd.set_pack_type(pack.pfh_file_type());
 
-                                        let metadata = modd.paths()[0].metadata()?;
-                                        #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                        modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                        // If the mod fails to be found, is possible is a legacy mod. Find it by alt name.
+                                        match self.mods_mut().values_mut()
+                                            .filter(|modd| modd.alt_name().is_some())
+                                            .find(|modd| modd.alt_name().unwrap() == pack_name) {
 
-                                        self.mods_mut().insert(pack_name, modd);
+                                            Some(modd) => {
+                                                if !modd.paths().contains(path) {
+                                                    modd.paths_mut().insert(0, path.to_path_buf());
+                                                }
+                                                modd.set_pack_type(pack.pfh_file_type());
+
+                                                let metadata = modd.paths()[0].metadata()?;
+                                                #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                            }
+
+                                            None => {
+
+                                                let mut modd = Mod::default();
+                                                modd.set_name(pack_name.to_owned());
+                                                modd.set_id(pack_name.to_owned());
+                                                modd.set_paths(vec![path.to_path_buf()]);
+                                                modd.set_pack_type(pack.pfh_file_type());
+
+                                                let metadata = modd.paths()[0].metadata()?;
+                                                #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+
+                                                self.mods_mut().insert(pack_name, modd);
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -394,18 +427,38 @@ impl GameConfig {
                                             #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                             modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
                                         }
+
+                                        // Same as with secondaries for legacy mods.
                                         None => {
-                                            let mut modd = Mod::default();
-                                            modd.set_name(pack_name.to_owned());
-                                            modd.set_id(pack_name.to_owned());
-                                            modd.set_paths(vec![path.to_path_buf()]);
-                                            modd.set_pack_type(pack.pfh_file_type());
+                                            match self.mods_mut().values_mut()
+                                                .filter(|modd| modd.alt_name().is_some())
+                                                .find(|modd| modd.alt_name().unwrap() == pack_name) {
 
-                                            let metadata = modd.paths()[0].metadata()?;
-                                            #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                            modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                Some(modd) => {
+                                                    if !modd.paths().contains(path) {
+                                                        modd.paths_mut().insert(0, path.to_path_buf());
+                                                    }
+                                                    modd.set_pack_type(pack.pfh_file_type());
 
-                                            self.mods_mut().insert(pack_name, modd);
+                                                    let metadata = modd.paths()[0].metadata()?;
+                                                    #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                    modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                }
+
+                                                None => {
+                                                    let mut modd = Mod::default();
+                                                    modd.set_name(pack_name.to_owned());
+                                                    modd.set_id(pack_name.to_owned());
+                                                    modd.set_paths(vec![path.to_path_buf()]);
+                                                    modd.set_pack_type(pack.pfh_file_type());
+
+                                                    let metadata = modd.paths()[0].metadata()?;
+                                                    #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                    modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+
+                                                    self.mods_mut().insert(pack_name, modd);
+                                                }
+                                            }
                                         }
                                     }
                                 }

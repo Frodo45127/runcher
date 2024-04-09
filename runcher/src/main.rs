@@ -36,6 +36,7 @@ use qt_core::QCoreApplication;
 use qt_core::QString;
 
 use lazy_static::lazy_static;
+use regex::Regex;
 
 use std::path::PathBuf;
 use std::sync::{Arc, atomic::AtomicPtr, RwLock};
@@ -137,6 +138,14 @@ lazy_static! {
 
     /// Icons for the PackFile TreeView.
     static ref TREEVIEW_ICONS: Icons = unsafe { Icons::new() };
+
+    pub static ref REGEX_MAP_INFO_DISPLAY_NAME: Regex = Regex::new(r"<display_name>(.*)</display_name>").unwrap();
+    pub static ref REGEX_MAP_INFO_DESCRIPTION: Regex = Regex::new(r"<description>(.*)</description>").unwrap();
+    pub static ref REGEX_MAP_INFO_TYPE: Regex = Regex::new(r"<type>(.*)</type>").unwrap();
+    pub static ref REGEX_MAP_INFO_TEAM_SIZE_1: Regex = Regex::new(r"<team_size_1>(.*)</team_size_1>").unwrap();
+    pub static ref REGEX_MAP_INFO_TEAM_SIZE_2: Regex = Regex::new(r"<team_size_2>(.*)</team_size_2>").unwrap();
+    pub static ref REGEX_MAP_INFO_DEFENDER_FUNDS_RATIO: Regex = Regex::new(r"<defender_funds_ratio>(.*)</defender_funds_ratio>").unwrap();
+    pub static ref REGEX_MAP_INFO_HAS_KEY_BUILDINGS: Regex = Regex::new(r"<has_key_buildings>(.*)</has_key_buildings>").unwrap();
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");

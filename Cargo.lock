@@ -263,9 +263,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.15.4"
+version = "3.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ff69b9dd49fd426c69a0db9fc04dd934cdb6645ff000864d98f7e2af8830eaa"
+checksum = "79296716171880943b8470b5f8d03aa55eb2e645a4874bdbb28adb49162e012c"
 
 [[package]]
 name = "bytemuck"
@@ -318,9 +318,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.91"
+version = "1.0.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fd97381a8cc6493395a5afc4c691c1084b3768db713b73aa215217aa245d153"
+checksum = "2678b2e3449475e95b0aa6f9b506a28e61b3dc8996592b983695e8ebb58a8b41"
 dependencies = [
  "jobserver",
  "libc",
@@ -468,9 +468,9 @@ dependencies = [
 
 [[package]]
 name = "crc"
-version = "3.2.0"
+version = "3.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2b432c56615136f8dba245fed7ec3d5518c500a31108661067e61e72fe7e6bc"
+checksum = "69e6e4d7b33a94f0991c26729976b10ebde1d34c3ee82408fb536164fa10d636"
 dependencies = [
  "crc-catalog",
 ]
@@ -1082,9 +1082,9 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.2.13"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06fddc2749e0528d2813f95e050e87e52c8cbbae56223b9babf73b3e53b0cc6"
+checksum = "94b22e06ecb0110981051723910cbf0b5f5e09a2062dd7663334ee79a9d1286c"
 dependencies = [
  "cfg-if",
  "libc",
@@ -2400,7 +2400,7 @@ dependencies = [
 [[package]]
 name = "rpfm_extensions"
 version = "4.2.7"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#25e9e9b17923d37901d08cf59ef378095861b360"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#50547bec1908af0508ddc0da8c934901d36d9b94"
 dependencies = [
  "bincode",
  "caseless",
@@ -2420,7 +2420,7 @@ dependencies = [
 [[package]]
 name = "rpfm_lib"
 version = "4.2.7"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#25e9e9b17923d37901d08cf59ef378095861b360"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#50547bec1908af0508ddc0da8c934901d36d9b94"
 dependencies = [
  "backtrace",
  "base64 0.22.0",
@@ -2463,7 +2463,7 @@ dependencies = [
 [[package]]
 name = "rpfm_ui_common"
 version = "4.2.7"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#25e9e9b17923d37901d08cf59ef378095861b360"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#50547bec1908af0508ddc0da8c934901d36d9b94"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -2491,6 +2491,7 @@ dependencies = [
  "cpp_core",
  "crossbeam",
  "directories",
+ "flate2",
  "getset",
  "interprocess",
  "itertools 0.12.1",
@@ -3095,9 +3096,9 @@ dependencies = [
 
 [[package]]
 name = "sysinfo"
-version = "0.30.8"
+version = "0.30.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b1a378e48fb3ce3a5cf04359c456c9c98ff689bcf1c1bc6e6a31f247686f275"
+checksum = "e9a84fe4cfc513b41cb2596b624e561ec9e7e1c4b46328e496ed56a53514ef2a"
 dependencies = [
  "cfg-if",
  "core-foundation-sys",

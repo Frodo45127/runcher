@@ -48,20 +48,22 @@ use cpp_core::Ref;
 use anyhow::{anyhow, Result};
 use base64::prelude::*;
 use crossbeam::channel::Receiver;
+use flate2::read::ZlibDecoder;
 use getset::Getters;
 use itertools::Itertools;
+use rayon::prelude::*;
 use sha256::try_digest;
 
 use std::collections::HashMap;
 use std::fs::{DirBuilder, File};
-use std::io::{BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter, Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
-use rpfm_lib::binary::WriteBytes;
-use rpfm_lib::files::{EncodeableExtraData, pack::Pack, RFile};
+use rpfm_lib::binary::{ReadBytes, WriteBytes};
+use rpfm_lib::files::{Container, db::DB, EncodeableExtraData, FileType, loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::log::*;
 use rpfm_lib::schema::Schema;
@@ -81,11 +83,20 @@ use crate::DARK_PALETTE;
 use crate::data_ui::DataListUI;
 use crate::ffi::*;
 use crate::games::*;
-use crate::mod_manager::{*, game_config::{GameConfig, DEFAULT_CATEGORY}, integrations::*, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::ShareableMod, profiles::Profile, saves::Save, tools::Tools};
+use crate::mod_manager::{*, game_config::{GameConfig, DEFAULT_CATEGORY}, integrations::*, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::{Mod, ShareableMod}, profiles::Profile, saves::Save, tools::Tools};
 use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::*;
 use crate::pack_list_ui::PackListUI;
+use crate::{
+    REGEX_MAP_INFO_DISPLAY_NAME,
+    REGEX_MAP_INFO_DESCRIPTION,
+    REGEX_MAP_INFO_TYPE,
+    REGEX_MAP_INFO_TEAM_SIZE_1,
+    REGEX_MAP_INFO_TEAM_SIZE_2,
+    REGEX_MAP_INFO_DEFENDER_FUNDS_RATIO,
+    REGEX_MAP_INFO_HAS_KEY_BUILDINGS
+};
 use crate::SCHEMA;
 use crate::settings_ui::*;
 use crate::SUPPORTED_GAMES;
@@ -1804,21 +1815,359 @@ impl AppUI {
         }
     }
 
+    /// Function to move files from /content to /secondary, or /data.
+    fn move_to_destination(&self, data_path: &Path, secondary_path: &Option<PathBuf>, steam_user_id: &str, game: &GameInfo, modd: &mut Mod, mod_name: &str, pack: &mut Pack, new_pack_type: bool) -> Result<()> {
+        let new_path_in_data = data_path.join(&mod_name);
+        let mut in_secondary = false;
+
+        // First try to move it to secondary if it's not in /data. Only if it's not in /data already.
+        if let Some(ref secondary_path) = &secondary_path {
+            if !new_path_in_data.is_file() {
+                let new_path_in_secondary = secondary_path.join(&mod_name);
+
+                // Copy the files unless it exists and its ours.
+                if (!new_path_in_secondary.is_file() || (new_path_in_secondary.is_file() && &steam_user_id != modd.creator())) && pack.save(Some(&new_path_in_secondary), &game, &None).is_ok() {
+                    if !modd.paths().contains(&new_path_in_secondary) {
+                        modd.paths_mut().insert(0, new_path_in_secondary);
+                    }
+
+                    if new_pack_type {
+                        modd.set_pack_type(pack.pfh_file_type());
+                    }
+
+                    in_secondary = true;
+                }
+            }
+        }
+
+        // If the move to secondary failed, try to do the same with /data.
+        if !in_secondary {
+
+            // Copy the files unless it exists and its ours.
+            if (!new_path_in_data.is_file() || (new_path_in_data.is_file() && &steam_user_id != modd.creator())) && pack.save(Some(&new_path_in_data), &game, &None).is_ok() {
+                if !modd.paths().contains(&new_path_in_data) {
+                    modd.paths_mut().insert(0, new_path_in_data);
+                }
+
+                if new_pack_type {
+                    modd.set_pack_type(pack.pfh_file_type());
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Function to generate a pack from a Shogun 2 map bin data.
+    fn generate_map_pack(&self, game: &GameInfo, data_dec: &[u8], pack_name: &str, map_name: &str) -> Result<Pack> {
+
+        // Get all the files into memory to generate its pack.
+        let mut files = HashMap::new();
+        let mut data_dec = Cursor::new(data_dec);
+        loop {
+
+            // At the end of the last file there's a 0A 00 00 00 that doesn't seem to be part of a file.
+            let len = data_dec.len()?;
+            if len < 4 || data_dec.position() >= len - 4 {
+                break;
+            }
+
+            let file_name = data_dec.read_string_u16_0terminated()?;
+            let size = data_dec.read_u64()?;
+            let data = data_dec.read_slice(size as usize, false)?;
+
+            files.insert(file_name, data);
+        }
+
+        let mut pack = Pack::new_with_name_and_version(&pack_name, game.pfh_version_by_file_type(PFHFileType::Mod));
+        let spec_path = format!("battleterrain/presets/{}/", &map_name);
+
+        // We need to add the files under /BattleTerrain/presets/map_name
+        for (file_name, file_data) in &files {
+            let rfile_path = spec_path.to_owned() + file_name;
+            let mut rfile = RFile::new_from_vec(&file_data, FileType::Unknown, 0, &rfile_path);
+            let _ = rfile.guess_file_type();
+            let _ = pack.insert(rfile);
+        }
+
+        // We also need to generate a battles table for our mod, so it shows up ingame, and a loc table, so it has a name ingame.
+        //
+        // The data for all of this needs to be parsed from the map_info.xml file.
+        if let Some(map_info) = files.get("map_info.xml") {
+            if let Ok(map_info) = String::from_utf8(map_info.to_vec()) {
+                if let Some(ref schema) = *SCHEMA.read().unwrap() {
+                    let table_name = "battles_tables";
+                    let table_version = 4;
+                    if let Some(definition) = schema.definition_by_name_and_version(&table_name, table_version) {
+
+                        // DB
+                        let patches = schema.patches_for_table(&table_name);
+                        let mut file = DB::new(definition, patches, &table_name);
+                        let mut row = file.new_row();
+
+                        if let Some(column) = file.column_position_by_name("key") {
+                            if let Some(DecodedData::StringU16(key)) = row.get_mut(column) {
+                                *key = map_name.to_string();
+                            }
+                        }
+
+                        if let Some(column) = file.column_position_by_name("type") {
+                            if let Some(DecodedData::StringU16(battle_type)) = row.get_mut(column) {
+                                if let Some(battle_type_xml) = REGEX_MAP_INFO_TYPE.captures(&map_info) {
+                                    if let Some(battle_type_xml) = battle_type_xml.get(1) {
+                                        if battle_type_xml.as_str() == "land" {
+                                            *battle_type = "classic".to_string();
+                                        } else {
+                                            *battle_type = battle_type_xml.as_str().to_string();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if let Some(column) = file.column_position_by_name("specification") {
+                            if let Some(DecodedData::StringU16(specification_path)) = row.get_mut(column) {
+                                *specification_path = spec_path.to_owned();
+                            }
+                        }
+
+                        if let Some(column) = file.column_position_by_name("screenshot_path") {
+                            if let Some(DecodedData::OptionalStringU16(screenshot_path)) = row.get_mut(column) {
+                                *screenshot_path = spec_path + "icon.tga";
+                            }
+                        }
+
+                        if let Some(column) = file.column_position_by_name("team_size_1") {
+                            if let Some(DecodedData::I32(team_size_1)) = row.get_mut(column) {
+                                if let Some(team_size_1_xml) = REGEX_MAP_INFO_TEAM_SIZE_1.captures(&map_info) {
+                                    if let Some(team_size_1_xml) = team_size_1_xml.get(1) {
+                                        if let Ok(team_size_1_xml) = team_size_1_xml.as_str().parse::<i32>() {
+                                            *team_size_1 = team_size_1_xml;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if let Some(column) = file.column_position_by_name("team_size_2") {
+                            if let Some(DecodedData::I32(team_size_2)) = row.get_mut(column) {
+                                if let Some(team_size_2_xml) = REGEX_MAP_INFO_TEAM_SIZE_2.captures(&map_info) {
+                                    if let Some(team_size_2_xml) = team_size_2_xml.get(1) {
+                                        if let Ok(team_size_2_xml) = team_size_2_xml.as_str().parse::<i32>() {
+                                            *team_size_2 = team_size_2_xml;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if let Some(column) = file.column_position_by_name("release") {
+                            if let Some(DecodedData::Boolean(value)) = row.get_mut(column) {
+                                *value = true;
+                            }
+                        }
+
+                        if let Some(column) = file.column_position_by_name("multiplayer") {
+                            if let Some(DecodedData::Boolean(value)) = row.get_mut(column) {
+                                *value = true;
+                            }
+                        }
+
+                        if let Some(column) = file.column_position_by_name("singleplayer") {
+                            if let Some(DecodedData::Boolean(value)) = row.get_mut(column) {
+                                *value = true;
+                            }
+                        }
+
+                        if let Some(column) = file.column_position_by_name("defender_funds_ratio") {
+                            if let Some(DecodedData::F32(funds_ratio)) = row.get_mut(column) {
+                                if let Some(funds_ratio_xml) = REGEX_MAP_INFO_DEFENDER_FUNDS_RATIO.captures(&map_info) {
+                                    if let Some(funds_ratio_xml) = funds_ratio_xml.get(1) {
+                                        if let Ok(funds_ratio_xml) = funds_ratio_xml.as_str().parse::<f32>() {
+                                            *funds_ratio = funds_ratio_xml;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if let Some(column) = file.column_position_by_name("has_key_buildings") {
+                            if let Some(DecodedData::Boolean(value)) = row.get_mut(column) {
+                                if let Some(has_key_buildings_xml) = REGEX_MAP_INFO_HAS_KEY_BUILDINGS.captures(&map_info) {
+                                    if let Some(has_key_buildings_xml) = has_key_buildings_xml.get(1) {
+                                        if let Ok(has_key_buildings_xml) = has_key_buildings_xml.as_str().parse::<bool>() {
+                                            *value = has_key_buildings_xml;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if let Some(column) = file.column_position_by_name("matchmaking") {
+                            if let Some(DecodedData::Boolean(value)) = row.get_mut(column) {
+                                *value = true;
+                            }
+                        }
+
+                        file.data_mut().push(row);
+                        let rfile_decoded = RFileDecoded::DB(file);
+                        let rfile_path = format!("db/battles_tables/{}", map_name);
+                        let rfile = RFile::new_from_decoded(&rfile_decoded, 0, &rfile_path);
+                        let _ = pack.insert(rfile);
+
+                        // Loc
+                        let mut file = Loc::new();
+
+                        if let Some(display_name) = REGEX_MAP_INFO_DISPLAY_NAME.captures(&map_info) {
+                            if let Some(display_name) = display_name.get(1) {
+                                let mut row = file.new_row();
+
+                                row[0] = DecodedData::StringU16(format!("battles_localised_name_{}", map_name));
+                                row[1] = DecodedData::StringU16(display_name.as_str().to_string());
+
+                                file.data_mut().push(row);
+                            }
+                        }
+
+                        if let Some(description) = REGEX_MAP_INFO_DESCRIPTION.captures(&map_info) {
+                            if let Some(description) = description.get(1) {
+                                let mut row = file.new_row();
+
+                                row[0] = DecodedData::StringU16(format!("battles_description_{}", map_name));
+                                row[1] = DecodedData::StringU16(description.as_str().to_string());
+
+                                file.data_mut().push(row);
+                            }
+                        }
+
+                        let rfile_decoded = RFileDecoded::Loc(file);
+                        let rfile_path = format!("text/db/{}.loc", map_name);
+                        let rfile = RFile::new_from_decoded(&rfile_decoded, 0, &rfile_path);
+                        let _ = pack.insert(rfile);
+                    }
+                }
+            }
+        }
+
+        Ok(pack)
+    }
+
     pub unsafe fn update_mod_list_with_online_data(&self, receiver: &Option<Receiver<Response>>) -> Result<()> {
         if let Some(receiver) = receiver {
             let response = CENTRAL_COMMAND.recv_try(receiver);
             match response {
                 Response::VecMod(workshop_items) => {
-                    let mut mods = self.game_config().write().unwrap();
-                    if let Some(ref mut mods) = *mods {
+                    let mut game_config = self.game_config().write().unwrap();
+                    if let Some(ref mut game_config) = *game_config {
                         let game = self.game_selected().read().unwrap();
+                        let game_path = setting_path(game.key());
 
-                        if populate_mods_with_online_data(mods.mods_mut(), &workshop_items).is_ok() {
-                            mods.save(&game)?;
+                        if populate_mods_with_online_data(game_config.mods_mut(), &workshop_items).is_ok() {
+
+                            // Shogun 2 uses two types of mods:
+                            // - Pack mods turned binary: they're pack mods with a few extra bytes at the beginning. RPFM lib is capable to open them, save them as Packs, then do one of these:
+                            //   - If the mod pack is in /data, we copy it there.
+                            //   - If the mod pack is not /data and we have a secondary folder configured, we copy it there.
+                            //   - If the mod pack is not /data and we don't have a secondary folder configured, we copy it to /data.
+                            // - Map mods. These are zlib-compressed lists of files. Their encoding turned to be quite simple:
+                            //   - Null-terminated StringU16: File name.
+                            //   - u64: File data size.
+                            //   - [u8; size]: File data.
+                            //   - Then at the end there is an u32 with a 0A that we ignore.
+                            //
+                            // Other games may also use the first type, but most modern uploads are normal Packs.
+                            //
+                            // So, once population is done, we need to do some post-processing. Our mods need to be moved to either /data or /secondary if we don't have them there.
+                            // Shogun 2 mods need to be turned into packs and moved to either /data or /secondary.
+                            let steam_user_id = setting_string("steam_user_id");
+                            let secondary_path = secondary_mods_path(game.key()).ok();
+
+                            for modd in game_config.mods_mut().values_mut() {
+                                if let Some(last_path) = modd.paths().last() {
+                                    if let Some(extension) = last_path.extension() {
+
+                                        // Only copy bins which are not yet in the destination folder and which are not made by the steam user.
+                                        // If the game is Shogun 2, also copy packs to /secondary or /data.
+                                        let legacy_mod = extension.to_string_lossy() == "bin" && !modd.file_name().is_empty();
+                                        if legacy_mod || (extension.to_string_lossy() == "pack" && game.key() == KEY_SHOGUN_2) {
+
+                                            // This is for Packs. Map mods use a different process.
+                                            if let Ok(mut pack) = Pack::read_and_merge(&[last_path.to_path_buf()], true, false) {
+                                                if let Ok(data_path) = game.data_path(&game_path) {
+
+                                                    let mod_name = if legacy_mod {
+                                                        if let Some(name) = modd.file_name().split('/').last() {
+                                                            name.to_string()
+                                                        } else {
+                                                            modd.id().to_string()
+                                                        }
+                                                    } else {
+                                                        modd.id().to_string()
+                                                    };
+
+                                                    let _ = self.move_to_destination(&data_path, &secondary_path, &steam_user_id, &game, modd, &mod_name, &mut pack, false);
+                                                }
+                                            }
+
+                                            // If it's not a pack, but is reported as a legacy mod, is a map mod from Shogun 2.
+                                            else if legacy_mod && game.key() == KEY_SHOGUN_2 {
+                                                if let Some(name) = modd.file_name().clone().split('/').last() {
+
+                                                    // Maps only contain a folder name. We need to change it into a pack name.
+                                                    let name = name.replace(" ", "_");
+                                                    let pack_name = name.to_owned() + ".pack";
+
+                                                    if let Ok(data_path) = game.data_path(&game_path) {
+                                                        if let Ok(file) = File::open(last_path) {
+                                                            let mut file = BufReader::new(file);
+                                                            if let Ok(metadata) = file.get_ref().metadata() {
+                                                                let mut data = Vec::with_capacity(metadata.len() as usize);
+                                                                if file.read_to_end(&mut data).is_ok() {
+
+                                                                    let reader = BufReader::new(Cursor::new(data.to_vec()));
+                                                                    let mut decompressor = ZlibDecoder::new(reader);
+                                                                    let mut data_dec = vec![];
+
+                                                                    if decompressor.read_to_end(&mut data_dec).is_ok() {
+                                                                        let mut pack = self.generate_map_pack(&game, &data_dec, &pack_name, &name)?;
+
+                                                                        // Once done generating the pack, just do the same as with normal mods.
+                                                                        let _ = self.move_to_destination(&data_path, &secondary_path, &steam_user_id, &game, modd, &pack_name, &mut pack, false);
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Before continuing, we need to do some cleaning. There's a chance that due to the order of operations done to populate the mod list
+                            // Some legacy packs get split into two distinct mods. We need to detect them and clean them up here.
+                            let alt_names = game_config.mods()
+                                .par_iter()
+                                .filter_map(|(_, modd)| modd.alt_name())
+                                .collect::<Vec<_>>();
+
+                            for alt_name in &alt_names {
+                                game_config.mods_mut().remove(alt_name);
+                                game_config.categories_mut().iter_mut().for_each(|(_, mods)| {
+                                    mods.retain(|modd| modd != alt_name);
+                                });
+                            }
+
+                            game_config.save(&game)?;
 
                             // If we got a successfull network update, then proceed to update the UI with the new data.
                             // It's faster than a full rebuild, and looks more modern and async.
-                            self.mod_list_ui().update(&game, mods.mods())?;
+                            self.mod_list_ui().update(&game, game_config.mods(), &alt_names)?;
+
+                            // Reload the pack list, as it may have changed in some cases (Shogun 2).
+                            let load_order = self.game_load_order().read().unwrap();
+                            self.pack_list_ui().load(game_config, &game, &game_path, &load_order)?;
                         }
                     }
                 }

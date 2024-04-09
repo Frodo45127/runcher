@@ -279,7 +279,15 @@ impl ModListUI {
 
                                 let mod_name = if modd.name() != modd.id() {
                                     if !modd.file_name().is_empty() {
-                                        format!("<b>{}</b> <i>({} - {})</i>", modd.name(), modd.file_name().split('/').last().unwrap(), modd.id())
+
+                                        // Map filenames are folder names which we have to turn into packs.
+                                        let pack_name = if let Some(alt_name) = modd.alt_name() {
+                                            alt_name.to_string()
+                                        } else {
+                                            modd.file_name().split('/').last().unwrap().to_owned()
+                                        };
+
+                                        format!("<b>{}</b> <i>({} - {})</i>", modd.name(), pack_name, modd.id())
                                     } else {
                                         format!("<b>{}</b> <i>({})</i>", modd.name(), modd.id())
                                     }
@@ -384,7 +392,7 @@ impl ModListUI {
         Ok(())
     }
 
-    pub unsafe fn update(&self, game: &GameInfo, mods: &HashMap<String, Mod>) -> Result<()> {
+    pub unsafe fn update(&self, game: &GameInfo, mods: &HashMap<String, Mod>, mods_to_delete: &[String]) -> Result<()> {
         self.model().block_signals(true);
 
         let date_format_str = setting_string("date_format");
@@ -395,9 +403,16 @@ impl ModListUI {
 
         for category_index in 0..self.model().row_count_0a() {
             let category = self.model().item_2a(category_index, 0);
+            let mut index_to_delete = vec![];
             for mod_index in 0..category.row_count() {
                 let item_mod_name = category.child_2a(mod_index, 0);
                 let mod_id = item_mod_name.data_1a(VALUE_MOD_ID).to_string().to_std_string();
+
+                if mods_to_delete.contains(&mod_id) {
+                    index_to_delete.push(mod_index);
+                    continue;
+                }
+
                 if !mod_id.is_empty() {
                     if let Some(modd) = mods.get(&mod_id) {
                         let item_flags = category.child_2a(mod_index, 1);
@@ -409,7 +424,15 @@ impl ModListUI {
 
                         let mod_name = if modd.name() != modd.id() {
                             if !modd.file_name().is_empty() {
-                                format!("<b>{}</b> <i>({} - {})</i>", modd.name(), modd.file_name().split('/').last().unwrap(), modd.id())
+
+                                // Map filenames are folder names which we have to turn into packs.
+                                let pack_name = if let Some(alt_name) = modd.alt_name() {
+                                    alt_name.to_string()
+                                } else {
+                                    modd.file_name().split('/').last().unwrap().to_owned()
+                                };
+
+                                format!("<b>{}</b> <i>({} - {})</i>", modd.name(), pack_name, modd.id())
                             } else {
                                 format!("<b>{}</b> <i>({})</i>", modd.name(), modd.id())
                             }
@@ -462,6 +485,18 @@ impl ModListUI {
                         item_time_updated.set_text(&QString::from_std_str(&time_updated));
                     }
                 }
+            }
+
+            if !index_to_delete.is_empty() {
+                index_to_delete.reverse();
+
+                self.model().block_signals(false);
+
+                for index in index_to_delete {
+                    category.remove_row(index);
+                }
+
+                self.model().block_signals(true);
             }
         }
 

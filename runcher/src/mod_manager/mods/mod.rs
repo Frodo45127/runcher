@@ -54,6 +54,9 @@ pub struct Mod {
     /// File name. If present, it's the name we need to give to the file when converting from bin to pack.
     ///
     /// Only present in old games for .bin files. Used as name when moving a .bin file to /data.
+    ///
+    /// Note that Shogun 2 maps contain here the folder where they should go. CA broke maps loading from a folder, so we convert them to packs.
+    /// The pack name is always the folder name, replacing whitespaces with underscores and putting .pack at the end.
     file_name: String,
 
     /// Size of the file in bytes.
@@ -159,6 +162,15 @@ impl Mod {
         // If no path is found, this is not a mod we have in use.
         else {
             false
+        }
+    }
+
+    /// Function to get the alternative name for Shogun 2 map binaries.
+    pub fn alt_name(&self) -> Option<String> {
+        if !self.file_name().is_empty() && !self.file_name().ends_with(".pack") {
+            Some(self.file_name().split('/').last()?.replace(" ", "_") + ".pack")
+        } else {
+            None
         }
     }
 }
