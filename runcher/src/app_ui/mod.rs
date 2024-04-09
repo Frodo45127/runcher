@@ -499,6 +499,7 @@ impl AppUI {
         self.actions_ui().copy_load_order_button().released().connect(slots.copy_load_order());
         self.actions_ui().paste_load_order_button().released().connect(slots.paste_load_order());
         self.actions_ui().reload_button().released().connect(slots.reload());
+        self.actions_ui().download_subscribed_mods_button().released().connect(slots.download_subscribed_mods());
         self.actions_ui().profile_load_button().released().connect(slots.load_profile());
         self.actions_ui().profile_save_button().released().connect(slots.save_profile());
         self.actions_ui().profile_manager_button().released().connect(slots.open_profile_manager());
@@ -2294,5 +2295,18 @@ impl AppUI {
         } else {
             Ok(None)
         }
+    }
+
+    pub unsafe fn download_subscribed_mods(&self) -> Result<()> {
+        self.toggle_main_window(false);
+
+        crate::mod_manager::integrations::download_subscribed_mods(&self.game_selected().read().unwrap())?;
+
+        self.toggle_main_window(true);
+
+        // Once done, do a reload of the mod list.
+        self.actions_ui().reload_button().click();
+
+        Ok(())
     }
 }

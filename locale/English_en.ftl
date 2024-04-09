@@ -235,3 +235,10 @@ move_to_secondary_failed = <p>Then following files failed to be moved:</p>
     {"{"}{"}"}
     </ul>
     <p>This can happen either becuase of an IO error, or because the file you're trying to move is not /data.</p>
+
+download_subscribed_mods = Download Subscribed Mods
+mods_downloaded = Mods downloaded. Please, MAKE SURE TO CHECK THE LOG.
+
+    Some mods (specially in older games) fail to download with this method, and you need to go to their workshop page and unsubscribe to them, then resubscribe to force Steam to download them.
+
+    The log contains the links to them.

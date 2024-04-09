@@ -97,6 +97,18 @@ pub enum FileTypeDerive {
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
+impl From<&QueryResultDerive> for PreUploadInfo {
+    fn from(value: &QueryResultDerive) -> Self {
+        Self {
+            published_file_id: value.published_file_id.clone(),
+            title: value.title.clone(),
+            description: value.description.clone(),
+            visibility: value.visibility.clone(),
+            tags: value.tags.to_vec(),
+        }
+    }
+}
+
 pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str, owner_id: &str) -> Result<PreUploadInfo> {
     let workshop_items = request_mods_data_raw(game, &[mod_id.to_owned()])?;
     if workshop_items.is_empty() {
@@ -313,14 +325,24 @@ pub fn launch_game(game: &GameInfo, command_to_pass: &str) -> Result<()> {
     Ok(())
 }
 
-impl From<&QueryResultDerive> for PreUploadInfo {
-    fn from(value: &QueryResultDerive) -> Self {
-        Self {
-            published_file_id: value.published_file_id.clone(),
-            title: value.title.clone(),
-            description: value.description.clone(),
-            visibility: value.visibility.clone(),
-            tags: value.tags.to_vec(),
-        }
-    }
+/// This function asks workshopper to get all subscribed items, check which ones are missing, and tell steam to re-download them.
+pub fn download_subscribed_mods(game: &GameInfo) -> Result<()> {
+    let game_path = setting_path(game.key());
+    let steam_id = game.steam_id(&game_path)? as u32;
+
+    let mut command = Command::new("cmd");
+    command.arg("/C");
+    command.arg(&*WORKSHOPPER_PATH);
+
+    command.arg("download-subscribed-items");
+    command.arg("-s");
+    command.arg(steam_id.to_string());
+
+    // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
+    #[cfg(target_os = "windows")]command.creation_flags(0x00000008);
+
+    let mut handle = command.spawn()?;
+    handle.wait()?;
+
+    Ok(())
 }

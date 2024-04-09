@@ -67,3 +67,7 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
 pub fn launch_game(game: &GameInfo, command_to_pass: &str) -> Result<()> {
     steam::launch_game(game, command_to_pass)
 }
+
+pub fn download_subscribed_mods(game: &GameInfo) -> Result<()> {
+    steam::download_subscribed_mods(game)
+}

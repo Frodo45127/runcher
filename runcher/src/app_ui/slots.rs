@@ -73,6 +73,7 @@ pub struct AppUISlots {
     copy_load_order: QBox<SlotNoArgs>,
     paste_load_order: QBox<SlotNoArgs>,
     reload: QBox<SlotNoArgs>,
+    download_subscribed_mods: QBox<SlotNoArgs>,
     load_profile: QBox<SlotNoArgs>,
     save_profile: QBox<SlotNoArgs>,
     open_profile_manager: QBox<SlotNoArgs>,
@@ -386,6 +387,15 @@ impl AppUISlots {
             }
         ));
 
+        let download_subscribed_mods = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                match view.download_subscribed_mods() {
+                    Ok(_) => show_dialog(view.main_window(), tr("mods_downloaded"), true),
+                    Err(error) => show_dialog(view.main_window(), error, false),
+                }
+            }
+        ));
+
         let load_profile = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
                 if let Err(error) = view.load_profile(None, false) {
@@ -631,6 +641,7 @@ impl AppUISlots {
             copy_load_order,
             paste_load_order,
             reload,
+            download_subscribed_mods,
 
             load_profile,
             save_profile,

@@ -29,6 +29,13 @@ pub(crate) struct Cli {
 #[derive(Debug, Subcommand)]
 pub enum Commands {
 
+    DownloadSubscribedItems {
+
+        /// SteamId/AppId of the game.
+        #[arg(short, long, value_name = "STEAM_ID")]
+        steam_id: u32,
+    },
+
     GetPublishedFileDetails {
 
         /// SteamId/AppId of the game we're going to upload the mod for.

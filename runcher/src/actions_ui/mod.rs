@@ -64,6 +64,7 @@ pub struct ActionsUI {
     copy_load_order_button: QPtr<QToolButton>,
     paste_load_order_button: QPtr<QToolButton>,
     reload_button: QPtr<QToolButton>,
+    download_subscribed_mods_button: QPtr<QToolButton>,
 
     profile_load_button: QPtr<QToolButton>,
     profile_save_button: QPtr<QToolButton>,
@@ -191,9 +192,11 @@ impl ActionsUI {
         let copy_load_order_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "copy_load_order_button")?;
         let paste_load_order_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "paste_load_order_button")?;
         let reload_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "reload_button")?;
+        let download_subscribed_mods_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "download_subscribed_mods_button")?;
         copy_load_order_button.set_tool_tip(&qtr("copy_load_order"));
         paste_load_order_button.set_tool_tip(&qtr("paste_load_order"));
         reload_button.set_tool_tip(&qtr("reload"));
+        download_subscribed_mods_button.set_tool_tip(&qtr("download_subscribed_mods"));
 
         let profile_load_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "profile_load_button")?;
         let profile_save_button: QPtr<QToolButton> = find_widget(&main_widget.static_upcast(), "profile_save_button")?;
@@ -233,6 +236,7 @@ impl ActionsUI {
             copy_load_order_button,
             paste_load_order_button,
             reload_button,
+            download_subscribed_mods_button,
 
             profile_load_button,
             profile_save_button,

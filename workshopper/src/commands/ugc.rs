@@ -15,7 +15,7 @@ use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use interprocess::local_socket::LocalSocketStream;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
-use steamworks::{AppId, Client, ClientManager, FileType, PublishedFileId, PublishedFileVisibility, QueryResult, SingleClient, SteamId, UpdateStatus, UpdateWatchHandle, UGC};
+use steamworks::{AppId, Client, ClientManager, DownloadItemResult, FileType, PublishedFileId, PublishedFileVisibility, QueryResult, SingleClient, SteamId, UpdateStatus, UpdateWatchHandle, UGC};
 
 use std::fmt::Write as FmtWrite;
 use std::fs::{DirBuilder, File};
@@ -23,7 +23,7 @@ use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 
-use rpfm_lib::{games::GameInfo, integrations::log::{error, info}};
+use rpfm_lib::{games::GameInfo, integrations::log::{error, info, warn}};
 
 const IPC_NAME_GET_PUBLISHED_FILE_DETAILS: &str = "runcher_get_published_file_details";
 
@@ -479,6 +479,58 @@ pub fn update(
     }
 }
 
+/// This function tries to download all mods a user has subscribed to from a game.
+pub fn download_subscribed_mods(steam_id: u32) -> Result<()> {
+
+    // Initialize the API.
+    let (client, tx, callback_thread) = init(steam_id, None)?;
+    let ugc = client.ugc();
+
+    // Get the published_file_ids.
+    let published_file_ids = ugc.subscribed_items();
+    for published_file_id in published_file_ids {
+
+        if ugc.download_item(published_file_id, true) {
+            info!("Downloading workshop item with ID: {}.", published_file_id.0);
+
+            let (tx_callback, rx_callback): (Sender<SteamWorksThreadMessage>, Receiver<SteamWorksThreadMessage>) = unbounded();
+            let _cb = client.register_callback(move |d: DownloadItemResult| {
+                match d.error {
+                    Some(error) => {
+                        error!("Error downloading workshop item with ID {}: {}", published_file_id.0, error);
+                        let _ = tx_callback.send(SteamWorksThreadMessage::Error(error.into()));
+                    }
+                    None => {
+                        info!("Workshop item with ID {} downloaded.", published_file_id.0);
+                        let _ = tx_callback.send(SteamWorksThreadMessage::Ok);
+                    }
+                }
+            });
+
+            let response = rx_callback.recv()?;
+            match response {
+                SteamWorksThreadMessage::Ok => {
+                    if let Some(install_info) = ugc.item_install_info(published_file_id) {
+
+                        // So, fun bug: if the item is a legacy item and somehow it got deleted from the content folder, steam will consistently fail to re-download it.
+                        // Solution? Unsubscribe, then resubscribe, then download again. Fuck legacy mods.
+                        if install_info.folder.ends_with(".bin") && !PathBuf::from(&install_info.folder).is_file() {
+                            warn!("Steam lied about downloading Workshop item with ID {}. Posible legacy mod.", published_file_id.0);
+                            warn!("To re-download this one, go to https://steamcommunity.com/sharedfiles/filedetails/?id={}, then unsubscribe and re-subscribe.", published_file_id.0);
+                        }
+                    }
+                    continue
+                },
+                SteamWorksThreadMessage::Error(_) => continue,
+                _ => panic!("{response:?}")
+            };
+        }
+    }
+
+    finish(tx, callback_thread)?;
+    Ok(())
+}
+
 //---------------------------------------------------------------------------//
 //                      UGC (Workshop) private functions
 //---------------------------------------------------------------------------//
@@ -540,17 +592,42 @@ fn subscribe_item(ugc: &UGC<ClientManager>, sender: Sender<SteamWorksThreadMessa
         move |result| {
             match result {
                 Ok(_) => {
-                    info!("Subscribed to new item.");
+                    info!("Subscribed Workshop item with ID {}.", published_file_id.0);
                     let _ = sender.send(SteamWorksThreadMessage::Ok);
                 }
 
-                Err(error) => { let _ = sender.send(SteamWorksThreadMessage::Error(From::from(error))); },
+                Err(error) => {
+                    error!("Failed to subscribe to Workshop item with ID {}: {}.", published_file_id.0, error.to_string());
+                    let _ = sender.send(SteamWorksThreadMessage::Error(From::from(error)));
+                },
             }
         },
     );
 }
 
-/// Function to retrieve the detailed data corresponting to a list of PublishedFileIds.
+/// Function to unsubscribe from an specific item in the workshop.
+///
+/// This function does NOT finish the background thread.
+fn unsubscribe_item(ugc: &UGC<ClientManager>, sender: Sender<SteamWorksThreadMessage>, published_file_id: PublishedFileId) {
+    ugc.unsubscribe_item(
+        published_file_id,
+        move |result| {
+            match result {
+                Ok(_) => {
+                    info!("Unsubscribed Workshop item with ID {}.", published_file_id.0);
+                    let _ = sender.send(SteamWorksThreadMessage::Ok);
+                }
+
+                Err(error) => {
+                    info!("Failed to unsubscribe to Workshop item with ID {}: {}.", published_file_id.0, error.to_string());
+                    let _ = sender.send(SteamWorksThreadMessage::Error(From::from(error)));
+                },
+            }
+        },
+    );
+}
+
+/// Function to retrieve the detailed data corresponding to a list of PublishedFileIds.
 fn get_published_file_details(ugc: &UGC<ClientManager>, sender: Sender<SteamWorksThreadMessage>, published_file_ids: Vec<PublishedFileId>) {
     match ugc.query_items(published_file_ids) {
         Ok(handle) => {
