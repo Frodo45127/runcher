@@ -242,3 +242,5 @@ mods_downloaded = Mods downloaded. Please, MAKE SURE TO CHECK THE LOG.
     Some mods (specially in older games) fail to download with this method, and you need to go to their workshop page and unsubscribe to them, then resubscribe to force Steam to download them.
 
     The log contains the links to them.
+
+download_from_workshop = Download Selected Mods

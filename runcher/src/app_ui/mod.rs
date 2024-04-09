@@ -526,6 +526,7 @@ impl AppUI {
 
         self.mod_list_ui().model().item_changed().connect(slots.update_pack_list());
         self.mod_list_ui().upload_to_workshop().triggered().connect(slots.upload_to_workshop());
+        self.mod_list_ui().download_from_workshop().triggered().connect(slots.download_from_workshop());
         self.mod_list_ui().context_menu().about_to_show().connect(slots.mod_list_context_menu_open());
         self.mod_list_ui().enable_selected().triggered().connect(slots.enable_selected());
         self.mod_list_ui().disable_selected().triggered().connect(slots.disable_selected());
@@ -2297,10 +2298,10 @@ impl AppUI {
         }
     }
 
-    pub unsafe fn download_subscribed_mods(&self) -> Result<()> {
+    pub unsafe fn download_subscribed_mods(&self, published_file_ids: &Option<Vec<String>>) -> Result<()> {
         self.toggle_main_window(false);
 
-        crate::mod_manager::integrations::download_subscribed_mods(&self.game_selected().read().unwrap())?;
+        crate::mod_manager::integrations::download_subscribed_mods(&self.game_selected().read().unwrap(), published_file_ids)?;
 
         self.toggle_main_window(true);
 

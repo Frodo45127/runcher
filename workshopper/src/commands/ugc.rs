@@ -480,14 +480,18 @@ pub fn update(
 }
 
 /// This function tries to download all mods a user has subscribed to from a game.
-pub fn download_subscribed_mods(steam_id: u32) -> Result<()> {
+pub fn download_subscribed_mods(steam_id: u32, published_file_ids: Option<String>) -> Result<()> {
 
     // Initialize the API.
     let (client, tx, callback_thread) = init(steam_id, None)?;
     let ugc = client.ugc();
 
     // Get the published_file_ids.
-    let published_file_ids = ugc.subscribed_items();
+    let published_file_ids = match published_file_ids {
+        Some(ids) => ids.split(",").filter_map(|x| x.parse::<u64>().ok()).map(|x| PublishedFileId(x)).collect(),
+        None => ugc.subscribed_items(),
+    };
+
     for published_file_id in published_file_ids {
 
         if ugc.download_item(published_file_id, true) {

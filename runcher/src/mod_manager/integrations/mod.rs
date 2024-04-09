@@ -68,6 +68,6 @@ pub fn launch_game(game: &GameInfo, command_to_pass: &str) -> Result<()> {
     steam::launch_game(game, command_to_pass)
 }
 
-pub fn download_subscribed_mods(game: &GameInfo) -> Result<()> {
-    steam::download_subscribed_mods(game)
+pub fn download_subscribed_mods(game: &GameInfo, published_file_ids: &Option<Vec<String>>) -> Result<()> {
+    steam::download_subscribed_mods(game, published_file_ids)
 }

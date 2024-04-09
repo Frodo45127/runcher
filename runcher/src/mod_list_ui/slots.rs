@@ -85,6 +85,7 @@ impl ModListUISlots {
             view.open_in_tool_menu.set_enabled(all_mods);
 
             view.upload_to_workshop.set_enabled(all_mods && selection.len() == 1);
+            view.download_from_workshop.set_enabled(all_mods);
 
             view.copy_to_secondary.set_enabled(all_mods);
             view.move_to_secondary.set_enabled(all_mods);

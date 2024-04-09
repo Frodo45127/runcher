@@ -46,7 +46,7 @@ fn main() {
 
     // Execute the commands.
     let (result, wait): (Result<()>, bool) = match cli.command {
-        Commands::DownloadSubscribedItems { steam_id } => (crate::commands::ugc::download_subscribed_mods(steam_id), true),
+        Commands::DownloadSubscribedItems { steam_id, published_file_ids } => (crate::commands::ugc::download_subscribed_mods(steam_id, published_file_ids), true),
         Commands::GetPublishedFileDetails { steam_id, published_file_ids } => (crate::commands::ugc::published_file_details(steam_id, &published_file_ids), false),
         Commands::Launch { base64, steam_id, command } => (crate::commands::launch_game(base64, steam_id, &command), false),
         Commands::Upload { base64, steam_id, file_path, title, description, tags, changelog, visibility } => (crate::commands::ugc::upload(base64, steam_id, &file_path, &title, &description, &tags, &changelog, &visibility), true),

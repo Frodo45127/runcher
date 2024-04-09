@@ -81,6 +81,7 @@ pub struct AppUISlots {
     enable_selected: QBox<SlotNoArgs>,
     disable_selected: QBox<SlotNoArgs>,
     upload_to_workshop: QBox<SlotNoArgs>,
+    download_from_workshop: QBox<SlotNoArgs>,
     category_create: QBox<SlotNoArgs>,
     category_delete: QBox<SlotNoArgs>,
     category_rename: QBox<SlotNoArgs>,
@@ -389,7 +390,30 @@ impl AppUISlots {
 
         let download_subscribed_mods = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
-                match view.download_subscribed_mods() {
+                match view.download_subscribed_mods(&None) {
+                    Ok(_) => show_dialog(view.main_window(), tr("mods_downloaded"), true),
+                    Err(error) => show_dialog(view.main_window(), error, false),
+                }
+            }
+        ));
+
+        let download_from_workshop = SlotNoArgs::new(&view.main_window, clone!(
+            view => move || {
+                let mod_ids = view.mod_list_selection()
+                    .iter()
+                    .map(|x| x.data_1a(VALUE_MOD_ID).to_string().to_std_string())
+                    .collect::<Vec<_>>();
+
+                let published_file_ids = if let Some(ref game_config) = *view.game_config().read().unwrap() {
+                    mod_ids.iter()
+                        .filter_map(|x| game_config.mods().get(x))
+                        .filter_map(|x| x.steam_id().clone())
+                        .collect::<Vec<_>>()
+                } else {
+                    vec![]
+                };
+
+                match view.download_subscribed_mods(&Some(published_file_ids)) {
                     Ok(_) => show_dialog(view.main_window(), tr("mods_downloaded"), true),
                     Err(error) => show_dialog(view.main_window(), error, false),
                 }
@@ -650,6 +674,7 @@ impl AppUISlots {
             enable_selected,
             disable_selected,
             upload_to_workshop,
+            download_from_workshop,
             category_create,
             category_delete,
             category_rename,

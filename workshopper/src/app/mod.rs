@@ -34,6 +34,10 @@ pub enum Commands {
         /// SteamId/AppId of the game.
         #[arg(short, long, value_name = "STEAM_ID")]
         steam_id: u32,
+
+        /// List of published file ids, separated by comma. If empty, all subscribed items are downloaded.
+        #[arg(short, long, required = false, value_name = "PUBLISHED_FILE_IDS")]
+        published_file_ids: Option<String>,
     },
 
     GetPublishedFileDetails {

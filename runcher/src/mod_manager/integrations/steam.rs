@@ -326,7 +326,7 @@ pub fn launch_game(game: &GameInfo, command_to_pass: &str) -> Result<()> {
 }
 
 /// This function asks workshopper to get all subscribed items, check which ones are missing, and tell steam to re-download them.
-pub fn download_subscribed_mods(game: &GameInfo) -> Result<()> {
+pub fn download_subscribed_mods(game: &GameInfo, published_file_ids: &Option<Vec<String>>) -> Result<()> {
     let game_path = setting_path(game.key());
     let steam_id = game.steam_id(&game_path)? as u32;
 
@@ -337,6 +337,11 @@ pub fn download_subscribed_mods(game: &GameInfo) -> Result<()> {
     command.arg("download-subscribed-items");
     command.arg("-s");
     command.arg(steam_id.to_string());
+
+    if let Some(published_file_ids) = published_file_ids {
+        command.arg("-p");
+        command.arg(published_file_ids.join(","));
+    }
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
     #[cfg(target_os = "windows")]command.creation_flags(0x00000008);
