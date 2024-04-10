@@ -26,7 +26,7 @@ use qt_core::QTimer;
 
 use cpp_core::CppDeletable;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use getset::*;
 use rayon::prelude::*;
 
@@ -141,14 +141,10 @@ impl DataListUI {
         self.filter_case_sensitive_button().set_enabled(enable);
     }
 
-    pub unsafe fn load(&self, game_config: &GameConfig, game: &GameInfo, game_path: &Path, load_order: &LoadOrder) -> Result<()> {
-        self.tree_view.update_treeview(true, &mut TreeViewOperation::Clear);
-
-        self.setup_columns();
+    pub fn generate_data(&self, game_config: &GameConfig, game: &GameInfo, game_path: &Path, load_order: &LoadOrder) -> Result<Pack> {
 
         // Only load this if the game path is actually a path.
         if game_path.exists() && game_path.is_dir() {
-            self.set_enabled(true);
 
             // Build the full pack list with the vanilla packs.
             let vanilla_paths = game.ca_packs_paths(game_path)?;
@@ -186,6 +182,22 @@ impl DataListUI {
             };
 
             let full_pack = Pack::merge(&base_packs)?;
+
+            Ok(full_pack)
+        } else {
+            Err(anyhow!("Game Path not found."))
+        }
+     }
+
+    pub unsafe fn load(&self, game_config: &GameConfig, game: &GameInfo, game_path: &Path, load_order: &LoadOrder) -> Result<()> {
+        self.tree_view.update_treeview(true, &mut TreeViewOperation::Clear);
+
+        self.setup_columns();
+
+        // Only load this if the game path is actually a path.
+        if game_path.exists() && game_path.is_dir() {
+            self.set_enabled(true);
+            let full_pack = self.generate_data(game_config, game, game_path, load_order)?;
 
             // Then, build the tree.
             let build_data = full_pack.files().par_iter().map(|(_, file)| From::from(file)).collect();
