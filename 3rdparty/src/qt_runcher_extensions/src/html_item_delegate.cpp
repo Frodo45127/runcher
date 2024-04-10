@@ -4,6 +4,7 @@
 #include <QPainter>
 #include <QTextDocument>
 #include <QTreeView>
+#include <QTableView>
 
 extern "C" void html_item_delegate(QObject *parent, const int column) {
     HtmlItemDelegate* delegate = new HtmlItemDelegate(parent);
@@ -17,7 +18,6 @@ HtmlItemDelegate::HtmlItemDelegate(QObject *parent): QStyledItemDelegate(parent)
 void HtmlItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const {
     //return QStyledItemDelegate::paint(painter, option, index);
     QStyleOptionViewItem opt = option;
-    QTreeView* view = dynamic_cast<QTreeView*>(parent());
 
     // Remove indentation for category items.
     if (index.column() == 0 && index.data(40).toBool()) {
@@ -33,7 +33,11 @@ void HtmlItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opti
 
         opt.text = "";
         opt.widget->style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter, opt.widget);
-        opt.rect.adjust(view->indentation(), 0, 0, 0);
+
+        QTreeView* view = dynamic_cast<QTreeView*>(parent());
+        if (view != nullptr) {
+            opt.rect.adjust(view->indentation(), 0, 0, 0);
+        }
 
         painter->translate(opt.rect.left(), opt.rect.top());
         QRect clip(0, 0, opt.rect.width(), opt.rect.height());
@@ -53,5 +57,9 @@ QSize HtmlItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QMode
     //doc.setTextWidth(opt.rect.width());
 
     QTreeView* view = dynamic_cast<QTreeView*>(parent());
-    return QSize(doc.idealWidth() + (view->indentation()), doc.size().height());
+    if (view != nullptr) {
+        return QSize(doc.idealWidth() + (view->indentation()), doc.size().height());
+    } else {
+        return QSize(doc.idealWidth(), doc.size().height());
+    }
 }
