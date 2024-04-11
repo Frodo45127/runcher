@@ -320,7 +320,8 @@ pub fn launch_game(game: &GameInfo, command_to_pass: &str) -> Result<()> {
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
     #[cfg(target_os = "windows")]command.creation_flags(0x00000008);
 
-    command.spawn()?;
+    let mut handle = command.spawn()?;
+    let _ = handle.wait();
 
     Ok(())
 }

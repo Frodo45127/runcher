@@ -109,6 +109,7 @@ pub struct SettingsUI {
     check_schema_updates_on_start_checkbox: QPtr<QCheckBox>,
     dark_mode_checkbox: QPtr<QCheckBox>,
     open_workshop_link_in_steam_checkbox: QPtr<QCheckBox>,
+    check_logs_checkbox: QPtr<QCheckBox>,
 
     font_button: QBox<QPushButton>,
     restore_default_button: QPtr<QPushButton>,
@@ -170,6 +171,7 @@ impl SettingsUI {
         let check_schema_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_schema_updates_on_start_label")?;
         let dark_mode_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "dark_mode_label")?;
         let open_workshop_link_in_steam_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "open_workshop_link_in_steam_label")?;
+        let check_logs_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_logs_label")?;
         let language_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "language_combobox")?;
         let default_game_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "default_game_combobox")?;
         let update_chanel_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "update_chanel_combobox")?;
@@ -180,6 +182,7 @@ impl SettingsUI {
         let check_schema_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_schema_updates_on_start_checkbox")?;
         let dark_mode_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "dark_mode_checkbox")?;
         let open_workshop_link_in_steam_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "open_workshop_link_in_steam_checkbox")?;
+        let check_logs_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_logs_checkbox")?;
         let paths_layout: QPtr<QGridLayout> = paths_groupbox.layout().static_downcast();
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(STABLE));
         update_chanel_combobox.add_item_q_string(&QString::from_std_str(BETA));
@@ -198,6 +201,7 @@ impl SettingsUI {
         check_schema_updates_on_start_label.set_text(&qtr("check_schema_updates_on_start"));
         dark_mode_label.set_text(&qtr("dark_mode"));
         open_workshop_link_in_steam_label.set_text(&qtr("open_workshop_link_in_steam"));
+        check_logs_label.set_text(&qtr("check_logs"));
 
         // Add one path at the beginning for the secondary mods folder.
         let secondary_mods_folder_label = QLabel::from_q_string_q_widget(&qtr("settings_secondary_mods_folder"), &paths_groupbox);
@@ -281,6 +285,7 @@ impl SettingsUI {
             check_schema_updates_on_start_checkbox,
             dark_mode_checkbox,
             open_workshop_link_in_steam_checkbox,
+            check_logs_checkbox,
 
             font_button,
             restore_default_button,
@@ -378,6 +383,7 @@ impl SettingsUI {
         self.open_workshop_link_in_steam_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "open_workshop_link_in_steam"));
         self.check_updates_on_start_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "check_updates_on_start"));
         self.check_schema_updates_on_start_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "check_schema_updates_on_start"));
+        self.check_logs_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "check_logs"));
 
         Ok(())
     }
@@ -434,6 +440,7 @@ impl SettingsUI {
         set_setting_bool_to_q_setting(&q_settings, "open_workshop_link_in_steam", self.open_workshop_link_in_steam_checkbox().is_checked());
         set_setting_bool_to_q_setting(&q_settings, "check_updates_on_start", self.check_updates_on_start_checkbox().is_checked());
         set_setting_bool_to_q_setting(&q_settings, "check_schema_updates_on_start", self.check_schema_updates_on_start_checkbox().is_checked());
+        set_setting_bool_to_q_setting(&q_settings, "check_logs", self.check_logs_checkbox().is_checked());
 
         // Save the settings.
         q_settings.sync();
@@ -582,6 +589,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_bool(&q_settings, "check_updates_on_start", true);
     set_setting_if_new_bool(&q_settings, "check_schema_updates_on_start", true);
     set_setting_if_new_bool(&q_settings, "dark_mode", false);
+    set_setting_if_new_bool(&q_settings, "check_logs", true);
 
     for game in &SUPPORTED_GAMES.games_sorted() {
         if game.key() != KEY_ARENA && game.key() != KEY_SHOGUN_2 {

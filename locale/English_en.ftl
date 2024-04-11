@@ -244,3 +244,13 @@ mods_downloaded = Mods downloaded. Please, MAKE SURE TO CHECK THE LOG.
     The log contains the links to them.
 
 download_from_workshop = Download Selected Mods
+
+log_anaylis_title = Log Analysis
+log_anaylis_explanation_title = Explanation
+log_anaylis_explanation = This is a list of all the Script Breaks/Script Errors your game suffered last time you run it, in case you want to report them to the modder responsible for the mod that causes them.
+
+    Keep in mind Runcher is not 100% accurate when getting the culprit mod.
+
+posible_pack = Posible Pack
+full_log = Full Log
+check_logs = Check Logs After Closing a Game

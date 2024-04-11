@@ -706,4 +706,3 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
 
     Ok(())
 }
-

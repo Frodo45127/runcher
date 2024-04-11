@@ -46,7 +46,8 @@ pub fn launch_game(base64: bool, steam_id: u32, command: &str) -> Result<()> {
 
     // This disables the terminal when executing the command.
     #[cfg(target_os = "windows")]game_command.creation_flags(CREATE_NO_WINDOW);
-    game_command.output()?;
+    let mut handle = game_command.spawn()?;
+    let _ = handle.wait()?;
 
     Ok(())
 }

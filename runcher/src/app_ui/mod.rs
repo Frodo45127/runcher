@@ -13,6 +13,7 @@ use qt_widgets::QActionGroup;
 use qt_widgets::QApplication;
 use qt_widgets::QButtonGroup;
 use qt_widgets::QComboBox;
+use qt_widgets::QGroupBox;
 use qt_widgets::QLineEdit;
 use qt_widgets::QRadioButton;
 use qt_widgets::QTabWidget;
@@ -24,20 +25,25 @@ use qt_widgets::QMessageBox;
 use qt_widgets::q_message_box;
 use qt_widgets::QPushButton;
 use qt_widgets::QSplitter;
+use qt_widgets::QTableView;
 use qt_widgets::QTextEdit;
 use qt_widgets::QWidget;
 
 use qt_gui::QFont;
 use qt_gui::QIcon;
+use qt_gui::QListOfQStandardItem;
 use qt_gui::QStandardItem;
+use qt_gui::QStandardItemModel;
 
 use qt_core::CheckState;
 use qt_core::Orientation;
 use qt_core::QBox;
 use qt_core::QCoreApplication;
 use qt_core::QModelIndex;
+use qt_core::QObject;
 use qt_core::QPtr;
 use qt_core::QSize;
+use qt_core::QSortFilterProxyModel;
 use qt_core::QString;
 use qt_core::QVariant;
 use qt_core::SlotNoArgs;
@@ -61,6 +67,7 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
+use std::time::SystemTime;
 
 use rpfm_lib::binary::{ReadBytes, WriteBytes};
 use rpfm_lib::files::{Container, db::DB, EncodeableExtraData, FileType, loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
@@ -111,6 +118,9 @@ const LOAD_ORDER_STRING_VIEW_RELEASE: &str = "ui/load_order_string_dialog.ui";
 
 const WORKSHOP_UPLOAD_VIEW_DEBUG: &str = "ui_templates/workshop_upload_dialog.ui";
 const WORKSHOP_UPLOAD_VIEW_RELEASE: &str = "ui/workshop_upload_dialog.ui";
+
+const LOG_ANALYSIS_VIEW_DEBUG: &str = "ui_templates/log_analysis_dialog.ui";
+const LOG_ANALYSIS_VIEW_RELEASE: &str = "ui/log_analysis_dialog.ui";
 
 pub const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
 pub const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
@@ -195,6 +205,15 @@ pub struct AppUI {
 
     // Game selected. Unlike RPFM, here it's not a global.
     game_selected: Rc<RwLock<GameInfo>>,
+}
+
+#[derive(Debug, Default, Getters)]
+#[getset(get = "pub")]
+pub struct ScriptBreak {
+    posible_pack: String,
+    posible_pack_mod: String,
+    posible_pack_link: Option<String>,
+    full_log: String,
 }
 
 //-------------------------------------------------------------------------------//
@@ -999,7 +1018,7 @@ impl AppUI {
                     // For post-shogun 2 games, we use the same command to bypass the launcher.
                     let command = if *game.raw_db_version() >= 1 {
 
-                        let mut command = format!("cmd /C start /d \"{}\" \"{}\" {};", game_path.to_string_lossy().replace('\\', "/"), exec_game.file_name().unwrap().to_string_lossy(), CUSTOM_MOD_LIST_FILE_NAME);
+                        let mut command = format!("cmd /C start /W /d \"{}\" \"{}\" {};", game_path.to_string_lossy().replace('\\', "/"), exec_game.file_name().unwrap().to_string_lossy(), CUSTOM_MOD_LIST_FILE_NAME);
 
                         for arg in &extra_args {
                             command.push(' ');
@@ -1011,13 +1030,26 @@ impl AppUI {
 
                     // Empire and Napoleon do not have a launcher. We can make our lives easier calling steam instead of launching the game manually.
                     else {
-                        format!("cmd /C start /d \"{}\" \"{}\"", game_path.to_string_lossy().replace('\\', "/"), exec_game.file_name().unwrap().to_string_lossy())
+                        format!("cmd /C start /W /d \"{}\" \"{}\"", game_path.to_string_lossy().replace('\\', "/"), exec_game.file_name().unwrap().to_string_lossy())
                     };
 
-                    let command = BASE64_STANDARD.encode(command);
-                    crate::mod_manager::integrations::launch_game(&game, &command)?;
+                    self.toggle_main_window(false);
 
-                    Ok(())
+                    let event_loop = qt_core::QEventLoop::new_0a();
+                    event_loop.process_events_0a();
+
+                    let start_date = SystemTime::now();
+                    let command = BASE64_STANDARD.encode(command);
+                    let result = crate::mod_manager::integrations::launch_game(&game, &command);
+
+                    // Check the logs post-launch, if there's any log to check.
+                    if setting_bool("check_logs") {
+                        self.check_logs(&game, &game_path, &start_date)?;
+                    }
+
+                    self.toggle_main_window(true);
+
+                    result
                 } else if cfg!(target_os = "linux") {
                     Err(anyhow!("Unsupported OS."))
                 } else {
@@ -2307,6 +2339,300 @@ impl AppUI {
 
         // Once done, do a reload of the mod list.
         self.actions_ui().reload_button().click();
+
+        Ok(())
+    }
+
+    pub unsafe fn check_logs(&self, game: &GameInfo, game_path: &Path, start_date: &SystemTime) -> Result<()> {
+
+        // NOTE: THIS IS A HACK. WE NEED TO USE SOME KIND OF CACHED DATA, NOT REMAKE IT HERE!!!!
+        let game_config = self.game_config().read().unwrap().clone().unwrap();
+        let load_order = self.game_load_order().read().unwrap();
+        let pack = self.data_list_ui().generate_data(&game_config, game, game_path, &load_order)?;
+
+        let vanilla_paths = game.ca_packs_paths(game_path)?;
+        let files = files_from_subdir(&game_path, false)?;
+        let paths = files.iter()
+            .filter(|path| {
+                let modified = path.metadata().unwrap().modified().unwrap();
+                //let start_date = &SystemTime::from(std::time::UNIX_EPOCH);
+                modified > *start_date && path.extension().is_some() && path.extension().unwrap() == "txt"
+            })
+            .collect::<Vec<_>>();
+
+        let mut breaks = vec![];
+        for path in &paths {
+            let mut data = String::new();
+            let mut file = BufReader::new(File::open(path)?);
+
+            // This fails in the clockwork one due to being windows-1252
+            if file.read_to_string(&mut data).is_ok() {
+
+                // Normal error.
+                /*
+                ********************
+                SCRIPT ERROR, timestamp <375.0s>
+                ERROR - SCRIPT HAS FAILED - event callback was called after receiving event [WorldStartRound] but the script failed with this error message:
+                [string "script\campaign\dynamic_disasters\disaster_the_great_bastion_improved.lua"]:609: attempt to get length of field '?' (a nil value)
+
+                The callstack of the failed script is:
+
+                stack traceback:
+                    [string "script\campaign\dynamic_disasters\disaster_the_great_bastion_improved.lua"]:609: in function 'trigger_pre_invasion_1'
+                    [string "script\campaign\dynamic_disasters\disaster_the_great_bastion_improved.lua"]:313: in function 'callback'
+                    [string "script\_lib\lib_core.lua"]:1930: in function <[string "script\_lib\lib_core.lua"]:1930>
+                    [C]: in function 'xpcall'
+                    [string "script\_lib\lib_core.lua"]:1930: in function 'event_protected_callback'
+                    [string "script\_lib\lib_core.lua"]:1991: in function 'event_callback'
+                    [string "script\_lib\lib_core.lua"]:2051: in function <[string "script\_lib\lib_core.lua"]:2051>
+
+                The callstack of the script which established the failed listener is:
+                stack traceback:
+                    [string "script\_lib\lib_core.lua"]:1908: in function 'add_listener'
+                    [string "script\campaign\dynamic_disasters\disaster_the_great_bastion_improved.lua"]:260: in function 'set_status'
+                    [string "script\campaign\dynamic_disasters\disaster_the_great_bastion_improved.lua"]:565: in function 'trigger_the_great_bastion_improved'
+                    [string "script\campaign\dynamic_disasters\disaster_the_great_bastion_improved.lua"]:486: in function 'start'
+                    [string "script\campaign\mod\dynamic_disasters.lua"]:606: in function <[string "script\campaign\mod\dynamic_disasters.lua"]:536>
+                    (tail call): ?
+                    [string "script\_lib\lib_core.lua"]:1930: in function <[string "script\_lib\lib_core.lua"]:1930>
+                    [C]: in function 'xpcall'
+                    [string "script\_lib\lib_core.lua"]:1930: in function 'event_protected_callback'
+                    [string "script\_lib\lib_core.lua"]:1991: in function 'event_callback'
+                    [string "script\_lib\lib_core.lua"]:2051: in function <[string "script\_lib\lib_core.lua"]:2051>
+                ********************
+                 */
+                let normal_errors = data.match_indices("SCRIPT ERROR, timestamp").collect::<Vec<_>>();
+                for (start_error, _) in normal_errors {
+                    if let Some(end_error) = data[start_error..].find("********************") {
+                        let message = data[start_error..start_error + end_error].to_owned();
+                        let mut script_break = ScriptBreak::default();
+                        script_break.full_log = message.to_owned();
+
+                        let start_path = "[string \"";
+                        let end_path = "\"]:";
+                        let mut paths = vec![];
+                        for (start_path_pos, _) in message.match_indices(start_path) {
+                            if let Some(end_path_pos) = message[start_path_pos + 9..].find(&end_path) {
+                                let path = message[start_path_pos + 9..start_path_pos + 9 + end_path_pos].replace("\\", "/");
+                                paths.push(path);
+                            }
+                        }
+
+                        // NOTE: pack finding only works if the pack that caused it is in the current run. Take that into account for tests.
+                        for path in &paths {
+                            if let Some(file) = pack.file(&path, true) {
+                                if let Some(pack_name) = file.container_name() {
+                                    if !pack_name.is_empty() && vanilla_paths.iter().all(|x| &x.file_name().unwrap().to_string_lossy().to_string() != pack_name) {
+                                        script_break.posible_pack = pack_name.to_owned();
+
+                                        // This is only valid in newer games!!!
+                                        let modd = game_config.mods().get(pack_name);
+                                        script_break.posible_pack_mod = modd
+                                            .map(|modd| modd.name().to_string())
+                                            .unwrap_or_else(|| String::new());
+                                        script_break.posible_pack_link = modd
+                                            .map(|modd| modd.steam_id()
+                                                .clone()
+                                                .map(|id| format!("https://steamcommunity.com/sharedfiles/filedetails/?id={}", id)))
+                                            .flatten();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        breaks.push(script_break);
+                    }
+                }
+
+                // Big Fat error.
+                /*
+                [out] <1593.9s>  BIG FAT SCRIPT ERROR
+                [out] <1593.9s>  [string "script\campaign\mod\meh_blightwing_duchy_campaign_features.lua"]:63: attempt to call method 'character_subtype_key' (a nil value)
+                [out] <1593.9s>  stack traceback:
+                    [string "script\_lib\mod\pj_error_wrapping.lua"]:50: in function 'condition'
+                    [string "script\_lib\lib_core.lua"]:1928: in function <[string "script\_lib\lib_core.lua"]:1928>
+                    [C]: in function 'xpcall'
+                    [string "script\_lib\lib_core.lua"]:1928: in function 'event_protected_callback'
+                    [string "script\_lib\lib_core.lua"]:1965: in function 'event_callback'
+                    [string "script\_lib\lib_core.lua"]:2051: in function <[string "script\_lib\lib_core.lua"]:2051>
+                [out] <1594.1s>   & Removing effect bundle [wh3_main_bundle_force_crackdown_corruption] from military force with cqi [80]
+                [out] <1594.1s>   & Removing effect bundle [ovn_fimir_fog_diktat_empty] from the force of character with cqi [159]
+                [out] <1594.1s>  DrunkFlamingo: Checking faction ally outposts for faction: wh2_dlc17_bst_malagor (temp tomb king ally fix)
+
+                 */
+                let big_fat_errors = data.match_indices("BIG FAT SCRIPT ERROR").collect::<Vec<_>>();
+                for (start_error, _) in big_fat_errors {
+
+                    // For end we use the third out.
+                    if let Some(first) = data[start_error..].find("[out]") {
+                        if let Some(second) = data[start_error + first + 3 ..].find("[out]") {
+                            if let Some(end_error) = data[start_error + first + 3 + second + 3..].find("[out]") {
+                                let message = data[start_error..start_error + first + 3 + second + 3 + end_error].to_owned();
+                                let mut script_break = ScriptBreak::default();
+                                script_break.full_log = message.to_owned();
+
+                                let start_path = "[string \"";
+                                let end_path = "\"]:";
+                                let mut paths = vec![];
+                                for (start_path_pos, _) in message.match_indices(start_path) {
+                                    if let Some(end_path_pos) = message[start_path_pos + 9..].find(&end_path) {
+                                        let path = message[start_path_pos + 9..start_path_pos + 9 + end_path_pos].replace("\\", "/");
+                                        paths.push(path);
+                                    }
+                                }
+
+                                // NOTE: pack finding only works if the pack that caused it is in the current run. Take that into account for tests.
+                                for path in &paths {
+                                    if let Some(file) = pack.file(&path, true) {
+                                        if let Some(pack_name) = file.container_name() {
+                                            if !pack_name.is_empty() && vanilla_paths.iter().all(|x| &x.file_name().unwrap().to_string_lossy().to_string() != pack_name) {
+                                                script_break.posible_pack = pack_name.to_owned();
+
+                                                // This is only valid in newer games!!!
+                                                let modd = game_config.mods().get(pack_name);
+                                                script_break.posible_pack_mod = modd
+                                                    .map(|modd| modd.name().to_string())
+                                                    .unwrap_or_else(|| String::new());
+                                                script_break.posible_pack_link = modd
+                                                    .map(|modd| modd.steam_id()
+                                                        .clone()
+                                                        .map(|id| format!("https://steamcommunity.com/sharedfiles/filedetails/?id={}", id)))
+                                                    .flatten();
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                breaks.push(script_break);
+                            }
+                        }
+                    }
+                }
+
+                // File-loading errors.
+                /*
+                [out] <2.8s>            Failed to load mod file [script\campaign\mod\test_errors_1.lua], error is: cannot open test_errors_1: No such file or directory. Will attempt to require() this file to generate a more meaningful error message:
+                [out] <2.8s>                error loading module test_errors_1 from file test_errors_1:[string "script\campaign\mod\test_errors_1.lua"]:2: 'then' expected near 'aaaaa'
+                [out] <2.8s>        Failed to load mod: [script\campaign\mod\test_errors_1.lua]
+
+
+                [out] <2.8s>            Failed to execute loaded mod file [script\campaign\mod\test_error_3.lua], error is: [string "script\campaign\mod\test_error_3.lua"]:1: attempt to call global 'test_func' (a nil value)
+                [out] <2.8s>        Failed to load mod: [script\campaign\mod\test_error_3.lua]
+
+                 */
+                let fail_load_errors = data.match_indices("Failed to load mod file").collect::<Vec<_>>();
+                let fail_execute_errors = data.match_indices("Failed to execute loaded mod file").collect::<Vec<_>>();
+                for (start_error, _) in fail_load_errors.into_iter().chain(fail_execute_errors.into_iter()) {
+
+                    // For end we use the third out.
+                    if let Some(end_error) = data[start_error..].find("Failed to load mod:") {
+                        let message = data[start_error..start_error + end_error].to_owned();
+                        let mut script_break = ScriptBreak::default();
+                        script_break.full_log = message.to_owned();
+
+                        let start_path = "[string \"";
+                        let end_path = "\"]:";
+                        let mut paths = vec![];
+                        for (start_path_pos, _) in message.match_indices(start_path) {
+                            if let Some(end_path_pos) = message[start_path_pos + 9..].find(&end_path) {
+                                let path = message[start_path_pos + 9..start_path_pos + 9 + end_path_pos].replace("\\", "/");
+                                paths.push(path);
+                            }
+                        }
+
+                        // NOTE: pack finding only works if the pack that caused it is in the current run. Take that into account for tests.
+                        for path in &paths {
+                            if let Some(file) = pack.file(&path, true) {
+                                if let Some(pack_name) = file.container_name() {
+                                    if !pack_name.is_empty() && vanilla_paths.iter().all(|x| &x.file_name().unwrap().to_string_lossy().to_string() != pack_name) {
+                                        script_break.posible_pack = pack_name.to_owned();
+
+                                        // This is only valid in newer games!!!
+                                        let modd = game_config.mods().get(pack_name);
+                                        script_break.posible_pack_mod = modd
+                                            .map(|modd| modd.name().to_string())
+                                            .unwrap_or_else(|| String::new());
+                                        script_break.posible_pack_link = modd
+                                            .map(|modd| modd.steam_id()
+                                                .clone()
+                                                .map(|id| format!("https://steamcommunity.com/sharedfiles/filedetails/?id={}", id)))
+                                            .flatten();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        breaks.push(script_break);
+                    }
+                }
+            }
+        }
+
+        // If breaks are detected, show the dialog with them.
+        if !breaks.is_empty() {
+
+            // If breaks were found, load the UI Template.
+            let template_path = if cfg!(debug_assertions) { LOG_ANALYSIS_VIEW_DEBUG } else { LOG_ANALYSIS_VIEW_RELEASE };
+            let main_widget = load_template(self.main_window(), template_path)?;
+            let dialog = main_widget.static_downcast::<QDialog>();
+
+            let explanation_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "explanation_label")?;
+            let explanation_groupbox: QPtr<QGroupBox> = find_widget(&main_widget.static_upcast(), "explanation_groupbox")?;
+            let breaks_table_view: QPtr<QTableView> = find_widget(&main_widget.static_upcast(), "breaks_table_view")?;
+            explanation_label.set_text(&qtr("log_anaylis_explanation"));
+            explanation_groupbox.set_title(&qtr("log_anaylis_explanation_title"));
+            dialog.set_window_title(&qtr("log_anaylis_title"));
+
+            let breaks_table_filter = QSortFilterProxyModel::new_1a(&breaks_table_view);
+            let breaks_table_model = QStandardItemModel::new_1a(&breaks_table_filter);
+            breaks_table_view.set_model(&breaks_table_filter);
+            breaks_table_filter.set_source_model(&breaks_table_model);
+
+            // Setup the table.
+            breaks_table_model.set_column_count(2);
+
+            let item_posible_pack = QStandardItem::from_q_string(&qtr("posible_pack"));
+            let item_full_log = QStandardItem::from_q_string(&qtr("full_log"));
+
+            breaks_table_view.horizontal_header().set_default_section_size(600);
+            breaks_table_view.horizontal_header().set_stretch_last_section(true);
+
+            breaks_table_model.set_horizontal_header_item(0, item_posible_pack.into_ptr());
+            breaks_table_model.set_horizontal_header_item(1, item_full_log.into_ptr());
+
+            html_item_delegate_safe(&breaks_table_view.static_upcast::<QObject>().as_ptr(), 0);
+
+            // Load the data to the table.
+            for script_break in &breaks {
+                let row = QListOfQStandardItem::new();
+
+                let item_pack = QStandardItem::new();
+                let item_log = QStandardItem::new();
+
+                item_pack.set_text(&QString::from_std_str(
+                    match script_break.posible_pack_link() {
+                        Some(link) => format!("<b>{}</b> (<i>{}</i>).<br/><br/>Link: <a src=\"{}\">{}</a>", script_break.posible_pack_mod(), script_break.posible_pack(), link, link),
+                        None => script_break.posible_pack().to_string(),
+                    }
+                ));
+
+                item_log.set_text(&QString::from_std_str(&script_break.full_log));
+
+                row.append_q_standard_item(&item_pack.into_ptr().as_mut_raw_ptr());
+                row.append_q_standard_item(&item_log.into_ptr().as_mut_raw_ptr());
+
+                breaks_table_model.append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
+            }
+
+            //breaks_table_view.resize_columns_to_contents();
+            breaks_table_view.resize_rows_to_contents();
+
+            dialog.set_modal(true);
+            dialog.exec();
+        }
 
         Ok(())
     }
