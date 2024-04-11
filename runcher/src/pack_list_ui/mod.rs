@@ -139,6 +139,7 @@ impl PackListUI {
 
         if !game_path.to_string_lossy().is_empty() {
             if let Ok(game_data_folder) = game_info.data_path(game_path) {
+                let game_data_folder = std::fs::canonicalize(game_data_folder.clone()).unwrap_or_else(|_| game_data_folder.clone());
 
                 // Chain so movie packs are always last.
                 let mods = load_order.mods().iter().chain(load_order.movies().iter());
