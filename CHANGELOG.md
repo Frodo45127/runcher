@@ -6,6 +6,22 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [Unreleased]
+### Added
+- Implemented support for Shogun 2 Map Mods.
+- Implemented support for forcing a download of all subscribed mods (doesn't work on legacy mods).
+- Implemented support for forcing a download of selected mods.
+- Implemented post-launch log analyzer.
+
+### Changed
+- The terminal should no longer show up for a second when launching a game.
+
+### Fixed
+- Fixed CTD when a very particular set of occurences happened with Shogun 2 as Game Selected.
+- Fixed a bunch of situations where path checks were not done correctly due to missing canonicalization of paths.
+- Fixed a few situations where Shogun 2 mods may become detached from their main mod, appearing as two mods in the mod list.
+- Fixed a few situations where Shogun 2 mods may end up showing up in the secondary folder as .bin files.
+
 ## [0.8.2]
 ### Added
 - Implemented support for secondary folder and temp packs for Shogun 2.
