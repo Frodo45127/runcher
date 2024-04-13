@@ -652,7 +652,10 @@ fn get_published_file_details(ugc: &UGC<ClientManager>, sender: Sender<SteamWork
                             let _ = sender.send(SteamWorksThreadMessage::QueryResults(processed_results));
                         }
 
-                        Err(error) => { let _ = sender.send(SteamWorksThreadMessage::Error(From::from(error))); },
+                        Err(error) => {
+                            error!("get-published-file-details call failed: {}", error);
+                            let _ = sender.send(SteamWorksThreadMessage::Error(From::from(error)));
+                        },
                     }
                 },);
             }
