@@ -189,6 +189,7 @@ impl GameConfig {
             // In that case, we assume there are no packs nor mods to load to avoid further errors.
             if let Ok(vanilla_packs) = game.ca_packs_paths(game_path) {
                 let data_paths = game.data_packs_paths(game_path);
+                let content_path = game.content_path(game_path).map(|path| std::fs::canonicalize(path.clone()).unwrap_or_else(|_| path));
                 let content_paths = game.content_packs_paths(game_path);
                 let secondary_mods_paths = secondary_mods_packs_paths(game.key());
 
@@ -197,103 +198,123 @@ impl GameConfig {
                 // Initialize the mods in the contents folders first.
                 //
                 // These have less priority.
-                if let Some(ref paths) = content_paths {
-                    let (packs, maps): (Vec<_>, Vec<_>) = paths.par_iter()
-                        .partition_map(|path| match Pack::read_and_merge(&[path.to_path_buf()], true, false) {
-                            Ok(pack) => Either::Left((path, pack)),
-                            Err(_) => Either::Right(path),
-                        });
+                if let Ok(ref content_path) = content_path {
+                    if let Some(ref paths) = content_paths {
+                        let (packs, maps): (Vec<_>, Vec<_>) = paths.par_iter()
+                            .partition_map(|path| match Pack::read_and_merge(&[path.to_path_buf()], true, false) {
+                                Ok(pack) => Either::Left((path, pack)),
+                                Err(_) => Either::Right(path),
+                            });
 
-                    for (path, pack) in packs {
-                        let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                        if pack.pfh_file_type() == PFHFileType::Mod || pack.pfh_file_type() == PFHFileType::Movie {
-                            match self.mods_mut().get_mut(&pack_name) {
-                                Some(modd) => {
-                                    if !modd.paths().contains(path) {
-                                        modd.paths_mut().push(path.to_path_buf());
+                        for (path, pack) in packs {
+                            let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
+                            if pack.pfh_file_type() == PFHFileType::Mod || pack.pfh_file_type() == PFHFileType::Movie {
+                                match self.mods_mut().get_mut(&pack_name) {
+                                    Some(modd) => {
+                                        if !modd.paths().contains(path) {
+                                            modd.paths_mut().push(path.to_path_buf());
+                                        }
+
+                                        modd.set_pack_type(pack.pfh_file_type());
+
+                                        let metadata = modd.paths().last().unwrap().metadata()?;
+                                        #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                        modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+
+                                        // Get the steam id from the path, if possible.
+                                        let path_strip = path.strip_prefix(&content_path)?.to_string_lossy().replace("\\", "/");
+                                        let path_strip_split = path_strip.split("/").collect::<Vec<_>>();
+                                        if !path_strip_split.is_empty() {
+                                            let steam_id = path_strip_split[0].to_owned();
+                                            steam_ids.push(steam_id.to_owned());
+                                            modd.set_steam_id(Some(steam_id));
+                                        }
                                     }
+                                    None => {
+                                        let mut modd = Mod::default();
+                                        modd.set_name(pack_name.to_owned());
+                                        modd.set_id(pack_name.to_owned());
+                                        modd.set_paths(vec![path.to_path_buf()]);
+                                        modd.set_pack_type(pack.pfh_file_type());
 
-                                    // Get the steam id from the path, if possible.
-                                    let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
-                                    steam_ids.push(steam_id.to_owned());
-                                    modd.set_steam_id(Some(steam_id));
-                                    modd.set_pack_type(pack.pfh_file_type());
+                                        let metadata = modd.paths()[0].metadata()?;
+                                        #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                        modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
 
-                                    let metadata = modd.paths().last().unwrap().metadata()?;
-                                    #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                    modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                }
-                                None => {
-                                    let mut modd = Mod::default();
-                                    modd.set_name(pack_name.to_owned());
-                                    modd.set_id(pack_name.to_owned());
-                                    modd.set_paths(vec![path.to_path_buf()]);
-                                    modd.set_pack_type(pack.pfh_file_type());
+                                        // Get the steam id from the path, if possible.
+                                        let path_strip = path.strip_prefix(&content_path)?.to_string_lossy().replace("\\", "/");
+                                        let path_strip_split = path_strip.split("/").collect::<Vec<_>>();
+                                        if !path_strip_split.is_empty() {
+                                            let steam_id = path_strip_split[0].to_owned();
+                                            steam_ids.push(steam_id.to_owned());
+                                            modd.set_steam_id(Some(steam_id));
+                                        }
 
-                                    let metadata = modd.paths()[0].metadata()?;
-                                    #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                    modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-
-                                    // Get the steam id from the path, if possible.
-                                    let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
-                                    steam_ids.push(steam_id.to_owned());
-                                    modd.set_steam_id(Some(steam_id));
-
-                                    self.mods_mut().insert(pack_name, modd);
+                                        self.mods_mut().insert(pack_name, modd);
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    // Maps use their own logic.
-                    for path in &maps {
-                        let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                        if let Some(extension) = path.extension() {
-                            if extension == "bin" {
-                                let mut file = BufReader::new(File::open(path)?);
-                                let mut data = Vec::with_capacity(file.get_ref().metadata()?.len() as usize);
-                                file.read_to_end(&mut data)?;
+                        // Maps use their own logic.
+                        for path in &maps {
+                            let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
+                            if let Some(extension) = path.extension() {
+                                if extension == "bin" {
+                                    let mut file = BufReader::new(File::open(path)?);
+                                    let mut data = Vec::with_capacity(file.get_ref().metadata()?.len() as usize);
+                                    file.read_to_end(&mut data)?;
 
-                                let reader = BufReader::new(Cursor::new(data.to_vec()));
-                                let mut decompressor = flate2::read::ZlibDecoder::new(reader);
-                                let mut data_dec = vec![];
+                                    let reader = BufReader::new(Cursor::new(data.to_vec()));
+                                    let mut decompressor = flate2::read::ZlibDecoder::new(reader);
+                                    let mut data_dec = vec![];
 
-                                // If they got decompressed correctly, we assume is a map. Shogun 2 64-bit update not only broke extracting the maps, but also
-                                // loading them from /maps. So instead we treat them like mods, and we generate their Pack once we get their Steam.
-                                if decompressor.read_to_end(&mut data_dec).is_ok() {
-                                    match self.mods_mut().get_mut(&pack_name) {
-                                        Some(modd) => {
-                                            if !modd.paths().contains(path) {
-                                                modd.paths_mut().push(path.to_path_buf());
+                                    // If they got decompressed correctly, we assume is a map. Shogun 2 64-bit update not only broke extracting the maps, but also
+                                    // loading them from /maps. So instead we treat them like mods, and we generate their Pack once we get their Steam.
+                                    if decompressor.read_to_end(&mut data_dec).is_ok() {
+                                        match self.mods_mut().get_mut(&pack_name) {
+                                            Some(modd) => {
+                                                if !modd.paths().contains(path) {
+                                                    modd.paths_mut().push(path.to_path_buf());
+                                                }
+
+                                                modd.set_pack_type(PFHFileType::Mod);
+
+                                                let metadata = modd.paths().last().unwrap().metadata()?;
+                                                #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+
+                                                // Get the steam id from the path, if possible.
+                                                let path_strip = path.strip_prefix(&content_path)?.to_string_lossy().replace("\\", "/");
+                                                let path_strip_split = path_strip.split("/").collect::<Vec<_>>();
+                                                if !path_strip_split.is_empty() {
+                                                    let steam_id = path_strip_split[0].to_owned();
+                                                    steam_ids.push(steam_id.to_owned());
+                                                    modd.set_steam_id(Some(steam_id));
+                                                }
                                             }
+                                            None => {
+                                                let mut modd = Mod::default();
+                                                modd.set_name(pack_name.to_owned());
+                                                modd.set_id(pack_name.to_owned());
+                                                modd.set_paths(vec![path.to_path_buf()]);
+                                                modd.set_pack_type(PFHFileType::Mod);
 
-                                            // Get the steam id from the path, if possible.
-                                            let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
-                                            steam_ids.push(steam_id.to_owned());
-                                            modd.set_steam_id(Some(steam_id));
-                                            modd.set_pack_type(PFHFileType::Mod);
+                                                let metadata = modd.paths()[0].metadata()?;
+                                                #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
+                                                modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
 
-                                            let metadata = modd.paths().last().unwrap().metadata()?;
-                                            #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                            modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                        }
-                                        None => {
-                                            let mut modd = Mod::default();
-                                            modd.set_name(pack_name.to_owned());
-                                            modd.set_id(pack_name.to_owned());
-                                            modd.set_paths(vec![path.to_path_buf()]);
-                                            modd.set_pack_type(PFHFileType::Mod);
+                                                // Get the steam id from the path, if possible.
+                                                let path_strip = path.strip_prefix(&content_path)?.to_string_lossy().replace("\\", "/");
+                                                let path_strip_split = path_strip.split("/").collect::<Vec<_>>();
+                                                if !path_strip_split.is_empty() {
+                                                    let steam_id = path_strip_split[0].to_owned();
+                                                    steam_ids.push(steam_id.to_owned());
+                                                    modd.set_steam_id(Some(steam_id));
+                                                }
 
-                                            let metadata = modd.paths()[0].metadata()?;
-                                            #[cfg(target_os = "windows")] modd.set_time_created(metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-                                            modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
-
-                                            // Get the steam id from the path, if possible.
-                                            let steam_id = path.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
-                                            steam_ids.push(steam_id.to_owned());
-                                            modd.set_steam_id(Some(steam_id));
-
-                                            self.mods_mut().insert(pack_name, modd);
+                                                self.mods_mut().insert(pack_name, modd);
+                                            }
                                         }
                                     }
                                 }
