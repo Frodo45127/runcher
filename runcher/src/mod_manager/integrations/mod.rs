@@ -23,6 +23,9 @@ use crate::mod_manager::mods::Mod;
 
 mod steam;
 
+#[cfg(target_os = "windows")] const CREATE_NO_WINDOW: u32 = 0x08000000;
+#[cfg(target_os = "windows")] const DETACHED_PROCESS: u32 = 0x00000008;
+
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
 //-------------------------------------------------------------------------------//

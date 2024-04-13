@@ -27,6 +27,7 @@ use rpfm_ui_common::settings::{setting_bool, setting_path, setting_string};
 
 use crate::mod_manager::mods::Mod;
 
+#[cfg(target_os = "windows")]use super::{CREATE_NO_WINDOW, DETACHED_PROCESS};
 use super::{PreUploadInfo, PublishedFileVisibilityDerive};
 
 lazy_static::lazy_static! {
@@ -167,9 +168,9 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
     #[cfg(target_os = "windows")] if cfg!(debug_assertions) || setting_bool("enable_debug_terminal") {
-        command.creation_flags(0x00000008);
+        command.creation_flags(DETACHED_PROCESS);
     } else {
-        command.creation_flags(0x08000000);
+        command.creation_flags(CREATE_NO_WINDOW);
     }
 
     command.spawn()?;
@@ -294,7 +295,7 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
     }
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")]command.creation_flags(0x00000008);
+    #[cfg(target_os = "windows")]command.creation_flags(DETACHED_PROCESS);
 
     command.spawn()?;
 
@@ -320,9 +321,9 @@ pub fn launch_game(game: &GameInfo, command_to_pass: &str) -> Result<()> {
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
     #[cfg(target_os = "windows")] if cfg!(debug_assertions) || setting_bool("enable_debug_terminal") {
-        command.creation_flags(0x00000008);
+        command.creation_flags(DETACHED_PROCESS);
     } else {
-        command.creation_flags(0x08000000);
+        command.creation_flags(CREATE_NO_WINDOW);
     }
 
     let mut handle = command.spawn()?;
@@ -350,7 +351,7 @@ pub fn download_subscribed_mods(game: &GameInfo, published_file_ids: &Option<Vec
     }
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")]command.creation_flags(0x00000008);
+    #[cfg(target_os = "windows")]command.creation_flags(DETACHED_PROCESS);
 
     let mut handle = command.spawn()?;
     handle.wait()?;
@@ -372,9 +373,9 @@ pub fn user_id(game: &GameInfo) -> Result<u64> {
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
     #[cfg(target_os = "windows")] if cfg!(debug_assertions) || setting_bool("enable_debug_terminal") {
-        command.creation_flags(0x00000008);
+        command.creation_flags(DETACHED_PROCESS);
     } else {
-        command.creation_flags(0x08000000);
+        command.creation_flags(CREATE_NO_WINDOW);
     }
 
     let _ = command.spawn()?;
