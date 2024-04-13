@@ -171,9 +171,12 @@ pub fn published_file_details(steam_id: u32, published_file_ids: &str) -> Result
     let mut published_file_ids_enums = vec![];
     let published_file_ids_split = published_file_ids.split(",").collect::<Vec<_>>();
     for id in &published_file_ids_split {
-        info!("{}", &id);
+        info!("Adding Steam ID {} to the request.", &id);
 
-        published_file_ids_enums.push(PublishedFileId(id.parse::<u64>()?));
+        match id.parse::<u64>() {
+            Ok(id) => published_file_ids_enums.push(PublishedFileId(id)),
+            Err(error) => warn!("Invalid Steam ID received: {}. Ignoring with error: {}.", id, error),
+        }
     }
 
     // Initialize the API.
