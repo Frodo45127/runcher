@@ -23,7 +23,7 @@ use std::process::Command;
 #[cfg(target_os = "windows")]use std::os::windows::process::CommandExt;
 
 use rpfm_lib::games::GameInfo;
-use rpfm_ui_common::settings::{setting_path, setting_string};
+use rpfm_ui_common::settings::{setting_bool, setting_path, setting_string};
 
 use crate::mod_manager::mods::Mod;
 
@@ -165,7 +165,7 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
     command.arg(published_file_ids);
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
+    #[cfg(target_os = "windows")] if cfg!(debug_assertions) || setting_bool("enable_debug_terminal") {
         command.creation_flags(0x00000008);
     } else {
         command.creation_flags(0x08000000);
@@ -318,7 +318,7 @@ pub fn launch_game(game: &GameInfo, command_to_pass: &str) -> Result<()> {
     command.arg(command_to_pass);
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
+    #[cfg(target_os = "windows")] if cfg!(debug_assertions) || setting_bool("enable_debug_terminal") {
         command.creation_flags(0x00000008);
     } else {
         command.creation_flags(0x08000000);

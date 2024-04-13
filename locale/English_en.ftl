@@ -254,3 +254,4 @@ log_anaylis_explanation = This is a list of all the Script Breaks/Script Errors 
 posible_pack = Posible Pack
 full_log = Full Log
 check_logs = Check Logs After Closing a Game
+enable_debug_terminal = Enable Debug Terminal
