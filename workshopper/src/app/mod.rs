@@ -139,4 +139,11 @@ pub enum Commands {
         #[arg(short, long, required = false, value_name = "VISIBILITY")]
         visibility: Option<u32>,
     },
+
+    UserId {
+
+        /// SteamId/AppId of a game to initialize the api with.
+        #[arg(short, long, value_name = "STEAM_ID")]
+        steam_id: u32,
+    },
 }

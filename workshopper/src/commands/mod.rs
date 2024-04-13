@@ -11,14 +11,19 @@
 use anyhow::Result;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use execute_command::ExecuteCommand;
+use interprocess::local_socket::LocalSocketStream;
 use steamworks::Client;
 
+use std::io::Write;
 #[cfg(target_os = "windows")] use std::os::windows::process::CommandExt;
 use std::process::Command;
+
+use rpfm_lib::integrations::log::info;
 
 pub mod ugc;
 
 #[cfg(target_os = "windows")] const CREATE_NO_WINDOW: u32 = 0x08000000;
+const IPC_NAME_GET_STEAM_USER_ID: &str = "runcher_get_steam_user_id";
 
 //---------------------------------------------------------------------------//
 //                        Generic public functions
@@ -48,6 +53,19 @@ pub fn launch_game(base64: bool, steam_id: u32, command: &str) -> Result<()> {
     #[cfg(target_os = "windows")]game_command.creation_flags(CREATE_NO_WINDOW);
     let mut handle = game_command.spawn()?;
     let _ = handle.wait()?;
+
+    Ok(())
+}
+
+pub fn user_id(steam_id: u32) -> Result<()> {
+    let (client, _) = Client::init_app(steam_id)?;
+    let steam_user_id = client.user().steam_id();
+
+    info!("User Steam ID: {}", steam_user_id.raw());
+
+    if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_STEAM_USER_ID) {
+        let _ = stream.write(&steam_user_id.raw().to_le_bytes());
+    }
 
     Ok(())
 }

@@ -43,12 +43,10 @@ use qt_core::QString;
 use anyhow::{anyhow, Result};
 use directories::ProjectDirs;
 use getset::*;
-use regex::Regex;
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::fs::{DirBuilder, File};
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::UNIX_EPOCH;
@@ -98,7 +96,6 @@ pub struct SettingsUI {
     tools_add: QPtr<QAction>,
     tools_remove: QPtr<QAction>,
 
-    steam_user_id_line_edit: QPtr<QLineEdit>,
     steam_api_key_line_edit: QPtr<QLineEdit>,
 
     language_combobox: QPtr<QComboBox>,
@@ -166,7 +163,6 @@ impl SettingsUI {
         let default_game_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "default_game_label")?;
         let update_chanel_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "update_chanel_label")?;
         let date_format_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "date_format_label")?;
-        let steam_user_id_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "steam_user_id_label")?;
         let steam_api_key_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "steam_api_key_label")?;
         let check_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_updates_on_start_label")?;
         let check_schema_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_schema_updates_on_start_label")?;
@@ -178,7 +174,6 @@ impl SettingsUI {
         let default_game_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "default_game_combobox")?;
         let update_chanel_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "update_chanel_combobox")?;
         let date_format_combobox: QPtr<QComboBox> = find_widget(&main_widget.static_upcast(), "date_format_combobox")?;
-        let steam_user_id_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "steam_user_id_line_edit")?;
         let steam_api_key_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "steam_api_key_line_edit")?;
         let check_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_updates_on_start_checkbox")?;
         let check_schema_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_schema_updates_on_start_checkbox")?;
@@ -198,7 +193,6 @@ impl SettingsUI {
         default_game_label.set_text(&qtr("default_game"));
         update_chanel_label.set_text(&qtr("update_channel"));
         date_format_label.set_text(&qtr("date_format"));
-        steam_user_id_label.set_text(&qtr("steam_user_id"));
         steam_api_key_label.set_text(&qtr("steam_api_key"));
         check_updates_on_start_label.set_text(&qtr("check_updates_on_start"));
         check_schema_updates_on_start_label.set_text(&qtr("check_schema_updates_on_start"));
@@ -279,7 +273,6 @@ impl SettingsUI {
             secondary_mods_folder_line_edit,
             secondary_mods_folder_button,
 
-            steam_user_id_line_edit,
             steam_api_key_line_edit,
             language_combobox,
             default_game_combobox,
@@ -382,7 +375,6 @@ impl SettingsUI {
 
         *self.font_data.borrow_mut() = (setting_string_from_q_setting(&q_settings, "font_name"), setting_int_from_q_setting(&q_settings, "font_size"));
 
-        self.steam_user_id_line_edit().set_text(&QString::from_std_str(setting_string_from_q_setting(&q_settings, "steam_user_id")));
         self.steam_api_key_line_edit().set_text(&QString::from_std_str(setting_string_from_q_setting(&q_settings, "steam_api_key")));
         self.dark_mode_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "dark_mode"));
         self.open_workshop_link_in_steam_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "open_workshop_link_in_steam"));
@@ -440,7 +432,6 @@ impl SettingsUI {
 
         set_setting_string_to_q_setting(&q_settings, "update_channel", &self.update_chanel_combobox.current_text().to_std_string());
         set_setting_string_to_q_setting(&q_settings, "date_format", &self.date_format_combobox.current_text().to_std_string());
-        set_setting_string_to_q_setting(&q_settings, "steam_user_id", &self.steam_user_id_line_edit().text().to_std_string());
         set_setting_string_to_q_setting(&q_settings, "steam_api_key", &self.steam_api_key_line_edit().text().to_std_string());
         set_setting_bool_to_q_setting(&q_settings, "dark_mode", self.dark_mode_checkbox().is_checked());
         set_setting_bool_to_q_setting(&q_settings, "open_workshop_link_in_steam", self.open_workshop_link_in_steam_checkbox().is_checked());
@@ -557,28 +548,6 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_q_byte_array(&q_settings, "originalGeometry", main_window.save_geometry().as_ref());
     set_setting_if_new_q_byte_array(&q_settings, "originalWindowState", main_window.save_state_0a().as_ref());
 
-    let path = PathBuf::from("C:/Program Files (x86)/Steam/config/loginusers.vdf");
-    let steam_user_id = if path.is_file() {
-        match File::open(path) {
-            Ok(mut file) => {
-                let mut data = String::new();
-                let _ = file.read_to_string(&mut data);
-
-                let regex = Regex::new("(\\d+)").unwrap();
-                if let Some(captures) = regex.captures(&data) {
-                    if let Some(capture) = captures.get(0) {
-                        if capture.as_str().parse::<u64>().is_ok() {
-                            capture.as_str().to_owned()
-                        } else { String::new() }
-                    } else { String::new() }
-                } else { String::new() }
-            }
-            Err(_) => String::new(),
-        }
-    } else {
-        String::new()
-    };
-
     let font = QApplication::font();
     let font_name = font.family().to_std_string();
     let font_size = font.point_size();
@@ -587,7 +556,6 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_string(&q_settings, "original_font_name", &font_name);
     set_setting_if_new_int(&q_settings, "original_font_size", font_size);
 
-    set_setting_if_new_string(&q_settings, "steam_user_id", &steam_user_id);
     set_setting_if_new_string(&q_settings, "steam_api_key", "");
     set_setting_if_new_string(&q_settings, "default_game", KEY_WARHAMMER_3);
     set_setting_if_new_string(&q_settings, "update_channel", "stable");

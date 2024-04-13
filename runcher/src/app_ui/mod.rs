@@ -2116,7 +2116,7 @@ impl AppUI {
                             //
                             // So, once population is done, we need to do some post-processing. Our mods need to be moved to either /data or /secondary if we don't have them there.
                             // Shogun 2 mods need to be turned into packs and moved to either /data or /secondary.
-                            let steam_user_id = setting_string("steam_user_id");
+                            let steam_user_id = crate::mod_manager::integrations::store_user_id(&game)?.to_string();
                             let secondary_path = secondary_mods_path(game.key()).ok();
                             let game_data_path = game.data_path(&game_path);
 

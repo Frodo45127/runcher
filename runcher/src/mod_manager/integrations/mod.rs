@@ -71,3 +71,7 @@ pub fn launch_game(game: &GameInfo, command_to_pass: &str) -> Result<()> {
 pub fn download_subscribed_mods(game: &GameInfo, published_file_ids: &Option<Vec<String>>) -> Result<()> {
     steam::download_subscribed_mods(game, published_file_ids)
 }
+
+pub fn store_user_id(game: &GameInfo) -> Result<u64> {
+    steam::user_id(game)
+}

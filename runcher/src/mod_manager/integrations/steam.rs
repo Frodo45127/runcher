@@ -42,6 +42,7 @@ lazy_static::lazy_static! {
 const WORKSHOPPER_EXE: &str = "workshopper.exe";
 
 const IPC_NAME_GET_PUBLISHED_FILE_DETAILS: &str = "runcher_get_published_file_details";
+const IPC_NAME_GET_STEAM_USER_ID: &str = "runcher_get_steam_user_id";
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -116,7 +117,7 @@ pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str, owner_id: &str) ->
     }
 
     // If we're not the author, do not even let us upload it.
-    let steam_user_id = setting_string("steam_user_id");
+    let steam_user_id = user_id(&game)?.to_string();
     if steam_user_id.is_empty() || owner_id != steam_user_id {
         return Err(anyhow!("You're not the original uploader of this mod, or steam hasn't been detected on your system."));
     }
@@ -355,4 +356,36 @@ pub fn download_subscribed_mods(game: &GameInfo, published_file_ids: &Option<Vec
     handle.wait()?;
 
     Ok(())
+}
+
+pub fn user_id(game: &GameInfo) -> Result<u64> {
+    let game_path = setting_path(game.key());
+    let steam_id = game.steam_id(&game_path)? as u32;
+
+    let mut command = Command::new("cmd");
+    command.arg("/C");
+    command.arg(&*WORKSHOPPER_PATH);
+
+    command.arg("user-id");
+    command.arg("-s");
+    command.arg(steam_id.to_string());
+
+    // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
+    #[cfg(target_os = "windows")] if cfg!(debug_assertions) || setting_bool("enable_debug_terminal") {
+        command.creation_flags(0x00000008);
+    } else {
+        command.creation_flags(0x08000000);
+    }
+
+    let _ = command.spawn()?;
+
+    let server = LocalSocketListener::bind(IPC_NAME_GET_STEAM_USER_ID)?;
+    let mut stream = server.accept()?;
+
+    let mut bytes = vec![];
+    stream.read_to_end(&mut bytes)?;
+
+    let array: [u8; 8] = bytes.try_into().map_err(|_| anyhow!("Error when trying to get the Steam User ID."))?;
+
+    Ok(u64::from_le_bytes(array))
 }
