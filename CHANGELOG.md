@@ -12,6 +12,7 @@ If you're looking for the changes included in the latest beta (against the lates
 - Implemented support for forcing a download of all subscribed mods (doesn't work on legacy mods).
 - Implemented support for forcing a download of selected mods.
 - Implemented post-launch log analyzer.
+- Implemented setting to help debug workshopper-related issues.
 
 ### Changed
 - The terminal should no longer show up for a second when launching a game.
@@ -21,6 +22,9 @@ If you're looking for the changes included in the latest beta (against the lates
 - Fixed a bunch of situations where path checks were not done correctly due to missing canonicalization of paths.
 - Fixed a few situations where Shogun 2 mods may become detached from their main mod, appearing as two mods in the mod list.
 - Fixed a few situations where Shogun 2 mods may end up showing up in the secondary folder as .bin files.
+- Fixed Workshopper failing to get mods information if one of the Published File Ids was non-numeric.
+- Fixed incorrect Published File Id being detected for packs in content sub-subfolders.
+- Fixed user steam id not being retrieved if the user did not installed Steam in C.
 
 ## [0.8.2]
 ### Added
