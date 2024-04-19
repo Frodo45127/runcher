@@ -27,6 +27,7 @@ use qt_widgets::QPushButton;
 use qt_widgets::QSplitter;
 use qt_widgets::QTableView;
 use qt_widgets::QTextEdit;
+use qt_widgets::QTreeView;
 use qt_widgets::QWidget;
 
 use qt_gui::QFont;
@@ -89,6 +90,7 @@ use crate::cli::Cli;
 use crate::communications::*;
 use crate::DARK_PALETTE;
 use crate::data_ui::DataListUI;
+use crate::data_ui::pack_tree::PackTree;
 use crate::ffi::*;
 use crate::games::*;
 use crate::mod_manager::{*, game_config::{GameConfig, DEFAULT_CATEGORY}, integrations::*, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::{Mod, ShareableMod}, profiles::Profile, saves::Save};
@@ -416,7 +418,7 @@ impl AppUI {
             focused_widget: Rc::new(RwLock::new(None)),
             disabled_counter: Rc::new(RwLock::new(0)),
 
-            tools: Arc::new(RwLock::new(Tools::load().unwrap_or_else(|_| Tools::default()))),
+            tools: Arc::new(RwLock::new(Tools::load(&None).unwrap_or_else(|_| Tools::default()))),
             game_config: Arc::new(RwLock::new(None)),
             game_load_order: Arc::new(RwLock::new(LoadOrder::default())),
             game_profiles: Arc::new(RwLock::new(HashMap::new())),
@@ -564,6 +566,7 @@ impl AppUI {
         draggable_tree_view_drop_signal(self.pack_list_ui().tree_view().static_upcast()).connect(slots.pack_move());
 
         self.data_list_ui().reload_button().released().connect(slots.data_view_reload());
+        self.data_list_ui().tree_view().double_clicked().connect(slots.open_file_with_rpfm());
     }
 
     /// Function to toggle the main window on and off, while keeping the stupid focus from breaking.
@@ -792,7 +795,7 @@ impl AppUI {
                     }
 
                     // Reload the tools, just in case they changed.
-                    *self.tools().write().unwrap() = Tools::load().unwrap_or_else(|_| Tools::default());
+                    *self.tools().write().unwrap() = Tools::load(&None).unwrap_or_else(|_| Tools::default());
 
                     // Disable the games we don't have a path for (uninstalled).
                     for game in SUPPORTED_GAMES.games_sorted().iter() {
@@ -1174,6 +1177,11 @@ impl AppUI {
     /// This returns the selection REVERSED!!!
     pub unsafe fn pack_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
         self.pack_list_ui().pack_list_selection()
+    }
+
+    /// This returns the selection REVERSED!!!
+    pub unsafe fn data_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
+        self.data_list_ui().data_list_selection()
     }
 
     /// This function pops up a modal asking you if you're sure you want to do an action that may result in loss of data.
@@ -2637,6 +2645,62 @@ impl AppUI {
 
             dialog.set_modal(true);
             dialog.exec();
+        }
+
+        Ok(())
+    }
+
+    pub unsafe fn open_data_file_with_rpfm(&self) -> Result<()> {
+        let tools = self.tools().read().unwrap();
+        if let Some(tool) = tools.tools().iter().find(|tool| tool.path().ends_with("rpfm_ui.exe")) {
+            if let Some(ref game_config) = *self.game_config().read().unwrap() {
+
+                let game = self.game_selected().read().unwrap();
+                let game_path = setting_path(game.key());
+                if game_path.exists() && game_path.is_dir() {
+
+                    let ca_packs = game.ca_packs_paths(&game_path)?;
+                    let mut packs = vec![];
+                    let mut files = vec![];
+
+                    let selection = self.data_list_selection();
+                    for selection in &selection {
+                        if selection.column() == 0 {
+                            files.push(<QPtr<QTreeView> as PackTree>::get_path_from_index(selection.as_ref(), self.data_list_ui().model()))
+                        }
+
+                        if selection.column() == 1 {
+
+                            // About the packs, we search them by path in the
+                            let pack = selection.data_0a().to_string().to_std_string();
+                            if let Some(ca_pack) = ca_packs.iter().find(|ca_path| ca_path.file_name().unwrap().to_string_lossy() == pack) {
+                                if !packs.contains(ca_pack) {
+                                    packs.push(ca_pack.to_path_buf());
+                                }
+                            } else if let Some((_, modd)) = game_config.mods().iter()
+                                .filter(|(_, modd)| !modd.paths().is_empty())
+                                .find(|(_, modd)| modd.paths().first().unwrap().ends_with(&pack)) {
+
+                                let path = modd.paths().first().unwrap();
+                                if !packs.contains(path) {
+                                    packs.push(path.to_path_buf());
+                                }
+                            }
+                        }
+                    }
+
+                    let mut command = std::process::Command::new(tool.path().to_string_lossy().to_string());
+                    for path in packs {
+                        command.arg(path.to_string_lossy().to_string());
+                    }
+
+                    for path in files {
+                        command.arg(path);
+                    }
+
+                    command.spawn()?;
+                }
+            }
         }
 
         Ok(())

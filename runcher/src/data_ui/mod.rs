@@ -19,11 +19,13 @@ use qt_gui::QStandardItemModel;
 
 use qt_core::CaseSensitivity;
 use qt_core::QBox;
+use qt_core::QModelIndex;
 use qt_core::QPtr;
 use qt_core::QRegExp;
 use qt_core::QSortFilterProxyModel;
 use qt_core::QTimer;
 
+use cpp_core::CppBox;
 use cpp_core::CppDeletable;
 
 use anyhow::{anyhow, Result};
@@ -46,7 +48,7 @@ use crate::mod_manager::{game_config::GameConfig, load_order::LoadOrder};
 use self::pack_tree::*;
 use self::slots::DataListUISlots;
 
-mod pack_tree;
+pub mod pack_tree;
 mod slots;
 
 const VIEW_DEBUG: &str = "ui_templates/filterable_reloadable_tree_widget.ui";
@@ -214,6 +216,20 @@ impl DataListUI {
         }
 
         Ok(())
+    }
+
+    /// This returns the selection REVERSED, FROM BOTTOM TO TOP.
+    pub unsafe fn data_list_selection(&self) -> Vec<CppBox<QModelIndex>> {
+        let indexes_visual = self.tree_view().selection_model().selection().indexes();
+        let mut indexes_visual = (0..indexes_visual.count_0a())
+            .map(|x| indexes_visual.at(x))
+            .collect::<Vec<_>>();
+
+        // Manually sort the selection, because if the user selects with ctrl from bottom to top, this breaks hard.
+        indexes_visual.sort_by_key(|index| index.row());
+        indexes_visual.reverse();
+
+        indexes_visual.iter().map(|x| self.filter().map_to_source(*x)).collect::<Vec<_>>()
     }
 
     pub unsafe fn setup_columns(&self) {

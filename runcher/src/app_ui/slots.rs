@@ -96,6 +96,7 @@ pub struct AppUISlots {
     pack_move: QBox<SlotOfQModelIndexInt>,
 
     data_view_reload: QBox<SlotNoArgs>,
+    open_file_with_rpfm: QBox<SlotNoArgs>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -644,6 +645,13 @@ impl AppUISlots {
             }
         }));
 
+        let open_file_with_rpfm = SlotNoArgs::new(view.main_window(), clone!(
+            view => move || {
+            if let Err(error) = view.open_data_file_with_rpfm() {
+                return show_dialog(view.main_window(), error, false);
+            }
+        }));
+
         Self {
             launch_game,
             toggle_logging,
@@ -697,6 +705,7 @@ impl AppUISlots {
             pack_toggle_auto_sorting,
             pack_move,
             data_view_reload,
+            open_file_with_rpfm,
         }
     }
 }
