@@ -105,6 +105,26 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_pa
             .collect::<Vec<_>>());
     }
 
+    videos.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/videos_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
+    campaign_videos.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/campaign_videos_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
+    //locs.append(&mut reserved_pack.files_by_type(&[FileType::Loc])
+    //    .into_iter()
+    //    .cloned()
+    //    .collect::<Vec<_>>());
+
+    non_replaceable_videos.append(&mut reserved_pack.files_by_paths(&non_replaceable_videos_paths, true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
     // Decode each table, modify it, then re-encode it and add it.
     let enc_extra_data = Some(EncodeableExtraData::new_from_game_info(game));
     let mut dec_extra_data = DecodeableExtraData::default();

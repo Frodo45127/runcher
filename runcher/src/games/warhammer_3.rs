@@ -119,6 +119,36 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
             .collect::<Vec<_>>());
     }
 
+    kv_rules.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
+    kv_unit_ability_scaling_rules.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/_kv_unit_ability_scaling_rules_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
+    land_units.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
+    main_units.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/main_units_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
+    unit_size_global_scalings.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/unit_size_global_scalings_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
+    unit_stat_to_size_scaling_values.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/unit_stat_to_size_scaling_values_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
     // Sort them so file processing is done in the correct order.
     kv_rules.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
     kv_unit_ability_scaling_rules.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());

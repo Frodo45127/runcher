@@ -91,6 +91,31 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
             .collect::<Vec<_>>());
     }
 
+    kv_key_buildings.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/_kv_key_buildings_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
+    kv_rules.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
+    kv_unit_ability_scaling_rules.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/_kv_unit_ability_scaling_rules_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
+    land_units.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
+    land_units_templates.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/land_units_templates_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
     // Sort them so file processing is done in the correct order.
     kv_key_buildings.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
     kv_rules.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
