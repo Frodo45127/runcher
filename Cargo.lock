@@ -2545,7 +2545,7 @@ dependencies = [
 [[package]]
 name = "rpfm_extensions"
 version = "4.2.7"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#5b79387f99a845213ac487b87d0caa7b586a34de"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#d7fc563b5ca82016d0c9b24b1732d92f749b8be2"
 dependencies = [
  "bincode",
  "caseless",
@@ -2565,7 +2565,7 @@ dependencies = [
 [[package]]
 name = "rpfm_lib"
 version = "4.2.7"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#5b79387f99a845213ac487b87d0caa7b586a34de"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#d7fc563b5ca82016d0c9b24b1732d92f749b8be2"
 dependencies = [
  "backtrace",
  "base64 0.22.0",
@@ -2608,13 +2608,14 @@ dependencies = [
 [[package]]
 name = "rpfm_ui_common"
 version = "4.2.7"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#5b79387f99a845213ac487b87d0caa7b586a34de"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#d7fc563b5ca82016d0c9b24b1732d92f749b8be2"
 dependencies = [
  "anyhow",
  "cpp_core",
  "directories",
  "fluent",
  "fluent-bundle",
+ "getset",
  "lazy_static",
  "qt_core",
  "qt_gui",
@@ -2622,6 +2623,9 @@ dependencies = [
  "qt_widgets",
  "rpfm_extensions",
  "rpfm_lib",
+ "serde",
+ "serde_derive",
+ "serde_json",
  "time",
  "unic-langid",
 ]
@@ -3516,9 +3520,9 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.22.11"
+version = "0.22.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb686a972ccef8537b39eead3968b0e8616cb5040dbb9bba93007c8e07c9215f"
+checksum = "d3328d4f68a705b2a4498da1d580585d39a6510f98318a2cec3018a7ec61ddef"
 dependencies = [
  "indexmap",
  "serde",

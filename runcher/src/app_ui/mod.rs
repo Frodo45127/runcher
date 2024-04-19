@@ -80,6 +80,7 @@ use rpfm_ui_common::ASSETS_PATH;
 use rpfm_ui_common::clone;
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
+use rpfm_ui_common::tools::*;
 use rpfm_ui_common::utils::*;
 
 use crate::actions_ui::ActionsUI;
@@ -90,7 +91,7 @@ use crate::DARK_PALETTE;
 use crate::data_ui::DataListUI;
 use crate::ffi::*;
 use crate::games::*;
-use crate::mod_manager::{*, game_config::{GameConfig, DEFAULT_CATEGORY}, integrations::*, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::{Mod, ShareableMod}, profiles::Profile, saves::Save, tools::Tools};
+use crate::mod_manager::{*, game_config::{GameConfig, DEFAULT_CATEGORY}, integrations::*, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::{Mod, ShareableMod}, profiles::Profile, saves::Save};
 use crate::LIGHT_PALETTE;
 use crate::LIGHT_STYLE_SHEET;
 use crate::mod_list_ui::*;

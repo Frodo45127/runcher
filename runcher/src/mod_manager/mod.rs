@@ -31,7 +31,6 @@ pub mod load_order;
 pub mod mods;
 pub mod profiles;
 pub mod saves;
-pub mod tools;
 
 pub const SECONDARY_FOLDER_NAME: &str = "masks";
 

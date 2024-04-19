@@ -55,10 +55,10 @@ use rpfm_lib::games::{GameInfo, supported_games::{KEY_ARENA, KEY_SHOGUN_2, KEY_W
 
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
+use rpfm_ui_common::tools::*;
 use rpfm_ui_common::utils::*;
 
 use crate::ffi::*;
-use crate::mod_manager::tools::{Tools, Tool};
 use crate::SUPPORTED_GAMES;
 use crate::updater_ui::*;
 
@@ -297,7 +297,7 @@ impl SettingsUI {
     pub unsafe fn load(&self) -> Result<()> {
 
         // Tools are kept in a json, not in a qsetting, for ease of updating. Load it first.
-        let tools = Tools::load().unwrap_or_else(|_| Tools::default());
+        let tools = Tools::load(&None).unwrap_or_else(|_| Tools::default());
         self.tools_model().clear();
 
         // Build the columns.
@@ -403,7 +403,7 @@ impl SettingsUI {
             tools.tools_mut().push(tool);
         }
 
-        tools.save()?;
+        tools.save(&None)?;
 
         // For each entry, we check if it's a valid directory and save it into Settings.
         let q_settings = settings();
