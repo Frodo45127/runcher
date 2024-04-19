@@ -503,6 +503,7 @@ impl AppUI {
         self.actions_ui().play_button().released().connect(slots.launch_game());
         self.actions_ui().enable_logging_checkbox().toggled().connect(slots.toggle_logging());
         self.actions_ui().enable_skip_intro_checkbox().toggled().connect(slots.toggle_skip_intros());
+        self.actions_ui().remove_trait_limit_checkbox().toggled().connect(slots.toggle_remove_trait_limit());
         self.actions_ui().merge_all_mods_checkbox().toggled().connect(slots.toggle_merge_all_mods());
         self.actions_ui().enable_translations_combobox().current_text_changed().connect(slots.toggle_enable_translations());
         self.actions_ui().unit_multiplier_spinbox().value_changed().connect(slots.change_unit_multiplier());
@@ -888,6 +889,9 @@ impl AppUI {
 
             // Logging.
             prepare_script_logging(self, &game, &mut reserved_pack)?;
+
+            // Trait limit removal.
+            prepare_trait_limit_removal(self, &game, &game_path, &mut reserved_pack)?;
 
             // Translations.
             prepare_translations(self, &game, &mut reserved_pack)?;

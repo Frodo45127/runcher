@@ -255,3 +255,4 @@ posible_pack = Posible Pack
 full_log = Full Log
 check_logs = Check Logs After Closing a Game
 enable_debug_terminal = Enable Debug Terminal
+remove_trait_limit = Remove Trait Limit

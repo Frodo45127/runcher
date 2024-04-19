@@ -48,6 +48,62 @@ const INTRO_MOVIE_PATHS_BY_GAME: [&str; 19] = [
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
+
+pub unsafe fn prepare_trait_limit_removal(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack, schema: &Schema) -> Result<()> {
+    let vanilla_pack = Pack::read_and_merge_ca_packs(game, game_path)?;
+    let mut campaign_variables = vanilla_pack.files_by_path(&ContainerPath::Folder("db/campaign_variables_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let paths = (0..app_ui.pack_list_ui().model().row_count_0a())
+        .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
+        .collect::<Vec<_>>();
+
+    if !paths.is_empty() {
+        let modded_pack = Pack::read_and_merge(&paths, true, false)?;
+        campaign_variables.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/campaign_variables_tables/".to_string()), true)
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>());
+    }
+
+    // Just in case another step of the launch process adds this table.
+    campaign_variables.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/campaign_variables_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
+
+    // Sort them so file processing is done in the correct order.
+    campaign_variables.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
+
+    let enc_extra_data = Some(EncodeableExtraData::new_from_game_info(game));
+    let mut dec_extra_data = DecodeableExtraData::default();
+    dec_extra_data.set_schema(Some(schema));
+    let dec_extra_data = Some(dec_extra_data);
+
+    for table in &mut campaign_variables {
+        if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
+            for row in data.data_mut() {
+
+                if let Some(DecodedData::StringU8(key)) = row.first().cloned() {
+                    if key == "max_traits" {
+                        if let Some(DecodedData::F32(value)) = row.get_mut(1) {
+                            *value = 999 as f32;
+                        }
+                    }
+                }
+            }
+
+            table.set_decoded(RFileDecoded::DB(data))?;
+            table.encode(&enc_extra_data, false, true, false)?;
+            reserved_pack.insert(table.clone())?;
+        }
+    }
+
+    Ok(())
+}
+
 pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack, schema: &Schema) -> Result<()> {
     let unit_multiplier = app_ui.actions_ui().unit_multiplier_spinbox().value();
 
