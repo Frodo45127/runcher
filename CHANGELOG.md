@@ -13,9 +13,11 @@ If you're looking for the changes included in the latest beta (against the lates
 - Implemented support for forcing a download of selected mods.
 - Implemented post-launch log analyzer.
 - Implemented setting to help debug workshopper-related issues.
+- Implemented "Remove Trait Limit" launch option for Warhammer 3.
 
 ### Changed
 - The terminal should no longer show up for a second when launching a game.
+- Double-clicking a file in the data view will open it in RPFM, if RPFM is configured as a Tool.
 
 ### Fixed
 - Fixed CTD when a very particular set of occurences happened with Shogun 2 as Game Selected.
@@ -25,6 +27,7 @@ If you're looking for the changes included in the latest beta (against the lates
 - Fixed Workshopper failing to get mods information if one of the Published File Ids was non-numeric.
 - Fixed incorrect Published File Id being detected for packs in content sub-subfolders.
 - Fixed user steam id not being retrieved if the user did not installed Steam in C.
+- Fixed possible bug where multiple patchers patching the same table fail to patch one over the other.
 
 ## [0.8.2]
 ### Added
