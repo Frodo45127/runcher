@@ -86,6 +86,7 @@ pub struct SettingsUI {
 
     paths_games_line_edits: BTreeMap<String, QBox<QLineEdit>>,
     paths_games_buttons: BTreeMap<String, QBox<QToolButton>>,
+    paths_games_lock_checkboxes: BTreeMap<String, QBox<QCheckBox>>,
 
     secondary_mods_folder_line_edit: QBox<QLineEdit>,
     secondary_mods_folder_button: QBox<QToolButton>,
@@ -220,6 +221,7 @@ impl SettingsUI {
         // We automatically add a Label/LineEdit/Button for each game we support.
         let mut paths_games_line_edits = BTreeMap::new();
         let mut paths_games_buttons = BTreeMap::new();
+        let mut paths_games_lock_checkboxes = BTreeMap::new();
 
         for (index, game) in SUPPORTED_GAMES.games_sorted().iter().enumerate() {
             if game.key() != KEY_ARENA {
@@ -227,16 +229,20 @@ impl SettingsUI {
                 let game_label = QLabel::from_q_string_q_widget(&QString::from_std_str(game.display_name()), &paths_groupbox);
                 let game_line_edit = QLineEdit::from_q_widget(&paths_groupbox);
                 let game_button = QToolButton::new_1a(&paths_groupbox);
+                let game_lock_checkbox = QCheckBox::from_q_string_q_widget(&qtr("updates_locked"), &paths_groupbox);
+
                 game_line_edit.set_placeholder_text(&qtre("settings_game_line_ph", &[game.display_name()]));
                 game_button.set_icon(&QIcon::from_theme_1a(&QString::from_std_str("folder")));
 
                 paths_layout.add_widget_5a(&game_label, index as i32 + 2, 0, 1, 1);
                 paths_layout.add_widget_5a(&game_line_edit, index as i32 + 2, 1, 1, 1);
                 paths_layout.add_widget_5a(&game_button, index as i32 + 2, 2, 1, 1);
+                paths_layout.add_widget_5a(&game_lock_checkbox, index as i32 + 2, 3, 1, 1);
 
                 // Add the LineEdit and Button to the list.
                 paths_games_line_edits.insert(game_key.to_owned(), game_line_edit);
                 paths_games_buttons.insert(game_key.to_owned(), game_button);
+                paths_games_lock_checkboxes.insert(game_key.to_owned(), game_lock_checkbox);
 
                 // Add the game to the default game combo.
                 default_game_combobox.add_item_q_string(&QString::from_std_str(game.display_name()));
@@ -269,6 +275,7 @@ impl SettingsUI {
 
             paths_games_line_edits,
             paths_games_buttons,
+            paths_games_lock_checkboxes,
 
             secondary_mods_folder_line_edit,
             secondary_mods_folder_button,
@@ -336,7 +343,24 @@ impl SettingsUI {
         for (key, path) in self.paths_games_line_edits.iter() {
             let stored_path = setting_string_from_q_setting(&q_settings, key);
             if !stored_path.is_empty() {
-                path.set_text(&QString::from_std_str(stored_path));
+                path.set_text(&QString::from_std_str(&stored_path));
+
+                if let Some(checkbox) = self.paths_games_lock_checkboxes().get(key) {
+                    if let Some(game) = SUPPORTED_GAMES.game(key) {
+                        let game_path = PathBuf::from(&stored_path);
+                        let can_be_locked = crate::mod_manager::integrations::can_game_locked(&game, &game_path);
+                        checkbox.set_enabled(can_be_locked);
+
+                        if can_be_locked {
+                            checkbox.set_checked(crate::mod_manager::integrations::is_game_locked(&game, &game_path));
+                        }
+                    }
+                }
+            }
+
+            // Disable this if there's no path.
+            else if let Some(checkbox) = self.paths_games_lock_checkboxes().get(key) {
+                checkbox.set_enabled(false);
             }
         }
 
@@ -452,6 +476,10 @@ impl SettingsUI {
             button.released().connect(&slots.select_game_paths()[key]);
         }
 
+        for (key, checkbox) in self.paths_games_lock_checkboxes().iter() {
+            checkbox.toggled().connect(&slots.select_game_lock()[key]);
+        }
+
         self.tools_tableview().custom_context_menu_requested().connect(slots.tools_context_menu());
         self.tools_tableview().selection_model().selection_changed().connect(slots.tools_enabler());
         self.tools_context_menu().about_to_show().connect(slots.tools_enabler());
@@ -501,7 +529,11 @@ impl SettingsUI {
 
             // Add the Path to the LineEdit.
             line_edit.set_text(path);
-        }
+
+            if let Some(checkbox) = self.paths_games_lock_checkboxes().get(game) {
+                self.update_lock_status(game, &PathBuf::from(path.to_std_string()), checkbox.is_checked());
+            }
+        };
     }
 
     unsafe fn update_secondary_mods_path(&self) {
@@ -534,6 +566,23 @@ impl SettingsUI {
 
             // Add the Path to the LineEdit.
             line_edit.set_text(path);
+        }
+    }
+
+    unsafe fn update_lock_status(&self, game: &str, game_path: &Path, toggle: bool) {
+        if let Some(checkbox) = self.paths_games_lock_checkboxes().get(game) {
+            if let Some(game) = SUPPORTED_GAMES.game(game) {
+                let can_be_locked = crate::mod_manager::integrations::can_game_locked(&game, &game_path);
+                checkbox.set_enabled(can_be_locked);
+
+                if can_be_locked {
+                    checkbox.set_checked(crate::mod_manager::integrations::toggle_game_locked(&game, &game_path, toggle));
+                    return;
+                }
+            }
+
+            // If the checkbox could not be checked for whatever reason, uncheck it.
+            checkbox.set_checked(false);
         }
     }
 }

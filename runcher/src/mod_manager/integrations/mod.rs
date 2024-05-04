@@ -16,6 +16,7 @@ use anyhow::Result;
 use serde::Deserialize;
 
 use std::collections::HashMap;
+use std::path::Path;
 
 use rpfm_lib::games::GameInfo;
 
@@ -77,4 +78,25 @@ pub fn download_subscribed_mods(game: &GameInfo, published_file_ids: &Option<Vec
 
 pub fn store_user_id(game: &GameInfo) -> Result<u64> {
     steam::user_id(game)
+}
+
+pub fn can_game_locked(game: &GameInfo, game_path: &Path) -> bool {
+    match steam::can_game_locked(game, game_path) {
+        Ok(result) => result,
+        Err(_) => false,
+    }
+}
+
+pub fn is_game_locked(game: &GameInfo, game_path: &Path) -> bool {
+    match steam::is_game_locked(game, game_path) {
+        Ok(result) => result,
+        Err(_) => false,
+    }
+}
+
+pub fn toggle_game_locked(game: &GameInfo, game_path: &Path, toggle: bool) -> bool {
+    match steam::toggle_game_locked(game, game_path, toggle) {
+        Ok(result) => result,
+        Err(_) => false,
+    }
 }

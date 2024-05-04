@@ -8,7 +8,6 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
-
 use anyhow::{anyhow, Result};
 use base64::prelude::*;
 use interprocess::local_socket::LocalSocketListener;
@@ -19,6 +18,7 @@ use steam_workshop_api::interfaces::i_steam_user::*;
 
 use std::collections::HashMap;
 use std::io::Read;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 #[cfg(target_os = "windows")]use std::os::windows::process::CommandExt;
 
@@ -389,4 +389,46 @@ pub fn user_id(game: &GameInfo) -> Result<u64> {
     let array: [u8; 8] = bytes.try_into().map_err(|_| anyhow!("Error when trying to get the Steam User ID."))?;
 
     Ok(u64::from_le_bytes(array))
+}
+
+fn app_manifest_path(game: &GameInfo, game_path: &Path) -> Result<PathBuf> {
+    let steam_id = game.steam_id(&game_path)? as u32;
+    let mut app_path = game_path.to_path_buf();
+    app_path.pop();
+    app_path.pop();
+
+    app_path.push(format!("appmanifest_{}.acf", steam_id));
+    Ok(app_path)
+}
+
+pub fn can_game_locked(game: &GameInfo, game_path: &Path) -> Result<bool> {
+    let app_path = app_manifest_path(game, game_path)?;
+    Ok(app_path.is_file())
+}
+
+pub fn is_game_locked(game: &GameInfo, game_path: &Path) -> Result<bool> {
+    let app_path = app_manifest_path(game, game_path)?;
+    if !app_path.is_file() {
+        return Ok(false);
+    }
+
+    let metadata = app_path.metadata()?;
+    let permissions = metadata.permissions();
+
+    Ok(permissions.readonly())
+}
+
+pub fn toggle_game_locked(game: &GameInfo, game_path: &Path, toggle: bool) -> Result<bool> {
+    let app_path = app_manifest_path(game, game_path)?;
+    if !app_path.is_file() {
+        return Ok(false);
+    }
+
+    let metadata = app_path.metadata()?;
+    let mut permissions = metadata.permissions();
+    permissions.set_readonly(toggle);
+
+    std::fs::set_permissions(app_path, permissions.clone())?;
+
+    Ok(permissions.readonly())
 }

@@ -20,10 +20,12 @@ use qt_gui::QStandardItem;
 use qt_core::QBox;
 use qt_core::QPtr;
 use qt_core::SlotNoArgs;
+use qt_core::SlotOfBool;
 
 use getset::*;
 
 use std::collections::{BTreeMap, HashMap};
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use rpfm_ui_common::clone;
@@ -48,6 +50,7 @@ pub struct SettingsUISlots {
     font_settings: QBox<SlotNoArgs>,
     restore_default: QBox<SlotNoArgs>,
     select_game_paths: BTreeMap<String, QBox<SlotNoArgs>>,
+    select_game_lock: BTreeMap<String, QBox<SlotOfBool>>,
     select_secondary_mods_path: QBox<SlotNoArgs>,
 }
 
@@ -169,10 +172,26 @@ impl SettingsUISlots {
         for key in ui.paths_games_line_edits.keys() {
             select_game_paths.insert(
                 key.to_owned(),
-                SlotNoArgs::new(&ui.dialog, clone!(
+                SlotNoArgs::new(ui.dialog(), clone!(
                     key,
                     ui => move || {
                     ui.update_entry_path(&key);
+                }))
+            );
+        }
+
+        let mut select_game_lock = BTreeMap::new();
+        for key in ui.paths_games_lock_checkboxes().keys() {
+            select_game_lock.insert(
+                key.to_owned(),
+                SlotOfBool::new(ui.dialog(), clone!(
+                    key,
+                    ui => move |status| {
+                    if let Some(game_path_line_edit) = ui.paths_games_line_edits().get(&key) {
+                        let game_path = PathBuf::from(game_path_line_edit.text().to_std_string());
+
+                        ui.update_lock_status(&key, &game_path, status);
+                    }
                 }))
             );
         }
@@ -191,6 +210,7 @@ impl SettingsUISlots {
             font_settings,
             restore_default,
             select_game_paths,
+            select_game_lock,
             select_secondary_mods_path,
         }
     }
