@@ -43,6 +43,7 @@ use cpp_core::CppDeletable;
 use cpp_core::Ptr;
 
 use anyhow::Result;
+use base64::prelude::*;
 use getset::*;
 use time::OffsetDateTime;
 
@@ -58,7 +59,7 @@ use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::ffi::*;
-use crate::mod_manager::{game_config::GameConfig, mods::Mod, secondary_mods_path};
+use crate::mod_manager::{game_config::GameConfig, icon_data, mods::Mod, secondary_mods_path};
 use crate::settings_ui::last_game_update_date;
 
 use self::slots::ModListUISlots;
@@ -79,6 +80,9 @@ pub const VALUE_TIMESTAMP: i32 = 30;
 pub const VALUE_IS_CATEGORY: i32 = 40;
 
 pub const FLAG_MOD_IS_OUTDATED: i32 = 31;
+pub const FLAG_MOD_DATA_IS_OLDER_THAN_SECONDARY: i32 = 32;
+pub const FLAG_MOD_DATA_IS_OLDER_THAN_CONTENT: i32 = 33;
+pub const FLAG_MOD_SECONDARY_IS_OLDER_THAN_CONTENT: i32 = 34;
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -249,6 +253,19 @@ impl ModListUI {
         let secondary_path = path_to_absolute_string(&secondary_mods_path(game.key())?);
         let content_path = path_to_absolute_string(&game.content_path(&game_path)?);
 
+        // Initialize these here so they can be re-use.
+        let outdated_icon = icon_data("outdated.png").unwrap_or_else(|_| vec![]);
+        let outdated = tre("mod_outdated_description", &[&BASE64_STANDARD.encode(outdated_icon)]);
+
+        let data_older_than_secondary_icon = icon_data("data_older_than_secondary.png").unwrap_or_else(|_| vec![]);
+        let data_older_than_secondary = tre("mod_data_older_than_secondary", &[&BASE64_STANDARD.encode(data_older_than_secondary_icon)]);
+
+        let data_older_than_content_icon = icon_data("data_older_than_content.png").unwrap_or_else(|_| vec![]);
+        let data_older_than_content = tre("mod_data_older_than_content", &[&BASE64_STANDARD.encode(data_older_than_content_icon)]);
+
+        let secondary_older_than_content_icon = icon_data("secondary_older_than_content.png").unwrap_or_else(|_| vec![]);
+        let secondary_older_than_content = tre("mod_secondary_older_than_content", &[&BASE64_STANDARD.encode(secondary_older_than_content_icon)]);
+
         // This loads mods per category, meaning all installed mod have to be in the categories list!!!!
         for category in game_config.categories_order() {
             let item = QStandardItem::from_q_string(&QString::from_std_str(category));
@@ -329,8 +346,26 @@ impl ModListUI {
 
                                 let mut flags_description = String::new();
                                 if modd.outdated(game_last_update_date) {
-                                    flags_description.push_str(&tr("mod_outdated_description"));
                                     item_flags.set_data_2a(&QVariant::from_bool(true), FLAG_MOD_IS_OUTDATED);
+                                    flags_description.push_str(&outdated);
+                                }
+
+                                if let Ok(flags) = modd.priority_dating_flags(&data_path, &secondary_path, &content_path) {
+                                    item_flags.set_data_2a(&QVariant::from_bool(flags.0), FLAG_MOD_DATA_IS_OLDER_THAN_SECONDARY);
+                                    item_flags.set_data_2a(&QVariant::from_bool(flags.1), FLAG_MOD_DATA_IS_OLDER_THAN_CONTENT);
+                                    item_flags.set_data_2a(&QVariant::from_bool(flags.2), FLAG_MOD_SECONDARY_IS_OLDER_THAN_CONTENT);
+
+                                    if flags.0 {
+                                        flags_description.push_str(&data_older_than_secondary);
+                                    }
+
+                                    if flags.1 {
+                                        flags_description.push_str(&data_older_than_content);
+                                    }
+
+                                    if flags.2 {
+                                        flags_description.push_str(&secondary_older_than_content);
+                                    }
                                 }
 
                                 if !flags_description.is_empty() {
@@ -416,6 +451,16 @@ impl ModListUI {
         self.tree_view().expand_all();
         self.tree_view().header().resize_sections(ResizeMode::ResizeToContents);
 
+        // Add the full flags description to the column title.
+        let mut full_desc = tr("mod_flags_description") + "<ul>";
+        full_desc.push_str(&outdated);
+        full_desc.push_str(&data_older_than_secondary);
+        full_desc.push_str(&data_older_than_content);
+        full_desc.push_str(&secondary_older_than_content);
+        full_desc.push_str("</ul>");
+
+        self.model.horizontal_header_item(1).set_tool_tip(&QString::from_std_str(full_desc));
+
         Ok(())
     }
 
@@ -432,6 +477,19 @@ impl ModListUI {
         let data_path = path_to_absolute_string(&game_data_path);
         let secondary_path = path_to_absolute_string(&secondary_mods_path(game.key())?);
         let content_path = path_to_absolute_string(&game.content_path(&game_path)?);
+
+        // Initialize these here so they can be re-use.
+        let outdated_icon = icon_data("outdated.png").unwrap_or_else(|_| vec![]);
+        let outdated = tre("mod_outdated_description", &[&BASE64_STANDARD.encode(outdated_icon)]);
+
+        let data_older_than_secondary_icon = icon_data("data_older_than_secondary.png").unwrap_or_else(|_| vec![]);
+        let data_older_than_secondary = tre("mod_data_older_than_secondary", &[&BASE64_STANDARD.encode(data_older_than_secondary_icon)]);
+
+        let data_older_than_content_icon = icon_data("data_older_than_content.png").unwrap_or_else(|_| vec![]);
+        let data_older_than_content = tre("mod_data_older_than_content", &[&BASE64_STANDARD.encode(data_older_than_content_icon)]);
+
+        let secondary_older_than_content_icon = icon_data("secondary_older_than_content.png").unwrap_or_else(|_| vec![]);
+        let secondary_older_than_content = tre("mod_secondary_older_than_content", &[&BASE64_STANDARD.encode(secondary_older_than_content_icon)]);
 
         for category_index in 0..self.model().row_count_0a() {
             let category = self.model().item_2a(category_index, 0);
@@ -498,8 +556,26 @@ impl ModListUI {
 
                         let mut flags_description = String::new();
                         if modd.outdated(game_last_update_date) {
-                            flags_description.push_str(&tr("mod_outdated_description"));
                             item_flags.set_data_2a(&QVariant::from_bool(true), FLAG_MOD_IS_OUTDATED);
+                            flags_description.push_str(&outdated);
+                        }
+
+                        if let Ok(flags) = modd.priority_dating_flags(&data_path, &secondary_path, &content_path) {
+                            item_flags.set_data_2a(&QVariant::from_bool(flags.0), FLAG_MOD_DATA_IS_OLDER_THAN_SECONDARY);
+                            item_flags.set_data_2a(&QVariant::from_bool(flags.1), FLAG_MOD_DATA_IS_OLDER_THAN_CONTENT);
+                            item_flags.set_data_2a(&QVariant::from_bool(flags.2), FLAG_MOD_SECONDARY_IS_OLDER_THAN_CONTENT);
+
+                            if flags.0 {
+                                flags_description.push_str(&data_older_than_secondary);
+                            }
+
+                            if flags.1 {
+                                flags_description.push_str(&data_older_than_content);
+                            }
+
+                            if flags.2 {
+                                flags_description.push_str(&secondary_older_than_content);
+                            }
                         }
 
                         if !flags_description.is_empty() {

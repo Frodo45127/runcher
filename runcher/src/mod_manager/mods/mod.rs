@@ -8,6 +8,7 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use anyhow::Result;
 use getset::*;
 use serde::{Deserialize, Serialize};
 use sha256::try_digest;
@@ -128,6 +129,60 @@ impl Mod {
         }
 
         (data, secondary, content)
+    }
+
+    pub fn priority_dating_flags(&self, data_path: &str, secondary_path: &str, content_path: &str) -> Result<(bool, bool, bool)> {
+
+        // Shortcut for mods only in one place.
+        if self.paths().len() == 1 {
+            return Ok((false, false, false));
+        }
+
+        let mut data_older_than_secondary = false;
+        let mut data_older_than_content = false;
+        let mut secondary_older_than_content = false;
+
+        let paths = self.paths()
+            .iter()
+            .map(|x| path_to_absolute_string(x))
+            .collect::<Vec<_>>();
+
+        if paths.len() == 2 {
+            let date_0 = PathBuf::from(&paths[0]).metadata()?.modified()?;
+            let date_1 = PathBuf::from(&paths[1]).metadata()?.modified()?;
+
+            if date_1 > date_0 {
+                if paths[0].starts_with(data_path) {
+                    if paths[1].starts_with(secondary_path) {
+                        data_older_than_secondary = true;
+                    } else if paths[1].starts_with(content_path) {
+                        data_older_than_content = true;
+                    }
+                } else if paths[0].starts_with(secondary_path) {
+                    secondary_older_than_content = true;
+                }
+            }
+        }
+
+        if paths.len() == 3 {
+            let date_0 = PathBuf::from(&paths[0]).metadata()?.modified()?;
+            let date_1 = PathBuf::from(&paths[1]).metadata()?.modified()?;
+            let date_2 = PathBuf::from(&paths[2]).metadata()?.modified()?;
+
+            if date_1 > date_0 {
+                data_older_than_secondary = true;
+            }
+
+            if date_2 > date_0 {
+                data_older_than_content = true;
+            }
+
+            if date_2 > date_1 {
+                secondary_older_than_content = true;
+            }
+        }
+
+        Ok((data_older_than_secondary, data_older_than_content, secondary_older_than_content))
     }
 
     /// Returns if the mod is enabled or not.

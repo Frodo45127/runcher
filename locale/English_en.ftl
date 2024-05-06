@@ -94,11 +94,38 @@ flags = Flags
 
 mod_flags_description = Possible problems detected:
 mod_outdated_description = <li>
-        <p><b>Outdated Mod</b>: This mod is for a previous version of the game and may need updating to work properly on the current version of the game.<p/>
+        <p>
+            <img src="data:image/png;base64,{"{"}{"}"}"/>
+            <b>Outdated Mod</b>: This mod is for a previous version of the game and may need updating to work properly on the current version of the game.
+        <p/>
         <p>Some examples of mods that usually do not need updates to keep working are:
             <ul>
                 <li>Custom Maps</li>
             <ul/>
+        <p/>
+    </li>
+
+mod_data_older_than_secondary = <li>
+        <p>
+            <img src="data:image/png;base64,{"{"}{"}"}"/>
+            <b>Data older than Secondary</b>: The copy of this mod in /secondary is more up-to-date than then one in /data.
+            This means you may be running an older version of this mod, either intentionally or without realizing.
+        <p/>
+    </li>
+
+mod_data_older_than_content = <li>
+        <p>
+            <img src="data:image/png;base64,{"{"}{"}"}"/>
+            <b>Data older than Content</b>: The copy of this mod in /content is more up-to-date than then one in /data.
+            This means you may be running an older version of this mod, either intentionally or without realizing.
+        <p/>
+    </li>
+
+mod_secondary_older_than_content = <li>
+        <p>
+            <img src="data:image/png;base64,{"{"}{"}"}"/>
+            <b>Secondary older than Content</b>: The copy of this mod in /content is more up-to-date than then one in /secondary.
+            This means you may be running an older version of this mod, either intentionally or without realizing.
         <p/>
     </li>
 

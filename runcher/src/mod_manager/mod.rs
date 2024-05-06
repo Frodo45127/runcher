@@ -14,11 +14,14 @@
 
 use anyhow::{anyhow, Result};
 
-use std::fs::DirBuilder;
+use std::fs::{DirBuilder, File};
+use std::io::{Read, Write};
 use std::path::PathBuf;
 
 use rpfm_lib::games::GameInfo;
 use rpfm_lib::utils::{files_from_subdir, path_to_absolute_path, path_to_absolute_string};
+
+use rpfm_ui_common::ASSETS_PATH;
 use rpfm_ui_common::settings::*;
 
 use crate::SUPPORTED_GAMES;
@@ -194,4 +197,15 @@ pub fn secondary_mods_packs_paths(game: &str) -> Option<Vec<PathBuf>> {
     paths.sort();
 
     Some(paths)
+}
+
+pub unsafe fn icon_data(icon_file_name: &str) -> Result<Vec<u8>> {
+    let icon_path = format!("{}/icons/{icon_file_name}", ASSETS_PATH.to_string_lossy());
+    let mut icon_file = File::open(icon_path)?;
+    let mut data = Vec::with_capacity(icon_file.metadata()?.len() as usize);
+
+    icon_file.read_to_end(&mut data)?;
+    icon_file.flush()?;
+
+    Ok(data)
 }

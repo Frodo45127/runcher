@@ -8,6 +8,9 @@
 #include <QTreeView>
 
 const int FLAG_MOD_IS_OUTDATED = 31;
+const int FLAG_MOD_DATA_IS_OLDER_THAN_SECONDARY = 32;
+const int FLAG_MOD_DATA_IS_OLDER_THAN_CONTENT = 33;
+const int FLAG_MOD_SECONDARY_IS_OLDER_THAN_CONTENT = 34;
 
 extern "C" void flags_item_delegate(QObject *parent, const int column) {
     FlagsItemDelegate* delegate = new FlagsItemDelegate(parent);
@@ -37,7 +40,23 @@ void FlagsItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
     painter->translate(option.rect.topLeft());
 
     if (index.data(FLAG_MOD_IS_OUTDATED).toBool()) {
-        paintIcon(painter, option, index, "outdated", iconWidth, pos_x, margin);
+        paintIcon(painter, option, index, "outdated.png", iconWidth, pos_x, margin);
+        pos_x += 3;
+    }
+
+    if (index.data(FLAG_MOD_DATA_IS_OLDER_THAN_SECONDARY).toBool()) {
+        paintIcon(painter, option, index, "data_older_than_secondary.png", iconWidth, pos_x, margin);
+        pos_x += 3;
+    }
+
+    if (index.data(FLAG_MOD_DATA_IS_OLDER_THAN_CONTENT).toBool()) {
+        paintIcon(painter, option, index, "data_older_than_content.png", iconWidth, pos_x, margin);
+        pos_x += 3;
+    }
+
+    if (index.data(FLAG_MOD_SECONDARY_IS_OLDER_THAN_CONTENT).toBool()) {
+        paintIcon(painter, option, index, "secondary_older_than_content.png", iconWidth, pos_x, margin);
+        pos_x += 3;
     }
 
     painter->restore();
@@ -54,11 +73,16 @@ void FlagsItemDelegate::paintIcon(QPainter *painter, const QStyleOptionViewItem 
     QString fullIconId = QString("%1_%2").arg(iconId).arg(iconWidth);
 
     if (!QPixmapCache::find(fullIconId, &icon)) {
-        icon = QIcon(iconId).pixmap(iconWidth, iconWidth);
+        icon = QIcon(QString("./icons/%1").arg(iconId)).pixmap(iconWidth, iconWidth);
 
         if (icon.isNull()) {
             qWarning() << "Failed to load icon file id: " << iconId;
             icon = QIcon::fromTheme(iconId).pixmap(iconWidth, iconWidth);
+        }
+
+        // If we find them in files, make sure to resize them.
+        else {
+            icon.scaled(QSize(12, 12), Qt::KeepAspectRatio);
         }
 
         if (icon.isNull()) {
