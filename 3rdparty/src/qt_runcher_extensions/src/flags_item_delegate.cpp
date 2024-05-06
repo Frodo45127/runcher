@@ -80,11 +80,6 @@ void FlagsItemDelegate::paintIcon(QPainter *painter, const QStyleOptionViewItem 
             icon = QIcon::fromTheme(iconId).pixmap(iconWidth, iconWidth);
         }
 
-        // If we find them in files, make sure to resize them.
-        else {
-            icon.scaled(QSize(12, 12), Qt::KeepAspectRatio);
-        }
-
         if (icon.isNull()) {
             qWarning() << "Failed to load icon from theme with id: " << iconId;
         }
