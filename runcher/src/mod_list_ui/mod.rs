@@ -51,13 +51,14 @@ use std::rc::Rc;
 use std::time::UNIX_EPOCH;
 
 use rpfm_lib::games::GameInfo;
+use rpfm_lib::utils::path_to_absolute_string;
 
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 use crate::ffi::*;
-use crate::mod_manager::{game_config::GameConfig, mods::Mod};
+use crate::mod_manager::{game_config::GameConfig, mods::Mod, secondary_mods_path};
 use crate::settings_ui::last_game_update_date;
 
 use self::slots::ModListUISlots;
@@ -244,6 +245,10 @@ impl ModListUI {
         let game_last_update_date = last_game_update_date(game, &game_path)?;
         let game_data_path = game.data_path(&game_path)?;
 
+        let data_path = path_to_absolute_string(&game_data_path);
+        let secondary_path = path_to_absolute_string(&secondary_mods_path(game.key())?);
+        let content_path = path_to_absolute_string(&game.content_path(&game_path)?);
+
         // This loads mods per category, meaning all installed mod have to be in the categories list!!!!
         for category in game_config.categories_order() {
             let item = QStandardItem::from_q_string(&QString::from_std_str(category));
@@ -274,6 +279,7 @@ impl ModListUI {
 
                                 let item_mod_name = Self::new_item();
                                 let item_flags = Self::new_item();
+                                let item_location = Self::new_item();
                                 let item_creator = Self::new_item();
                                 let item_type = Self::new_item();
                                 let item_file_size = Self::new_item();
@@ -332,6 +338,23 @@ impl ModListUI {
                                     item_flags.set_tool_tip(&QString::from_std_str(&flags_description));
                                 }
 
+                                let (l_data, l_secondary, l_content) = modd.location(&data_path, &secondary_path, &content_path);
+                                let mut locations = vec![];
+
+                                if l_data {
+                                    locations.push("Data".to_owned());
+                                }
+
+                                if l_secondary {
+                                    locations.push("Secondary".to_owned());
+                                }
+
+                                if let Some(id) = l_content {
+                                    locations.push(format!("Content ({})", id));
+                                }
+
+                                item_location.set_text(&QString::from_std_str(locations.join(",")));
+
                                 item_time_created.set_data_2a(&QVariant::from_i64(*modd.time_created() as i64), VALUE_TIMESTAMP);
                                 item_time_updated.set_data_2a(&QVariant::from_i64(*modd.time_updated() as i64), VALUE_TIMESTAMP);
 
@@ -371,6 +394,7 @@ impl ModListUI {
 
                                 row.append_q_standard_item(&item_mod_name.into_ptr().as_mut_raw_ptr());
                                 row.append_q_standard_item(&item_flags.into_ptr().as_mut_raw_ptr());
+                                row.append_q_standard_item(&item_location.into_ptr().as_mut_raw_ptr());
                                 row.append_q_standard_item(&item_creator.into_ptr().as_mut_raw_ptr());
                                 row.append_q_standard_item(&item_type.into_ptr().as_mut_raw_ptr());
                                 row.append_q_standard_item(&item_file_size.into_ptr().as_mut_raw_ptr());
@@ -386,7 +410,7 @@ impl ModListUI {
 
         // If we have no api key, don't show the author column, as we cannot get it without api key.
         if setting_string("steam_api_key").is_empty() {
-            self.tree_view().hide_column(2);
+            self.tree_view().hide_column(3);
         }
 
         self.tree_view().expand_all();
@@ -403,6 +427,11 @@ impl ModListUI {
 
         let game_path = setting_path(game.key());
         let game_last_update_date = last_game_update_date(game, &game_path)?;
+        let game_data_path = game.data_path(&game_path)?;
+
+        let data_path = path_to_absolute_string(&game_data_path);
+        let secondary_path = path_to_absolute_string(&secondary_mods_path(game.key())?);
+        let content_path = path_to_absolute_string(&game.content_path(&game_path)?);
 
         for category_index in 0..self.model().row_count_0a() {
             let category = self.model().item_2a(category_index, 0);
@@ -419,11 +448,12 @@ impl ModListUI {
                 if !mod_id.is_empty() {
                     if let Some(modd) = mods.get(&mod_id) {
                         let item_flags = category.child_2a(mod_index, 1);
-                        let item_creator = category.child_2a(mod_index, 2);
-                        let item_type = category.child_2a(mod_index, 3);
-                        let item_file_size = category.child_2a(mod_index, 4);
-                        let item_time_created = category.child_2a(mod_index, 5);
-                        let item_time_updated = category.child_2a(mod_index, 6);
+                        let item_location = category.child_2a(mod_index, 2);
+                        let item_creator = category.child_2a(mod_index, 3);
+                        let item_type = category.child_2a(mod_index, 4);
+                        let item_file_size = category.child_2a(mod_index, 5);
+                        let item_time_created = category.child_2a(mod_index, 6);
+                        let item_time_updated = category.child_2a(mod_index, 7);
 
                         let mod_name = if modd.name() != modd.id() {
                             if !modd.file_name().is_empty() {
@@ -477,6 +507,23 @@ impl ModListUI {
                             item_flags.set_tool_tip(&QString::from_std_str(&flags_description));
                         }
 
+                        let (l_data, l_secondary, l_content) = modd.location(&data_path, &secondary_path, &content_path);
+                        let mut locations = vec![];
+
+                        if l_data {
+                            locations.push("Data".to_owned());
+                        }
+
+                        if l_secondary {
+                            locations.push("Secondary".to_owned());
+                        }
+
+                        if let Some(id) = l_content {
+                            locations.push(format!("Content ({})", id));
+                        }
+
+                        item_location.set_text(&QString::from_std_str(locations.join(",")));
+
                         item_time_created.set_data_2a(&QVariant::from_i64(*modd.time_created() as i64), VALUE_TIMESTAMP);
                         item_time_updated.set_data_2a(&QVariant::from_i64(*modd.time_updated() as i64), VALUE_TIMESTAMP);
 
@@ -513,6 +560,7 @@ impl ModListUI {
 
         let item_mod_name = QStandardItem::from_q_string(&qtr("mod_name"));
         let item_flags = QStandardItem::from_q_string(&qtr("flags"));
+        let item_location = QStandardItem::from_q_string(&qtr("location"));
         let item_creator = QStandardItem::from_q_string(&qtr("creator"));
         let item_pack_type = QStandardItem::from_q_string(&qtr("pack_type"));
         let item_file_size = QStandardItem::from_q_string(&qtr("file_size"));
@@ -521,11 +569,12 @@ impl ModListUI {
 
         self.model.set_horizontal_header_item(0, item_mod_name.into_ptr());
         self.model.set_horizontal_header_item(1, item_flags.into_ptr());
-        self.model.set_horizontal_header_item(2, item_creator.into_ptr());
-        self.model.set_horizontal_header_item(3, item_pack_type.into_ptr());
-        self.model.set_horizontal_header_item(4, item_file_size.into_ptr());
-        self.model.set_horizontal_header_item(5, item_time_created.into_ptr());
-        self.model.set_horizontal_header_item(6, item_time_updated.into_ptr());
+        self.model.set_horizontal_header_item(2, item_location.into_ptr());
+        self.model.set_horizontal_header_item(3, item_creator.into_ptr());
+        self.model.set_horizontal_header_item(4, item_pack_type.into_ptr());
+        self.model.set_horizontal_header_item(5, item_file_size.into_ptr());
+        self.model.set_horizontal_header_item(6, item_time_created.into_ptr());
+        self.model.set_horizontal_header_item(7, item_time_updated.into_ptr());
 
         html_item_delegate_safe(&self.tree_view().static_upcast::<QObject>().as_ptr(), 0);
         flags_item_delegate_safe(&self.tree_view().static_upcast::<QObject>().as_ptr(), 1);

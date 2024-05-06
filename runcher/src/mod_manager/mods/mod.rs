@@ -105,6 +105,31 @@ impl Mod {
         game_last_update_date > *self.time_updated() as u64
     }
 
+    pub fn location(&self, data_path: &str, secondary_path: &str, content_path: &str) -> (bool, bool, Option<String>) {
+
+        // Shortcut for mods with no paths.
+        if self.paths().is_empty() {
+            return (false, false, None);
+        }
+
+        let mut data = false;
+        let mut secondary = false;
+        let mut content = None;
+
+        for path in self.paths() {
+            let path = path_to_absolute_string(path);
+            if path.starts_with(data_path) {
+                data = true;
+            } else if path.starts_with(secondary_path) {
+                secondary = true;
+            } else if path.starts_with(content_path) {
+                content = self.steam_id.clone();
+            }
+        }
+
+        (data, secondary, content)
+    }
+
     /// Returns if the mod is enabled or not.
     pub fn enabled(&self, data_path: &Path) -> bool {
 
