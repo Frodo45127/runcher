@@ -125,8 +125,6 @@ const WORKSHOP_UPLOAD_VIEW_RELEASE: &str = "ui/workshop_upload_dialog.ui";
 const LOG_ANALYSIS_VIEW_DEBUG: &str = "ui_templates/log_analysis_dialog.ui";
 const LOG_ANALYSIS_VIEW_RELEASE: &str = "ui/log_analysis_dialog.ui";
 
-pub const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
-pub const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
 const MERGE_ALL_PACKS_PACK_NAME: &str = "merge_me_sideways_honey";
 
 #[allow(dead_code)] const VANILLA_MOD_LIST_FILE_NAME: &str = "used_mods.txt";
@@ -853,61 +851,8 @@ impl AppUI {
         let game_path = setting_path(game.key());
         let data_path = game.data_path(&game_path)?;
 
-        // We only use the reserved pack if we need to.
-        if (self.actions_ui().enable_logging_checkbox().is_enabled() && self.actions_ui().enable_logging_checkbox().is_checked()) ||
-            (self.actions_ui().enable_skip_intro_checkbox().is_enabled() && self.actions_ui().enable_skip_intro_checkbox().is_checked()) ||
-            (self.actions_ui().enable_translations_combobox().is_enabled() && self.actions_ui().enable_translations_combobox().current_index() != 0) ||
-            (self.actions_ui().unit_multiplier_spinbox().is_enabled() && self.actions_ui().unit_multiplier_spinbox().value() != 1.00) {
-
-            // We need to use an alternative name for Shogun 2, Rome 2, Attila and Thrones because their load order logic for movie packs seems... either different or broken.
-            let reserved_pack_name = if game.key() == KEY_SHOGUN_2 || game.key() == KEY_ROME_2 || game.key() == KEY_ATTILA || game.key() == KEY_THRONES_OF_BRITANNIA { RESERVED_PACK_NAME_ALTERNATIVE } else { RESERVED_PACK_NAME };
-
-            // If the reserved pack is loaded from a custom folder we need to CLEAR SAID FOLDER before anything else. Otherwise we may end up with old packs messing up stuff.
-            if *game.raw_db_version() >= 1 {
-                let temp_packs_folder = temp_packs_folder(&game)?;
-                let files = files_from_subdir(&temp_packs_folder, false)?;
-                for file in &files {
-                    std::fs::remove_file(file)?;
-                }
-            }
-
-            // Support for add_working_directory seems to be only present in rome 2 and newer games. For older games, we drop the pack into /data.
-            let temp_path = if *game.raw_db_version() >= 1 {
-                let temp_packs_folder = temp_packs_folder(&game)?;
-                let temp_path = temp_packs_folder.join(reserved_pack_name);
-                folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_packs_folder.to_string_lossy()));
-                temp_path
-            } else {
-                data_path.join(reserved_pack_name)
-            };
-
-            // Generate the reserved pack.
-            //
-            // Note: It has to be a movie pack because otherwise we cannot overwrite the intro files in older games.
-            let pack_version = game.pfh_version_by_file_type(PFHFileType::Movie);
-            let mut reserved_pack = Pack::new_with_version(pack_version);
-            reserved_pack.set_pfh_file_type(PFHFileType::Movie);
-
-            // Skip videos.
-            prepare_skip_intro_videos(self, &game, &game_path, &mut reserved_pack)?;
-
-            // Logging.
-            prepare_script_logging(self, &game, &mut reserved_pack)?;
-
-            // Trait limit removal.
-            prepare_trait_limit_removal(self, &game, &game_path, &mut reserved_pack)?;
-
-            // Translations.
-            prepare_translations(self, &game, &mut reserved_pack)?;
-
-            // Unit multiplier.
-            prepare_unit_multiplier(self, &game, &game_path, &mut reserved_pack)?;
-
-            let mut encode_data = EncodeableExtraData::default();
-            encode_data.set_nullify_dates(true);
-
-            reserved_pack.save(Some(&temp_path), &game, &Some(encode_data))?;
-        }
+        // Setup the launch options stuff.
+        prepare_launch_options(self, &game, &game_path, &data_path, &mut folder_list)?;
 
         // If we have "merge all mods" checked, we need to load the entire load order into a single pack, and load that pack instead of the entire load order.
         //

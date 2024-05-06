@@ -20,9 +20,10 @@ use rpfm_extensions::dependencies::Dependencies;
 use rpfm_extensions::optimizer::Optimizable;
 use rpfm_extensions::translator::*;
 
-use rpfm_lib::files::{Container, FileType, loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
-use rpfm_lib::games::{*, supported_games::*};
+use rpfm_lib::files::{Container, EncodeableExtraData, FileType, loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
+use rpfm_lib::games::{*, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::git::GitResponse;
+use rpfm_lib::utils::files_from_subdir;
 
 use rpfm_ui_common::locale::tre;
 use rpfm_ui_common::settings::*;
@@ -32,7 +33,7 @@ use crate::app_ui::AppUI;
 use crate::CENTRAL_COMMAND;
 use crate::communications::*;
 use crate::SCHEMA;
-use crate::settings_ui::{translations_local_path, translations_remote_path};
+use crate::settings_ui::{temp_packs_folder, translations_local_path, translations_remote_path};
 
 const EMPTY_CA_VP8: [u8; 595] = [
     0x43, 0x41, 0x4d, 0x56, 0x01, 0x00, 0x29, 0x00, 0x56, 0x50, 0x38, 0x30, 0x80, 0x02, 0xe0, 0x01, 0x55, 0x55,
@@ -103,6 +104,9 @@ const EMPTY_BIK: [u8; 520] = [
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA0, 0xE0, 0xFF, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x00,
 ];
 
+pub const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
+pub const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
+
 pub const TRANSLATIONS_REPO: &str = "https://github.com/Frodo45127/total_war_translation_hub";
 pub const TRANSLATIONS_REMOTE: &str = "origin";
 pub const TRANSLATIONS_BRANCH: &str = "master";
@@ -127,6 +131,71 @@ mod warhammer_3;
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
+pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, game_path: &Path, data_path: &Path, folder_list: &mut String) -> Result<()> {
+    let actions_ui = app_ui.actions_ui();
+
+    // We only use the reserved pack if we need to.
+    if (actions_ui.enable_logging_checkbox().is_enabled() && actions_ui.enable_logging_checkbox().is_checked()) ||
+        (actions_ui.enable_skip_intro_checkbox().is_enabled() && actions_ui.enable_skip_intro_checkbox().is_checked()) ||
+        (actions_ui.enable_translations_combobox().is_enabled() && actions_ui.enable_translations_combobox().current_index() != 0) ||
+        (actions_ui.unit_multiplier_spinbox().is_enabled() && actions_ui.unit_multiplier_spinbox().value() != 1.00) {
+
+        // We need to use an alternative name for Shogun 2, Rome 2, Attila and Thrones because their load order logic for movie packs seems... either different or broken.
+        let reserved_pack_name = if game.key() == KEY_SHOGUN_2 || game.key() == KEY_ROME_2 || game.key() == KEY_ATTILA || game.key() == KEY_THRONES_OF_BRITANNIA {
+            RESERVED_PACK_NAME_ALTERNATIVE
+        } else {
+            RESERVED_PACK_NAME
+        };
+
+        // If the reserved pack is loaded from a custom folder we need to CLEAR SAID FOLDER before anything else. Otherwise we may end up with old packs messing up stuff.
+        if *game.raw_db_version() >= 1 {
+            let temp_packs_folder = temp_packs_folder(&game)?;
+            let files = files_from_subdir(&temp_packs_folder, false)?;
+            for file in &files {
+                std::fs::remove_file(file)?;
+            }
+        }
+
+        // Support for add_working_directory seems to be only present in rome 2 and newer games. For older games, we drop the pack into /data.
+        let temp_path = if *game.raw_db_version() >= 1 {
+            let temp_packs_folder = temp_packs_folder(&game)?;
+            let temp_path = temp_packs_folder.join(reserved_pack_name);
+            folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_packs_folder.to_string_lossy()));
+            temp_path
+        } else {
+            data_path.join(reserved_pack_name)
+        };
+
+        // Generate the reserved pack.
+        //
+        // Note: It has to be a movie pack because otherwise we cannot overwrite the intro files in older games.
+        let pack_version = game.pfh_version_by_file_type(PFHFileType::Movie);
+        let mut reserved_pack = Pack::new_with_version(pack_version);
+        reserved_pack.set_pfh_file_type(PFHFileType::Movie);
+
+        // Skip videos.
+        prepare_skip_intro_videos(app_ui, &game, &game_path, &mut reserved_pack)?;
+
+        // Logging.
+        prepare_script_logging(app_ui, &game, &mut reserved_pack)?;
+
+        // Trait limit removal.
+        prepare_trait_limit_removal(app_ui, &game, &game_path, &mut reserved_pack)?;
+
+        // Translations.
+        prepare_translations(app_ui, &game, &mut reserved_pack)?;
+
+        // Unit multiplier.
+        prepare_unit_multiplier(app_ui, &game, &game_path, &mut reserved_pack)?;
+
+        let mut encode_data = EncodeableExtraData::default();
+        encode_data.set_nullify_dates(true);
+
+        reserved_pack.save(Some(&temp_path), &game, &Some(encode_data))?;
+    }
+
+    Ok(())
+}
 pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
 
     // The blockers are needed to avoid issues with game change causing incorrect status to be saved.

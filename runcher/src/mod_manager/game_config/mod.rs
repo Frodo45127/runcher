@@ -27,7 +27,7 @@ use rpfm_lib::files::pack::Pack;
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
 use rpfm_lib::integrations::log::error;
 
-use crate::app_ui::{RESERVED_PACK_NAME, RESERVED_PACK_NAME_ALTERNATIVE};
+use crate::games::{RESERVED_PACK_NAME, RESERVED_PACK_NAME_ALTERNATIVE};
 use crate::communications::{Command, Response};
 use crate::mod_manager::{load_order::LoadOrder, mods::Mod};
 use crate::{settings_ui::*, CENTRAL_COMMAND};
