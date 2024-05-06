@@ -68,8 +68,8 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
     steam::upload_mod_to_workshop(game, modd, title, description, tags, changelog, visibility)
 }
 
-pub fn launch_game(game: &GameInfo, command_to_pass: &str) -> Result<()> {
-    steam::launch_game(game, command_to_pass)
+pub fn launch_game(game: &GameInfo, command_to_pass: &str, wait_for_finish: bool) -> Result<()> {
+    steam::launch_game(game, command_to_pass, wait_for_finish)
 }
 
 pub fn download_subscribed_mods(game: &GameInfo, published_file_ids: &Option<Vec<String>>) -> Result<()> {

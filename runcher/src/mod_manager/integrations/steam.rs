@@ -303,7 +303,7 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
 }
 
 /// This function launches a game through workshopper, with access to the Steam Api.
-pub fn launch_game(game: &GameInfo, command_to_pass: &str) -> Result<()> {
+pub fn launch_game(game: &GameInfo, command_to_pass: &str, wait_for_finish: bool) -> Result<()> {
     let game_path = setting_path(game.key());
     let steam_id = game.steam_id(&game_path)? as u32;
 
@@ -327,7 +327,10 @@ pub fn launch_game(game: &GameInfo, command_to_pass: &str) -> Result<()> {
     }
 
     let mut handle = command.spawn()?;
-    let _ = handle.wait();
+
+    if wait_for_finish {
+        let _ = handle.wait();
+    }
 
     Ok(())
 }

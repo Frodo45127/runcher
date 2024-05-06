@@ -1048,7 +1048,9 @@ impl AppUI {
 
                     let start_date = SystemTime::now();
                     let command = BASE64_STANDARD.encode(command);
-                    let result = crate::mod_manager::integrations::launch_game(&game, &command);
+
+                    let wait_for_finish = setting_bool("check_logs");
+                    let result = crate::mod_manager::integrations::launch_game(&game, &command, wait_for_finish);
 
                     // Check the logs post-launch, if there's any log to check.
                     if setting_bool("check_logs") {
