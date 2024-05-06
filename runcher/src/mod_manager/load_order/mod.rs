@@ -22,6 +22,7 @@ use std::path::{Path, PathBuf};
 use rpfm_lib::files::pack::Pack;
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
 use rpfm_lib::integrations::log::*;
+use rpfm_lib::utils::{path_to_absolute_path, path_to_absolute_string};
 
 use crate::mod_manager::SECONDARY_FOLDER_NAME;
 use crate::settings_ui::game_config_path;
@@ -242,30 +243,21 @@ impl LoadOrder {
                 let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
                 let path = &modd.paths()[0];
                 if !path.starts_with(game_data_path) && *game.raw_db_version() >= 1 {
-                    let mut folder_path = path.to_owned();
+                    let mut folder_path = path_to_absolute_path(path);
                     folder_path.pop();
 
-                    // Canonicalization is required due to some issues with the game not loading not properly formatted paths.
-                    if let Ok(folder_path) = std::fs::canonicalize(&folder_path) {
-                        let mut folder_path_str = folder_path.to_string_lossy().to_string();
-                        if folder_path_str.starts_with("\\\\?\\") {
-                            folder_path_str = folder_path_str[4..].to_string();
-                        }
+                    // If it's the secondary folder, just add it once. If it's the contents folder, add one per mod.
+                    let folder_path_str = path_to_absolute_string(&folder_path);
+                    if secondary_mods_path.is_dir() && folder_path == secondary_mods_path {
+                        if !added_secondary_folder {
 
-                        // If it's the secondary folder, just add it once. If it's the contents folder, add one per mod.
-                        if secondary_mods_path.is_dir() && folder_path == secondary_mods_path {
-                            if !added_secondary_folder {
-
-                                // We have to add both, the secondary folder and the masking folder, so movie packs in secondary can be toggled by using masks.
-                                folder_paths.push_str(&format!("add_working_directory \"{}\";\n", secondary_mods_masks_path.to_string_lossy()));
-                                folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
-                                added_secondary_folder = true;
-                            }
-                        } else {
+                            // We have to add both, the secondary folder and the masking folder, so movie packs in secondary can be toggled by using masks.
+                            folder_paths.push_str(&format!("add_working_directory \"{}\";\n", secondary_mods_masks_path.to_string_lossy()));
                             folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
+                            added_secondary_folder = true;
                         }
                     } else {
-                        error!("Cannonicalization of path {} failed.", &folder_path.to_string_lossy().to_string());
+                        folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
                     }
                 }
 
@@ -285,30 +277,21 @@ impl LoadOrder {
                     // This only works for Rome 2 and later games.
                     if *game.raw_db_version() >= 1 {
                         let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                        let mut folder_path = modd.paths()[0].to_owned();
+                        let mut folder_path = path_to_absolute_path(&modd.paths()[0]);
                         folder_path.pop();
 
-                        // Canonicalization is required due to some issues with the game not loading not properly formatted paths.
-                        if let Ok(folder_path) = std::fs::canonicalize(&folder_path) {
-                            let mut folder_path_str = folder_path.to_string_lossy().to_string();
-                            if folder_path_str.starts_with("\\\\?\\") {
-                                folder_path_str = folder_path_str[4..].to_string();
-                            }
+                        // If it's the secondary folder, just add it once. If it's the contents folder, add one per mod.
+                        let folder_path_str = path_to_absolute_string(&folder_path);
+                        if secondary_mods_path.is_dir() && folder_path == secondary_mods_path {
+                            if !added_secondary_folder {
 
-                            // If it's the secondary folder, just add it once. If it's the contents folder, add one per mod.
-                            if secondary_mods_path.is_dir() && folder_path == secondary_mods_path {
-                                if !added_secondary_folder {
-
-                                    // We have to add both, the secondary folder and the masking folder, so movie packs in secondary can be toggled by using masks.
-                                    folder_paths.push_str(&format!("add_working_directory \"{}\";\n", secondary_mods_masks_path.to_string_lossy()));
-                                    folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
-                                    added_secondary_folder = true;
-                                }
-                            } else {
+                                // We have to add both, the secondary folder and the masking folder, so movie packs in secondary can be toggled by using masks.
+                                folder_paths.push_str(&format!("add_working_directory \"{}\";\n", secondary_mods_masks_path.to_string_lossy()));
                                 folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
+                                added_secondary_folder = true;
                             }
                         } else {
-                            error!("Cannonicalization of path {} failed.", &folder_path.to_string_lossy().to_string());
+                            folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
                         }
 
                         if !pack_string.is_empty() {

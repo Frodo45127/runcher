@@ -18,7 +18,7 @@ use std::fs::DirBuilder;
 use std::path::PathBuf;
 
 use rpfm_lib::games::GameInfo;
-use rpfm_lib::utils::files_from_subdir;
+use rpfm_lib::utils::{files_from_subdir, path_to_absolute_path, path_to_absolute_string};
 use rpfm_ui_common::settings::*;
 
 use crate::SUPPORTED_GAMES;
@@ -39,33 +39,19 @@ pub fn copy_to_secondary(game: &GameInfo, game_config: &GameConfig, mod_ids: &[S
 
     let game_path = setting_path(game.key());
     let secondary_path = secondary_mods_path(game.key())?;
-    let content_path = game.content_path(&game_path)?;
-    let mut secondary_path_str = secondary_path.to_string_lossy().to_string();
-    let mut content_path_str = std::fs::canonicalize(content_path)?.to_string_lossy().to_string();
-
-    if secondary_path_str.starts_with("\\\\?\\") {
-        secondary_path_str = secondary_path_str[4..].to_owned();
-    }
-
-    if content_path_str.starts_with("\\\\?\\") {
-        content_path_str = content_path_str[4..].to_owned();
-    }
+    let content_path = path_to_absolute_path(&game.content_path(&game_path)?);
+    let secondary_path_str = path_to_absolute_string(&secondary_path);
+    let content_path_str = path_to_absolute_string(&content_path);
 
     for mod_id in mod_ids {
         if let Some(modd) = game_config.mods().get(mod_id) {
 
             // Apply only to mods on content, or both on content and secondary.
             if modd.paths().len() <= 2 {
-                let mut decannon_paths = modd.paths()
+                let decannon_paths = modd.paths()
                     .iter()
-                    .map(|path| std::fs::canonicalize(path).unwrap().to_string_lossy().to_string())
+                    .map(|path| path_to_absolute_string(path))
                     .collect::<Vec<_>>();
-
-                for path in &mut decannon_paths {
-                    if path.starts_with("\\\\?\\") {
-                        *path = path[4..].to_owned();
-                    }
-                }
 
                 // If there's only one path, check if it's in content.
                 if decannon_paths.len() == 1 && decannon_paths[0].starts_with(&content_path_str) {
@@ -122,26 +108,16 @@ pub fn move_to_secondary(game: &GameInfo, game_config: &GameConfig, mod_ids: &[S
     let game_path = setting_path(game.key());
     let secondary_path = secondary_mods_path(game.key())?;
     let data_path = game.data_path(&game_path)?;
-    let mut data_path_str = std::fs::canonicalize(data_path)?.to_string_lossy().to_string();
-
-    if data_path_str.starts_with("\\\\?\\") {
-        data_path_str = data_path_str[4..].to_owned();
-    }
+    let data_path_str = path_to_absolute_string(&data_path);
 
     for mod_id in mod_ids {
         if let Some(modd) = game_config.mods().get(mod_id) {
 
             // Apply only to mods on content, or both on content and secondary.
-            let mut decannon_paths = modd.paths()
+            let decannon_paths = modd.paths()
                 .iter()
-                .map(|path| std::fs::canonicalize(path).unwrap().to_string_lossy().to_string())
+                .map(|path| path_to_absolute_string(path))
                 .collect::<Vec<_>>();
-
-            for path in &mut decannon_paths {
-                if path.starts_with("\\\\?\\") {
-                    *path = path[4..].to_owned();
-                }
-            }
 
             // If the first path is /data, proceed. If not, we cannot move this mod.
             if decannon_paths[0].starts_with(&data_path_str) {
@@ -153,7 +129,7 @@ pub fn move_to_secondary(game: &GameInfo, game_config: &GameConfig, mod_ids: &[S
                 // Move the png too, and delete the originals if it worked.
                 else {
 
-                    let mut old_image_path = std::fs::canonicalize(PathBuf::from(&decannon_paths[0])).unwrap();
+                    let mut old_image_path = PathBuf::from(&decannon_paths[0]);
                     old_image_path.set_extension("png");
 
                     let mut new_image_path = secondary_path.join(modd.paths()[0].file_name().unwrap());

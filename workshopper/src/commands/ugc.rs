@@ -24,6 +24,7 @@ use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 
 use rpfm_lib::{games::GameInfo, integrations::log::{error, info, warn}};
+use rpfm_lib::utils::path_to_absolute_path;
 
 const IPC_NAME_GET_PUBLISHED_FILE_DETAILS: &str = "runcher_get_published_file_details";
 
@@ -295,11 +296,7 @@ pub fn update(
     let ugc = ugc.unwrap_or_else(|| client.ugc());
 
     // Sanitize the pack_path.
-    let pack_path = if pack_path.to_string_lossy().starts_with("\\\\?\\") {
-        PathBuf::from(pack_path.to_string_lossy()[4..].to_owned())
-    } else {
-        pack_path.to_path_buf()
-    };
+    let pack_path = path_to_absolute_path(pack_path);
 
     // Prepare the preview path. We replicate the same behavior as the vanilla launcher.
     let mut preview_path = pack_path.to_path_buf();
