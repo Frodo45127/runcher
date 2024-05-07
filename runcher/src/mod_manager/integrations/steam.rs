@@ -13,16 +13,18 @@ use base64::prelude::*;
 use interprocess::local_socket::LocalSocketListener;
 use regex::Regex;
 use serde::Deserialize;
-use steam_workshop_api::client::Workshop;
-use steam_workshop_api::interfaces::i_steam_user::*;
+use steam_workshop_api::{client::Workshop, interfaces::i_steam_user::*};
 
 use std::collections::HashMap;
-use std::io::Read;
+use std::fs::File;
+use std::io::{BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 #[cfg(target_os = "windows")]use std::os::windows::process::CommandExt;
 
 use rpfm_lib::games::GameInfo;
+use rpfm_lib::utils::path_to_absolute_string;
+
 use rpfm_ui_common::settings::{setting_bool, setting_path, setting_string};
 
 use crate::mod_manager::mods::Mod;
@@ -41,6 +43,9 @@ lazy_static::lazy_static! {
 }
 
 const WORKSHOPPER_EXE: &str = "workshopper.exe";
+
+const BAT_UPLOAD_TO_WORKSHOP: &str = "upload-to-workshop.bat";
+const BAT_GET_PUBLISHED_FILE_DETAILS: &str = "get-published-file-details.bat";
 
 const IPC_NAME_GET_PUBLISHED_FILE_DETAILS: &str = "runcher_get_published_file_details";
 const IPC_NAME_GET_STEAM_USER_ID: &str = "runcher_get_steam_user_id";
@@ -156,15 +161,14 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
     let steam_id = game.steam_id(&game_path)? as u32;
     let published_file_ids = mod_ids.join(",");
 
+    let command_string = format!("{} get-published-file-details -s {steam_id} -p {published_file_ids}", &*WORKSHOPPER_PATH);
+    let mut file = BufWriter::new(File::create(BAT_GET_PUBLISHED_FILE_DETAILS)?);
+    file.write_all(command_string.as_bytes())?;
+    file.flush()?;
+
     let mut command = Command::new("cmd");
     command.arg("/C");
-    command.arg(&*WORKSHOPPER_PATH);
-
-    command.arg("get-published-file-details");
-    command.arg("-s");
-    command.arg(steam_id.to_string());
-    command.arg("-p");
-    command.arg(published_file_ids);
+    command.arg(BAT_GET_PUBLISHED_FILE_DETAILS);
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
     #[cfg(target_os = "windows")] if cfg!(debug_assertions) || setting_bool("enable_debug_terminal") {
@@ -246,57 +250,44 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
     let pack_path = if modd.paths().is_empty() {
         return Err(anyhow!("Mod Path not found."));
     } else {
-        &modd.paths()[0]
+        path_to_absolute_string(&modd.paths()[0])
     };
-
-    let mut command = Command::new("cmd");
-    command.arg("/C");
-    command.arg(&*WORKSHOPPER_PATH);
 
     // If we have a published_file_id, it means this file exists in the workshop.
     //
     // So, instead of uploading, we just update it.
-    match modd.steam_id() {
-        Some(published_file_id) => {
-            command.arg("update");
-            command.arg("--published-file-id");
-            command.arg(published_file_id);
-        }
-        None => {
-            command.arg("upload");
-        }
-    }
-
-    // Due to issues passing certain characters to the terminal, we encode the strings to base64 and pass -b.
-    command.arg("-b");
-    command.arg("-s");
-    command.arg(steam_id.to_string());
-    command.arg("-f");
-    command.arg(pack_path.to_string_lossy().to_string());
-    command.arg("-t");
-    command.arg(BASE64_STANDARD.encode(title));
+    let mut command_string = format!("{} {} -b -s {steam_id} -f \"{pack_path}\" -t {} --tags {}",
+        &*WORKSHOPPER_PATH,
+        match modd.steam_id() {
+            Some(published_file_id) => format!("update --published-file-id {published_file_id}"),
+            None => "upload".to_string(),
+        },
+        BASE64_STANDARD.encode(title),
+        tags.join(",")
+    );
 
     if !description.is_empty() {
-        command.arg("-d");
-        command.arg(BASE64_STANDARD.encode(description));
+        command_string.push_str(&format!(" -d {}", BASE64_STANDARD.encode(description)));
     }
 
-    command.arg("--tags");
-    command.arg(tags.join(","));
-
     if !changelog.is_empty() {
-        command.arg("-c");
-        command.arg(BASE64_STANDARD.encode(changelog));
+        command_string.push_str(&format!(" -c {}", BASE64_STANDARD.encode(changelog)));
     }
 
     if let Some(visibility) = visibility {
-        command.arg("--visibility");
-        command.arg(visibility.to_string());
+        command_string.push_str(&format!(" --visibility {visibility}"));
     }
+
+    let mut file = BufWriter::new(File::create(BAT_UPLOAD_TO_WORKSHOP)?);
+    file.write_all(command_string.as_bytes())?;
+    file.flush()?;
+
+    let mut command = Command::new("cmd");
+    command.arg("/C");
+    command.arg(BAT_UPLOAD_TO_WORKSHOP);
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
     #[cfg(target_os = "windows")]command.creation_flags(DETACHED_PROCESS);
-
     command.spawn()?;
 
     Ok(())
