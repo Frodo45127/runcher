@@ -10,7 +10,7 @@
 
 use anyhow::{anyhow, Result};
 use base64::prelude::*;
-use interprocess::local_socket::LocalSocketListener;
+use interprocess::local_socket::{prelude::*, GenericNamespaced, ListenerOptions};
 use regex::Regex;
 use serde::Deserialize;
 use steam_workshop_api::{client::Workshop, interfaces::i_steam_user::*};
@@ -179,7 +179,8 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
 
     command.spawn()?;
 
-    let server = LocalSocketListener::bind(IPC_NAME_GET_PUBLISHED_FILE_DETAILS)?;
+    let channel = IPC_NAME_GET_PUBLISHED_FILE_DETAILS.to_ns_name::<GenericNamespaced>()?;
+    let server = ListenerOptions::new().name(channel).create_sync()?;
     let mut stream = server.accept()?;
 
     let mut message = String::new();
@@ -376,7 +377,8 @@ pub fn user_id(game: &GameInfo) -> Result<u64> {
 
     let _ = command.spawn()?;
 
-    let server = LocalSocketListener::bind(IPC_NAME_GET_STEAM_USER_ID)?;
+    let channel = IPC_NAME_GET_STEAM_USER_ID.to_ns_name::<GenericNamespaced>()?;
+    let server = ListenerOptions::new().name(channel).create_sync()?;
     let mut stream = server.accept()?;
 
     let mut bytes = vec![];

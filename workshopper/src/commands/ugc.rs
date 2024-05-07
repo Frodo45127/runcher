@@ -12,7 +12,7 @@ use anyhow::{anyhow, Result};
 use base64::prelude::*;
 use crossbeam::channel::{Sender, Receiver, TryRecvError, unbounded};
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
-use interprocess::local_socket::LocalSocketStream;
+use interprocess::local_socket::{GenericNamespaced, prelude::*};
 use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
 use steamworks::{AppId, Client, ClientManager, DownloadItemResult, FileType, PublishedFileId, PublishedFileVisibility, QueryResult, SingleClient, SteamId, UpdateStatus, UpdateWatchHandle, UGC};
@@ -194,7 +194,7 @@ pub fn published_file_details(steam_id: u32, published_file_ids: &str) -> Result
             let results = results.iter().map(|result| QueryResultDerive::from(result)).collect::<Vec<_>>();
             if let Ok(message) = to_string_pretty(&results) {
 
-                if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_PUBLISHED_FILE_DETAILS) {
+                if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_PUBLISHED_FILE_DETAILS.to_ns_name::<GenericNamespaced>()?) {
                     let _ = stream.write(message.as_bytes());
                 }
 
@@ -206,7 +206,7 @@ pub fn published_file_details(steam_id: u32, published_file_ids: &str) -> Result
                     file.flush()?;
                 }
             } else {
-                if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_PUBLISHED_FILE_DETAILS) {
+                if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_PUBLISHED_FILE_DETAILS.to_ns_name::<GenericNamespaced>()?) {
                     let _ = stream.write(b"{}");
                 }
             }
@@ -215,7 +215,7 @@ pub fn published_file_details(steam_id: u32, published_file_ids: &str) -> Result
         },
         SteamWorksThreadMessage::Error(error) => {
 
-            if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_PUBLISHED_FILE_DETAILS) {
+            if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_PUBLISHED_FILE_DETAILS.to_ns_name::<GenericNamespaced>()?) {
                 let _ = stream.write(b"{}");
             }
 
@@ -545,7 +545,7 @@ fn init(steam_id: u32, channel: Option<&str>) -> Result<(Client, Sender<SteamWor
         Ok(client) => client,
         Err(error) => {
             if let Some(channel) = channel {
-                if let Ok(mut stream) = LocalSocketStream::connect(channel) {
+                if let Ok(mut stream) = LocalSocketStream::connect(channel.to_ns_name::<GenericNamespaced>()?) {
                     let _ = stream.write("{}".as_bytes());
                 }
             }

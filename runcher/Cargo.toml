@@ -83,7 +83,7 @@ clap = { version = "^4", features = ["derive", "wrap_help"] }
 flate2 = "^1"
 
 # IPC Support
-interprocess = "^1.2"
+interprocess = "^2"
 
 # For checking if steam is running.
 sysinfo = "^0.30"

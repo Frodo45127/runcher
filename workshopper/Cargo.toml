@@ -44,7 +44,7 @@ serde_derive = "^1.0"
 serde_json = "^1.0"
 
 # IPC Support
-interprocess = "^1.2"
+interprocess = "^2"
 
 # Support for special chars.
 base64 = "^0.21"

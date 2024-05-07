@@ -11,7 +11,7 @@
 use anyhow::Result;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use execute_command::ExecuteCommand;
-use interprocess::local_socket::LocalSocketStream;
+use interprocess::local_socket::{GenericNamespaced, prelude::*};
 use steamworks::Client;
 
 use std::io::Write;
@@ -63,7 +63,7 @@ pub fn user_id(steam_id: u32) -> Result<()> {
 
     info!("User Steam ID: {}", steam_user_id.raw());
 
-    if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_STEAM_USER_ID) {
+    if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_STEAM_USER_ID.to_ns_name::<GenericNamespaced>()?) {
         let _ = stream.write(&steam_user_id.raw().to_le_bytes());
     }
 
