@@ -121,9 +121,9 @@ impl Mod {
             let path = path_to_absolute_string(path);
             if path.starts_with(data_path) {
                 data = true;
-            } else if path.starts_with(secondary_path) {
+            } else if !secondary_path.is_empty() && path.starts_with(secondary_path) {
                 secondary = true;
-            } else if path.starts_with(content_path) {
+            } else if !content_path.is_empty() && path.starts_with(content_path) {
                 content = self.steam_id.clone();
             }
         }
@@ -153,12 +153,12 @@ impl Mod {
 
             if date_1 > date_0 {
                 if paths[0].starts_with(data_path) {
-                    if paths[1].starts_with(secondary_path) {
+                    if !secondary_path.is_empty() && paths[1].starts_with(secondary_path) {
                         data_older_than_secondary = true;
-                    } else if paths[1].starts_with(content_path) {
+                    } else if !content_path.is_empty() && paths[1].starts_with(content_path) {
                         data_older_than_content = true;
                     }
-                } else if paths[0].starts_with(secondary_path) {
+                } else if !secondary_path.is_empty() && paths[0].starts_with(secondary_path) {
                     secondary_older_than_content = true;
                 }
             }

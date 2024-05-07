@@ -48,6 +48,7 @@ use getset::*;
 use time::OffsetDateTime;
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::UNIX_EPOCH;
 
@@ -250,8 +251,8 @@ impl ModListUI {
         let game_data_path = game.data_path(&game_path)?;
 
         let data_path = path_to_absolute_string(&game_data_path);
-        let secondary_path = path_to_absolute_string(&secondary_mods_path(game.key())?);
-        let content_path = path_to_absolute_string(&game.content_path(&game_path)?);
+        let secondary_path = path_to_absolute_string(&secondary_mods_path(game.key()).unwrap_or_else(|_| PathBuf::default()));
+        let content_path = path_to_absolute_string(&game.content_path(&game_path).unwrap_or_else(|_| PathBuf::default()));
 
         // Initialize these here so they can be re-use.
         let outdated_icon = icon_data("outdated.png").unwrap_or_else(|_| vec![]);
@@ -475,8 +476,8 @@ impl ModListUI {
         let game_data_path = game.data_path(&game_path)?;
 
         let data_path = path_to_absolute_string(&game_data_path);
-        let secondary_path = path_to_absolute_string(&secondary_mods_path(game.key())?);
-        let content_path = path_to_absolute_string(&game.content_path(&game_path)?);
+        let secondary_path = path_to_absolute_string(&secondary_mods_path(game.key()).unwrap_or_else(|_| PathBuf::default()));
+        let content_path = path_to_absolute_string(&game.content_path(&game_path).unwrap_or_else(|_| PathBuf::default()));
 
         // Initialize these here so they can be re-use.
         let outdated_icon = icon_data("outdated.png").unwrap_or_else(|_| vec![]);
