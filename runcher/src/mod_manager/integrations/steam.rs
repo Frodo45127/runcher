@@ -161,7 +161,7 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
     let steam_id = game.steam_id(&game_path)? as u32;
     let published_file_ids = mod_ids.join(",");
 
-    let command_string = format!("{} get-published-file-details -s {steam_id} -p {published_file_ids}", &*WORKSHOPPER_PATH);
+    let command_string = format!("{} get-published-file-details -s {steam_id} -p {published_file_ids} & exit", &*WORKSHOPPER_PATH);
     let mut file = BufWriter::new(File::create(BAT_GET_PUBLISHED_FILE_DETAILS)?);
     file.write_all(command_string.as_bytes())?;
     file.flush()?;
@@ -277,6 +277,8 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
     if let Some(visibility) = visibility {
         command_string.push_str(&format!(" --visibility {visibility}"));
     }
+
+    command_string.push_str(" & exit");
 
     let mut file = BufWriter::new(File::create(BAT_UPLOAD_TO_WORKSHOP)?);
     file.write_all(command_string.as_bytes())?;
