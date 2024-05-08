@@ -25,7 +25,7 @@ use std::process::Command;
 use rpfm_lib::games::GameInfo;
 use rpfm_lib::utils::path_to_absolute_string;
 
-use rpfm_ui_common::settings::{setting_bool, setting_path, setting_string};
+use rpfm_ui_common::settings::{setting_path, setting_string};
 
 use crate::mod_manager::mods::Mod;
 
@@ -171,7 +171,7 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
     command.arg(BAT_GET_PUBLISHED_FILE_DETAILS);
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")] if cfg!(debug_assertions) || setting_bool("enable_debug_terminal") {
+    #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
         command.creation_flags(DETACHED_PROCESS);
     } else {
         command.creation_flags(CREATE_NO_WINDOW);
@@ -314,7 +314,7 @@ pub fn launch_game(game: &GameInfo, command_to_pass: &str, wait_for_finish: bool
     command.arg(command_to_pass);
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")] if cfg!(debug_assertions) || setting_bool("enable_debug_terminal") {
+    #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
         command.creation_flags(DETACHED_PROCESS);
     } else {
         command.creation_flags(CREATE_NO_WINDOW);
@@ -369,7 +369,7 @@ pub fn user_id(game: &GameInfo) -> Result<u64> {
     command.arg(steam_id.to_string());
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")] if cfg!(debug_assertions) || setting_bool("enable_debug_terminal") {
+    #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
         command.creation_flags(DETACHED_PROCESS);
     } else {
         command.creation_flags(CREATE_NO_WINDOW);
