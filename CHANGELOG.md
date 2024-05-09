@@ -12,8 +12,10 @@ If you're looking for the changes included in the latest beta (against the lates
 - Implemented support for forcing a download of all subscribed mods (doesn't work on legacy mods).
 - Implemented support for forcing a download of selected mods.
 - Implemented post-launch log analyzer.
-- Implemented setting to help debug workshopper-related issues.
 - Implemented "Remove Trait Limit" launch option for Warhammer 3.
+- Implemented setting to block steam from updating the a game so people can finish their campaigns.
+- Added pack location to the mod list.
+- Implemented flags for outdated packs which are overriding more recent workshop packs.
 
 ### Changed
 - The terminal should no longer show up for a second when launching a game.
@@ -28,6 +30,7 @@ If you're looking for the changes included in the latest beta (against the lates
 - Fixed incorrect Published File Id being detected for packs in content sub-subfolders.
 - Fixed user steam id not being retrieved if the user did not installed Steam in C.
 - Fixed possible bug where multiple patchers patching the same table fail to patch one over the other.
+- Fixed steamworks integration not working for some commands when the command ended up being longer than 8191 characters.
 
 ## [0.8.2]
 ### Added
