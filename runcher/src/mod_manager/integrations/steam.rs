@@ -29,7 +29,7 @@ use rpfm_ui_common::settings::{setting_path, setting_string};
 
 use crate::mod_manager::mods::Mod;
 
-#[cfg(target_os = "windows")]use super::{CREATE_NO_WINDOW, DETACHED_PROCESS};
+#[cfg(target_os = "windows")]use super::{CREATE_NEW_CONSOLE, CREATE_NO_WINDOW, DETACHED_PROCESS};
 use super::{PreUploadInfo, PublishedFileVisibilityDerive};
 
 lazy_static::lazy_static! {
@@ -290,7 +290,7 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
     command.arg(BAT_UPLOAD_TO_WORKSHOP);
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")]command.creation_flags(DETACHED_PROCESS);
+    #[cfg(target_os = "windows")]command.creation_flags(CREATE_NEW_CONSOLE);
     command.spawn()?;
 
     Ok(())
