@@ -625,7 +625,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
 
             // If we got a path and we don't have it saved yet, save it automatically.
             let current_path = setting_string_from_q_setting(&q_settings, game.key());
-            if current_path.is_empty() && !game_path.is_empty() {
+            if (current_path.is_empty() || current_path.ends_with("steam.exe")) && !game_path.is_empty() {
                 set_setting_string_to_q_setting(&q_settings, game.key(), &game_path);
             } else {
                 set_setting_if_new_string(&q_settings, game.key(), &game_path);
