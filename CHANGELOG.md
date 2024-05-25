@@ -6,6 +6,12 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.1]
+### Fixed
+- Fixed typos in error messages.
+- Fixed "Invalid path" and other related errors on new installs.
+- Fixed some launch options for shogun 2 not getting properly initialized.
+
 ## [0.9.0]
 ### Added
 - Implemented support for Shogun 2 Map Mods.
@@ -289,7 +295,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/Frodo45127/runcher/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/Frodo45127/runcher/compare/v0.8.2...v0.9.0
 [0.8.2]: https://github.com/Frodo45127/runcher/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/Frodo45127/runcher/compare/v0.8.0...v0.8.1
