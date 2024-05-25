@@ -609,7 +609,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_bool(&q_settings, "check_logs", true);
 
     for game in &SUPPORTED_GAMES.games_sorted() {
-        if game.key() != KEY_ARENA && game.key() != KEY_SHOGUN_2 {
+        if game.key() != KEY_ARENA {
             set_setting_if_new_bool(&q_settings, &format!("enable_logging_{}", game.key()), false);
             set_setting_if_new_bool(&q_settings, &format!("enable_skip_intros_{}", game.key()), false);
             set_setting_if_new_string(&q_settings, &format!("enable_translations_{}", game.key()), "--");
