@@ -113,6 +113,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "atomic-waker"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1041,6 +1047,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "h2"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa82e28a107a8cc405f0839610bdc9b15f1e25ec7d696aa5cf173edbcb1486ab"
+dependencies = [
+ "atomic-waker",
+ "bytes",
+ "fnv",
+ "futures-core",
+ "futures-sink",
+ "http 1.1.0",
+ "indexmap",
+ "slab",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1180,7 +1205,7 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-util",
- "h2",
+ "h2 0.3.26",
  "http 0.2.12",
  "http-body 0.4.6",
  "httparse",
@@ -1203,6 +1228,7 @@ dependencies = [
  "bytes",
  "futures-channel",
  "futures-util",
+ "h2 0.4.5",
  "http 1.1.0",
  "http-body 1.0.0",
  "httparse",
@@ -1387,9 +1413,9 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
 dependencies = [
  "either",
 ]
@@ -2292,7 +2318,7 @@ dependencies = [
  "encoding_rs",
  "futures-core",
  "futures-util",
- "h2",
+ "h2 0.3.26",
  "http 0.2.12",
  "http-body 0.4.6",
  "hyper 0.14.28",
@@ -2329,9 +2355,11 @@ checksum = "566cafdd92868e0939d3fb961bd0dc25fcfaaed179291093b3d43e6b3150ea10"
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "encoding_rs",
  "futures-channel",
  "futures-core",
  "futures-util",
+ "h2 0.4.5",
  "http 1.1.0",
  "http-body 1.0.0",
  "http-body-util",
@@ -2351,6 +2379,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "sync_wrapper",
+ "system-configuration",
  "tokio",
  "tokio-native-tls",
  "tower-service",
@@ -2409,15 +2438,15 @@ dependencies = [
 
 [[package]]
 name = "rpfm_extensions"
-version = "4.2.104"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#ec6df3d26d82522b26c8f7dcf95ec7661057e1e2"
+version = "4.2.105"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#b09f05f131f0676f1affbb907a72cdc974d01a90"
 dependencies = [
  "bincode",
  "caseless",
  "fancy-regex",
  "float_eq",
  "getset",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "lazy_static",
  "rayon",
  "regex",
@@ -2429,8 +2458,8 @@ dependencies = [
 
 [[package]]
 name = "rpfm_lib"
-version = "4.2.104"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#ec6df3d26d82522b26c8f7dcf95ec7661057e1e2"
+version = "4.2.105"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#b09f05f131f0676f1affbb907a72cdc974d01a90"
 dependencies = [
  "backtrace",
  "base64 0.22.1",
@@ -2446,7 +2475,7 @@ dependencies = [
  "fraction",
  "getset",
  "git2",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "lazy_static",
  "log",
  "memchr",
@@ -2472,8 +2501,8 @@ dependencies = [
 
 [[package]]
 name = "rpfm_ui_common"
-version = "4.2.104"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#ec6df3d26d82522b26c8f7dcf95ec7661057e1e2"
+version = "4.2.105"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#b09f05f131f0676f1affbb907a72cdc974d01a90"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -2500,7 +2529,7 @@ name = "runcher"
 version = "0.9.0"
 dependencies = [
  "anyhow",
- "base64 0.21.7",
+ "base64 0.22.1",
  "clap",
  "cpp_core",
  "crossbeam",
@@ -2508,7 +2537,7 @@ dependencies = [
  "flate2",
  "getset",
  "interprocess",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "lazy_static",
  "mslnk",
  "open",
@@ -2518,7 +2547,7 @@ dependencies = [
  "qt_widgets",
  "rayon",
  "regex",
- "reqwest 0.11.27",
+ "reqwest 0.12.4",
  "rpfm_extensions",
  "rpfm_lib",
  "rpfm_ui_common",
@@ -2671,18 +2700,18 @@ checksum = "d369a96f978623eb3dc28807c4852d6cc617fed53da5d3c400feff1ef34a714a"
 
 [[package]]
 name = "self_update"
-version = "0.39.0"
+version = "0.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a34ad8e4a86884ab42e9b8690e9343abdcfe5fa38a0318cfe1565ba9ad437b4"
+checksum = "4e4997484b55df069a4773d822715695b2cc27b23829eca2a4b41690e948bdeb"
 dependencies = [
  "either",
  "flate2",
- "hyper 0.14.28",
+ "hyper 1.3.1",
  "indicatif",
  "log",
  "quick-xml",
  "regex",
- "reqwest 0.11.27",
+ "reqwest 0.12.4",
  "self-replace",
  "semver 1.0.23",
  "serde_json",
@@ -3968,7 +3997,7 @@ name = "workshopper"
 version = "0.9.0"
 dependencies = [
  "anyhow",
- "base64 0.21.7",
+ "base64 0.22.1",
  "clap",
  "crossbeam",
  "directories",

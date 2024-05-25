@@ -47,7 +47,7 @@ serde_json = "^1.0"
 interprocess = "^2"
 
 # Support for special chars.
-base64 = "^0.21"
+base64 = "^0.22"
 
 # Windows resources support.
 [target.'cfg(windows)'.build-dependencies]
