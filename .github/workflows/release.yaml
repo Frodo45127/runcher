@@ -206,6 +206,7 @@ jobs:
           mkdir ui
           cp E:\runner_runcher\_work\runcher\runcher/LICENSE ${{ matrix.DDISK }}:\deploy\runcher-release-assets
           cp E:\runner_runcher\_work\runcher\runcher/CHANGELOG.md ${{ matrix.DDISK }}:\deploy\runcher-release-assets
+          cp E:\runner_runcher\_work\runcher\runcher/CHANGELOG.md ${{ matrix.DDISK }}:\deploy\runcher-release-assets\CHANGELOG.txt
           cp E:\runner_runcher\_work\runcher\runcher/dark-theme.qss ${{ matrix.DDISK }}:\deploy\runcher-release-assets
           cp E:\runner_runcher\_work\runcher\runcher/icons/* ${{ matrix.DDISK }}:\deploy\runcher-release-assets\icons\
           cp E:\runner_runcher\_work\runcher\runcher/locale/* ${{ matrix.DDISK }}:\deploy\runcher-release-assets\locale\

@@ -48,7 +48,7 @@ const REPO_NAME: &str = "runcher";
 
 const UPDATE_FOLDER_PREFIX: &str = "updates";
 
-const CHANGELOG_FILE: &str = "CHANGELOG.md";
+const CHANGELOG_FILE: &str = "CHANGELOG.txt";
 
 pub const STABLE: &str = "Stable";
 pub const BETA: &str = "Beta";
