@@ -817,3 +817,13 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
 
     Ok(())
 }
+
+pub fn rename_file_name_to_low_priority(file: &mut RFile) {
+    let mut path = file.path_in_container_raw().split('/').map(|x| x.to_owned()).collect::<Vec<_>>();
+
+    if let Some(name) = path.last_mut() {
+        *name = format!("~{}", name);
+    }
+
+    file.set_path_in_container_raw(&path.join("/"));
+}

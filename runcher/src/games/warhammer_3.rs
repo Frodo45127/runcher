@@ -18,7 +18,7 @@ use rpfm_lib::files::{Container, ContainerPath, DecodeableExtraData, EncodeableE
 use rpfm_lib::games::GameInfo;
 
 use crate::app_ui::AppUI;
-use crate::games::EMPTY_CA_VP8;
+use crate::games::{EMPTY_CA_VP8, rename_file_name_to_low_priority};
 
 const SCRIPT_DEBUG_ACTIVATOR_PATH: &str = "script/enable_console_logging";
 
@@ -55,6 +55,9 @@ pub unsafe fn prepare_trait_limit_removal(app_ui: &AppUI, game: &GameInfo, game_
         .into_iter()
         .cloned()
         .collect::<Vec<_>>();
+
+    // Give the daracores extreme low priority so they don't overwrite other mods tables.
+    campaign_variables.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
 
     let paths = (0..app_ui.pack_list_ui().model().row_count_0a())
         .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
@@ -137,6 +140,14 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
         .into_iter()
         .cloned()
         .collect::<Vec<_>>();
+
+    // Give the daracores extreme low priority so they don't overwrite other mods tables.
+    kv_rules.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
+    kv_unit_ability_scaling_rules.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
+    land_units.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
+    main_units.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
+    unit_size_global_scalings.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
+    unit_stat_to_size_scaling_values.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
 
     let paths = (0..app_ui.pack_list_ui().model().row_count_0a())
         .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
