@@ -2492,6 +2492,11 @@ impl AppUI {
                         let mut script_break = ScriptBreak::default();
                         script_break.full_log = message.to_owned();
 
+                        // PJ for some reason uses requires that fail when the CA loader does its thing. We need to ignore his mod.
+                        if message.contains("Failed to load mod file [script\\campaign\\mod\\pj_") {
+                            continue;
+                        }
+
                         let start_path = "[string \"";
                         let end_path = "\"]:";
                         let mut paths = vec![];
