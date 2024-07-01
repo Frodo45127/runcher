@@ -609,31 +609,29 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
                 if let Some(ref pack_name) = pack_path.file_name().map(|name| name.to_string_lossy().to_string()) {
                     let mut translation_found = false;
 
-                    for path in &paths {
-                        if let Ok(tr) = PackTranslation::load(path, pack_name, game.key(), &language) {
-                            for tr in tr.translations().values() {
+                    if let Ok(tr) = PackTranslation::load(&paths, pack_name, game.key(), &language) {
+                        for tr in tr.translations().values() {
 
-                                // Only add entries for values we actually have translated and up to date.
-                                if !tr.value_translated().is_empty() && !*tr.needs_retranslation() {
-                                    loc_data.push(vec![
-                                        DecodedData::StringU16(tr.key().to_owned()),
-                                        DecodedData::StringU16(tr.value_translated().to_owned()),
-                                        DecodedData::Boolean(false),
-                                    ]);
-                                }
-
-                                // If we're in a game with the old logic and there is no translation, add the text in english directly.
-                                else if use_old_multilanguage_logic && !tr.value_original().is_empty() {
-                                    loc_data.push(vec![
-                                        DecodedData::StringU16(tr.key().to_owned()),
-                                        DecodedData::StringU16(tr.value_original().to_owned()),
-                                        DecodedData::Boolean(false),
-                                    ]);
-                                }
+                            // Only add entries for values we actually have translated and up to date.
+                            if !tr.value_translated().is_empty() && !*tr.needs_retranslation() {
+                                loc_data.push(vec![
+                                    DecodedData::StringU16(tr.key().to_owned()),
+                                    DecodedData::StringU16(tr.value_translated().to_owned()),
+                                    DecodedData::Boolean(false),
+                                ]);
                             }
 
-                            translation_found = true;
+                            // If we're in a game with the old logic and there is no translation, add the text in english directly.
+                            else if use_old_multilanguage_logic && !tr.value_original().is_empty() {
+                                loc_data.push(vec![
+                                    DecodedData::StringU16(tr.key().to_owned()),
+                                    DecodedData::StringU16(tr.value_original().to_owned()),
+                                    DecodedData::Boolean(false),
+                                ]);
+                            }
                         }
+
+                        translation_found = true;
                     }
 
                     // If there's no translation data, just merge their locs.

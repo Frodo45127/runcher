@@ -2464,7 +2464,7 @@ dependencies = [
 [[package]]
 name = "rpfm_extensions"
 version = "4.2.107"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#cad3467ddbb17b97fa48573020421185fb240d8b"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#e8f5bcda1df0fd41549776bd15958fefdc9e9163"
 dependencies = [
  "bincode",
  "caseless",
@@ -2484,7 +2484,7 @@ dependencies = [
 [[package]]
 name = "rpfm_lib"
 version = "4.2.107"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#cad3467ddbb17b97fa48573020421185fb240d8b"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#e8f5bcda1df0fd41549776bd15958fefdc9e9163"
 dependencies = [
  "backtrace",
  "base64 0.22.1",
@@ -2527,7 +2527,7 @@ dependencies = [
 [[package]]
 name = "rpfm_ui_common"
 version = "4.2.107"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#cad3467ddbb17b97fa48573020421185fb240d8b"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#e8f5bcda1df0fd41549776bd15958fefdc9e9163"
 dependencies = [
  "anyhow",
  "cpp_core",
