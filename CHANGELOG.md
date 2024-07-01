@@ -6,6 +6,14 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.2]
+### Fixed
+- Fixed double-update when restarting Runcher after an update.
+- Fixed changelog not opening after an update.
+- Fixed launch options causing certain mods to not apply certain tables as the game expected them.
+- Fixed translations launch option sometimes trying to re-apply an already applied translation.
+- Whitelisted PJ scripts from the lua error checker due to being intentional errors.
+
 ## [0.9.1]
 ### Fixed
 - Fixed typos in error messages.
@@ -295,7 +303,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/Frodo45127/runcher/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/Frodo45127/runcher/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/Frodo45127/runcher/compare/v0.8.2...v0.9.0
 [0.8.2]: https://github.com/Frodo45127/runcher/compare/v0.8.1...v0.8.2
