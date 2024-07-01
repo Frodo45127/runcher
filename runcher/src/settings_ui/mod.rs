@@ -51,7 +51,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::UNIX_EPOCH;
 
-use rpfm_lib::games::{GameInfo, supported_games::{KEY_ARENA, KEY_SHOGUN_2, KEY_WARHAMMER_3}};
+use rpfm_lib::games::{GameInfo, supported_games::{KEY_ARENA, KEY_WARHAMMER_3}};
 
 use rpfm_ui_common::locale::*;
 use rpfm_ui_common::settings::*;
@@ -72,6 +72,9 @@ const VIEW_RELEASE: &str = "ui/settings_dialog.ui";
 pub const SLASH_DMY_DATE_FORMAT_STR: &str = "[day]/[month]/[year]";
 pub const SLASH_MDY_DATE_FORMAT_STR: &str = "[month]/[day]/[year]";
 pub const SLASH_YMD_DATE_FORMAT_STR: &str = "[year]/[month]/[day]";
+
+const TRANSLATIONS_LOCAL_FOLDER: &str = "translations_local";
+const TRANSLATIONS_REMOTE_FOLDER: &str = "translations_remote";
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -689,11 +692,11 @@ pub fn rpfm_config_path() -> Result<PathBuf> {
 }
 
 pub fn translations_local_path() -> Result<PathBuf> {
-    rpfm_config_path().map(|path| path.join("translations_local"))
+    rpfm_config_path().map(|path| path.join(TRANSLATIONS_LOCAL_FOLDER))
 }
 
 pub fn translations_remote_path() -> Result<PathBuf> {
-    config_path().map(|path| path.join("translations_remote"))
+    config_path().map(|path| path.join(TRANSLATIONS_REMOTE_FOLDER))
 }
 
 pub fn last_game_update_date(game: &GameInfo, game_path: &Path) -> Result<u64> {
