@@ -9,9 +9,11 @@
 //---------------------------------------------------------------------------//
 
 use anyhow::Result;
+use getset::Getters;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use rpfm_lib::schema::Schema;
 use rpfm_lib::files::{Container, ContainerPath, DecodeableExtraData, EncodeableExtraData, FileType, pack::Pack, RFile, RFileDecoded, table::DecodedData};
@@ -45,12 +47,23 @@ const INTRO_MOVIE_PATHS_BY_GAME: [&str; 19] = [
 ];
 
 //-------------------------------------------------------------------------------//
+//                              Enums & Structs
+//-------------------------------------------------------------------------------//
+
+#[derive(Debug, Default, PartialEq, Getters)]
+#[getset(get = "pub")]
+pub struct UniversalRebalancerUnitComparison {
+    key: String,
+    category: String,
+    melee_attack: (i32, i32),
+}
+
+//-------------------------------------------------------------------------------//
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
 
-pub unsafe fn prepare_trait_limit_removal(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack, schema: &Schema) -> Result<()> {
-    let vanilla_pack = Pack::read_and_merge_ca_packs(game, game_path)?;
+pub unsafe fn prepare_trait_limit_removal(game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack, schema: &Schema) -> Result<()> {
     let mut campaign_variables = vanilla_pack.files_by_path(&ContainerPath::Folder("db/campaign_variables_tables/".to_string()), true)
         .into_iter()
         .cloned()
@@ -59,17 +72,10 @@ pub unsafe fn prepare_trait_limit_removal(app_ui: &AppUI, game: &GameInfo, game_
     // Give the daracores extreme low priority so they don't overwrite other mods tables.
     campaign_variables.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
 
-    let paths = (0..app_ui.pack_list_ui().model().row_count_0a())
-        .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
-        .collect::<Vec<_>>();
-
-    if !paths.is_empty() {
-        let modded_pack = Pack::read_and_merge(&paths, true, false)?;
-        campaign_variables.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/campaign_variables_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
-    }
+    campaign_variables.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/campaign_variables_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
     // Just in case another step of the launch process adds this table.
     campaign_variables.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/campaign_variables_tables/".to_string()), true)
@@ -107,10 +113,9 @@ pub unsafe fn prepare_trait_limit_removal(app_ui: &AppUI, game: &GameInfo, game_
     Ok(())
 }
 
-pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack, schema: &Schema) -> Result<()> {
+pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack, schema: &Schema, mod_paths: &[PathBuf]) -> Result<()> {
     let unit_multiplier = app_ui.actions_ui().unit_multiplier_spinbox().value();
 
-    let vanilla_pack = Pack::read_and_merge_ca_packs(game, game_path)?;
     let mut kv_rules = vanilla_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
         .into_iter()
         .cloned()
@@ -149,42 +154,36 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
     unit_size_global_scalings.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
     unit_stat_to_size_scaling_values.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
 
-    let paths = (0..app_ui.pack_list_ui().model().row_count_0a())
-        .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
-        .collect::<Vec<_>>();
+    kv_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-    if !paths.is_empty() {
-        let modded_pack = Pack::read_and_merge(&paths, true, false)?;
-        kv_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
+    kv_unit_ability_scaling_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_unit_ability_scaling_rules_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-        kv_unit_ability_scaling_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_unit_ability_scaling_rules_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
+    land_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-        land_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
+    main_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/main_units_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-        main_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/main_units_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
+    unit_size_global_scalings.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/unit_size_global_scalings_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-        unit_size_global_scalings.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/unit_size_global_scalings_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
+    unit_stat_to_size_scaling_values.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/unit_stat_to_size_scaling_values_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-        unit_stat_to_size_scaling_values.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/unit_stat_to_size_scaling_values_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
-    }
 
     kv_rules.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
         .into_iter()
@@ -459,7 +458,6 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
                 }
             }
 
-
             table.set_decoded(RFileDecoded::DB(data))?;
             table.encode(&enc_extra_data, false, true, false)?;
             reserved_pack.insert(table.clone())?;
@@ -637,7 +635,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
         }
     }
 
-    let pack_names = paths.iter().map(|path| path.file_name().unwrap().to_string_lossy().to_string()).collect::<Vec<_>>();
+    let pack_names = mod_paths.iter().map(|path| path.file_name().unwrap().to_string_lossy().to_string()).collect::<Vec<_>>();
     reserved_pack.set_dependencies(pack_names);
 
     Ok(())
@@ -657,4 +655,408 @@ pub unsafe fn prepare_skip_intro_videos(reserved_pack: &mut Pack) -> Result<()> 
     }
 
     Ok(())
+}
+
+pub unsafe fn prepare_universal_rebalancer(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack, schema: &Schema, mod_paths: &[PathBuf]) -> Result<()> {
+    let base_mod_id = app_ui.actions_ui().universal_rebalancer_combobox().current_text().to_std_string();
+    let base_pack_path = (0..app_ui.pack_list_ui().model().row_count_0a())
+        .find_map(|index| {
+            let path = app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string();
+            if path.ends_with(&base_mod_id) {
+                Some(path)
+            } else {
+                None
+            }
+        });
+
+    match base_pack_path {
+        Some(base_pack_path) => {
+
+            let enc_extra_data = Some(EncodeableExtraData::new_from_game_info(game));
+            let mut dec_extra_data = DecodeableExtraData::default();
+            dec_extra_data.set_schema(Some(schema));
+            let dec_extra_data = Some(dec_extra_data);
+
+            let base_pack = Pack::read_and_merge(&[PathBuf::from(base_pack_path)], true, false)?;
+            let mut land_units_base = base_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .filter_map(|mut table| if let Ok(Some(RFileDecoded::DB(data))) = table.decode(&dec_extra_data, false, true) {
+                    Some(data)
+                } else {
+                    None
+                })
+                .collect::<Vec<_>>();
+
+            // Unlike with others options, we need first to get the files from the vanilla game, and from a single pack for doing calculations.
+            let mut land_units_vanilla = vanilla_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .filter_map(|mut table| if let Ok(Some(RFileDecoded::DB(data))) = table.decode(&dec_extra_data, false, true) {
+                    if let Some(key_column) = data.definition().column_position_by_name("key") {
+                        let hashed = data.data().par_iter()
+                            .map(|row| (row[key_column].data_to_string().to_string(), row.to_vec()))
+                            .collect::<HashMap<_,_>>();
+
+                        Some((data, hashed))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                })
+                .collect::<Vec<_>>();
+
+            // Generate the list of mod vs vanilla.
+            let mut comparisons = HashMap::new();
+
+            let mut land_unit_base_unit_keys = HashSet::new();
+            for data in &mut land_units_base {
+                let key_column = data.definition().column_position_by_name("key");
+                let category_column = data.definition().column_position_by_name("category");
+                let melee_attack_column = data.definition().column_position_by_name("melee_attack");
+
+                for row in data.data().iter() {
+                    if let Some(key_column) = key_column {
+                        if let Some(DecodedData::StringU8(key_value)) = row.get(key_column).cloned() {
+                            land_unit_base_unit_keys.insert(key_value.to_owned());
+
+                            // Only use the first entry in case of duplicates.
+                            if !comparisons.contains_key(&key_value) {
+
+                                let mut cmp = UniversalRebalancerUnitComparison::default();
+                                cmp.key = key_value;
+
+                                if let Some(column) = category_column {
+                                    if let Some(DecodedData::StringU8(value)) = row.get(column) {
+                                        cmp.category = value.to_owned();
+                                    }
+                                }
+
+                                // Stats need to be find in both, base and vanilla.
+                                if let Some(column) = melee_attack_column {
+                                    if let Some(DecodedData::I32(base_value)) = row.get(column) {
+
+                                        for (data, hashed) in &mut land_units_vanilla {
+                                            let stat_column = data.definition().column_position_by_name("melee_attack");
+
+                                            if let Some(row) = hashed.get(cmp.key()) {
+                                                if let Some(column) = stat_column {
+                                                    if let Some(DecodedData::I32(vanilla_value)) = row.get(column) {
+                                                        cmp.melee_attack = (*vanilla_value, *base_value);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                comparisons.insert(cmp.key().to_owned(), cmp);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Once we get the comparison data, we need to match units to cultures and categories in order to split them into comparable groups.
+            let mut main_units = vanilla_pack.files_by_path(&ContainerPath::Folder("db/main_units_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>();
+            let mut units_custom_battle_permissions = vanilla_pack.files_by_path(&ContainerPath::Folder("db/units_custom_battle_permissions_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>();
+            let mut factions = vanilla_pack.files_by_path(&ContainerPath::Folder("db/factions_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>();
+            let mut cultures_subcultures = vanilla_pack.files_by_path(&ContainerPath::Folder("db/cultures_subcultures_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>();
+
+            // Give the daracores extreme low priority so they don't overwrite other mods tables.
+            main_units.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
+            units_custom_battle_permissions.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
+            factions.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
+            cultures_subcultures.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
+
+            main_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/main_units_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>());
+
+            units_custom_battle_permissions.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/units_custom_battle_permissions_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>());
+
+            factions.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/factions_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>());
+
+            cultures_subcultures.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/cultures_subcultures_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>());
+
+            main_units.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/main_units_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>());
+
+            units_custom_battle_permissions.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/units_custom_battle_permissions_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>());
+
+            factions.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/factions_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>());
+
+            cultures_subcultures.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/cultures_subcultures_tables/".to_string()), true)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>());
+
+            // Sort them so file processing is done in the correct order.
+            main_units.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
+            units_custom_battle_permissions.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
+            factions.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
+            cultures_subcultures.sort_by_key(|rfile| rfile.path_in_container_raw().to_string());
+
+            // Now, figure out what the culture is for each faction, as we can do that in one go.
+            let mut sub_cul_to_cul = HashMap::new();
+            for table in &mut cultures_subcultures {
+                if let Some(RFileDecoded::DB(data)) = table.decode(&dec_extra_data, false, true)? {
+                    let key_column = data.definition().column_position_by_name("subculture");
+                    let cul_column = data.definition().column_position_by_name("culture");
+
+                    for row in data.data().iter() {
+                        if let Some(key_column) = key_column {
+                            if let Some(DecodedData::StringU8(key_value)) = row.get(key_column).cloned() {
+                                if !sub_cul_to_cul.contains_key(&key_value) {
+                                    if let Some(column) = cul_column {
+                                        if let Some(DecodedData::StringU8(cul)) = row.get(column) {
+                                            sub_cul_to_cul.insert(key_value.to_owned(), cul.to_owned());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            let mut fact_to_cul = HashMap::new();
+            for table in &mut factions {
+                if let Some(RFileDecoded::DB(data)) = table.decode(&dec_extra_data, false, true)? {
+                    let key_column = data.definition().column_position_by_name("key");
+                    let sc_column = data.definition().column_position_by_name("subculture");
+
+                    for row in data.data().iter() {
+                        if let Some(key_column) = key_column {
+                            if let Some(DecodedData::StringU8(key_value)) = row.get(key_column).cloned() {
+                                if !fact_to_cul.contains_key(&key_value) {
+                                    if let Some(column) = sc_column {
+                                        if let Some(DecodedData::StringU8(sub)) = row.get(column) {
+                                            if let Some(cul) = sub_cul_to_cul.get(sub) {
+                                                fact_to_cul.insert(key_value.to_owned(), cul.to_owned());
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // While units can be in multiple faction/cultures... that's rare. We just pick the first culture.
+            let mut main_unit_to_cul = HashMap::new();
+            for table in &mut units_custom_battle_permissions {
+                if let Some(RFileDecoded::DB(data)) = table.decode(&dec_extra_data, false, true)? {
+                    let unit_column = data.definition().column_position_by_name("unit");
+                    let faction_column = data.definition().column_position_by_name("faction");
+
+                    for row in data.data().iter() {
+                        if let Some(unit_column) = unit_column {
+                            if let Some(DecodedData::StringU8(unit)) = row.get(unit_column).cloned() {
+                                if !main_unit_to_cul.contains_key(&unit) {
+                                    if let Some(faction_column) = faction_column {
+                                        if let Some(DecodedData::StringU8(faction)) = row.get(faction_column) {
+                                            if let Some(cul) = fact_to_cul.get(faction) {
+                                                main_unit_to_cul.insert(unit.to_owned(), cul.to_owned());
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            let mut land_unit_to_cul = HashMap::new();
+            for table in &mut main_units {
+                if let Some(RFileDecoded::DB(data)) = table.decode(&dec_extra_data, false, true)? {
+                    let main_unit_column = data.definition().column_position_by_name("unit");
+                    let land_unit_column = data.definition().column_position_by_name("land_unit");
+
+                    for row in data.data().iter() {
+                        if let Some(land_unit_column) = land_unit_column {
+                            if let Some(DecodedData::StringU8(land_unit)) = row.get(land_unit_column).cloned() {
+                                if !land_unit_to_cul.contains_key(&land_unit) {
+                                    if let Some(main_unit_column) = main_unit_column {
+                                        if let Some(DecodedData::StringU8(main_unit)) = row.get(main_unit_column) {
+                                            if let Some(cul) = main_unit_to_cul.get(main_unit) {
+                                                land_unit_to_cul.insert(land_unit.to_owned(), cul.to_owned());
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Now we split the units in culture/category groups for balancer calculations.
+            let mut cmp_tree: HashMap<String, HashMap<String, Vec<String>>> = HashMap::new();
+            for (_, cmp) in &comparisons {
+
+                // Ignore units that have no vanilla counterpart for balancing calculations.
+                if let Some(cul) = land_unit_to_cul.get(cmp.key()) {
+
+                    match cmp_tree.get_mut(cul) {
+                        Some(cats) => {
+                            match cats.get_mut(cmp.category()) {
+                                Some(cat) => {
+                                    if !cat.contains(cmp.key()) {
+                                        cat.push(cmp.key().to_owned());
+                                    }
+                                }
+                                None => {
+                                    let mut cat = vec![];
+                                    cat.push(cmp.key().to_owned());
+                                    cats.insert(cmp.category().to_owned(), cat);
+                                }
+                            }
+                        }
+                        None => {
+                            let mut cats = HashMap::new();
+                            let mut cat = vec![];
+                            cat.push(cmp.key().to_owned());
+                            cats.insert(cmp.category().to_owned(), cat);
+                            cmp_tree.insert(cul.to_owned(), cats);
+                        }
+                    }
+                }
+            }
+
+            // Perform the calculations for each group.
+            let mut averaged_categories_stats = HashMap::new();
+            for (cul, categories) in cmp_tree {
+                for (cat, units) in categories {
+                    let mut unit_count = 0.0;
+
+                    let mut avg_vanilla_melee_attack = 0.0;
+                    let mut avg_base_melee_attack = 0.0;
+
+                    for unit in &units {
+                        if let Some(cmp) = comparisons.get(unit) {
+                            avg_vanilla_melee_attack += cmp.melee_attack().0 as f32;
+                            avg_base_melee_attack += cmp.melee_attack().1 as f32;
+                            unit_count += 1.0;
+                        }
+                    }
+
+                    avg_vanilla_melee_attack = avg_vanilla_melee_attack / unit_count;
+                    avg_base_melee_attack = avg_base_melee_attack / unit_count;
+
+                    let avg_based_one_melee_attack = avg_base_melee_attack / avg_vanilla_melee_attack;
+
+                    averaged_categories_stats.insert(cul.to_owned() + &cat, avg_based_one_melee_attack);
+                }
+            }
+
+            // And finally, go over all units outside of the base mod (and outside mods that treat it as parent), and apply the avg multipliers.
+            if !mod_paths.is_empty() {
+                let packs_deps = mod_paths.iter()
+                    .map(|path| {
+                        let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false).unwrap_or_default();
+                        (pack.disk_file_name(), pack.dependencies().to_vec())
+                    })
+                    .collect::<HashMap<_,_>>();
+
+                let mut land_units = modded_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
+                    .into_iter()
+                    .cloned()
+                    .collect::<Vec<_>>();
+
+                land_units.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
+                    .into_iter()
+                    .cloned()
+                    .collect::<Vec<_>>());
+
+                for table in &mut land_units {
+
+                    // If the table is neither the base pack nor a submod...
+                    let cont_name = table.container_name().clone().unwrap();
+                    if cont_name != base_pack.disk_file_name() &&
+                        (
+                            packs_deps.get(&cont_name).is_none() ||
+                            !packs_deps.get(&cont_name).unwrap().contains(&base_pack.disk_file_name())
+                        ) {
+
+                        if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
+                            let key_column = data.definition().column_position_by_name("key");
+                            let category_column = data.definition().column_position_by_name("category");
+                            let melee_attack_column = data.definition().column_position_by_name("melee_attack");
+
+                            for row in data.data_mut() {
+                                if let Some(key_column) = key_column {
+                                    if let Some(DecodedData::StringU8(key_value)) = row.get(key_column).cloned() {
+
+                                        // Only patch units not in the base mod.
+                                        if !land_unit_base_unit_keys.contains(&key_value) {
+                                            if let Some(cul) = land_unit_to_cul.get(&key_value) {
+
+                                                if let Some(column) = category_column {
+                                                    if let Some(DecodedData::StringU8(cat)) = row.get(column) {
+                                                        let cul_cat = cul.to_owned() + cat;
+
+                                                        // Melee attack.
+                                                        if let Some(column) = melee_attack_column {
+                                                            if let Some(DecodedData::I32(ref mut value)) = row.get_mut(column) {
+                                                                if let Some(multiplier) = averaged_categories_stats.get(&cul_cat) {
+                                                                    *value = (*value as f32 * multiplier).round() as i32;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            table.set_decoded(RFileDecoded::DB(data))?;
+                            table.encode(&enc_extra_data, false, true, false)?;
+                            reserved_pack.insert(table.clone())?;
+
+                        }
+                    }
+                }
+            }
+
+            Ok(())
+        }
+        None => Ok(()),
+    }
 }

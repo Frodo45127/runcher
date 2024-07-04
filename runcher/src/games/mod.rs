@@ -20,7 +20,7 @@ use rpfm_extensions::dependencies::Dependencies;
 use rpfm_extensions::optimizer::Optimizable;
 use rpfm_extensions::translator::*;
 
-use rpfm_lib::files::{Container, EncodeableExtraData, FileType, loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
+use rpfm_lib::files::{Container, ContainerPath, EncodeableExtraData, FileType, loc::Loc, pack::Pack, RFile, RFileDecoded, table::DecodedData};
 use rpfm_lib::games::{*, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::git::GitResponse;
 use rpfm_lib::utils::files_from_subdir;
@@ -138,6 +138,7 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, game_path:
     if (actions_ui.enable_logging_checkbox().is_enabled() && actions_ui.enable_logging_checkbox().is_checked()) ||
         (actions_ui.enable_skip_intro_checkbox().is_enabled() && actions_ui.enable_skip_intro_checkbox().is_checked()) ||
         (actions_ui.enable_translations_combobox().is_enabled() && actions_ui.enable_translations_combobox().current_index() != 0) ||
+        (actions_ui.universal_rebalancer_combobox().is_enabled() && actions_ui.universal_rebalancer_combobox().current_index() != 0) ||
         (actions_ui.unit_multiplier_spinbox().is_enabled() && actions_ui.unit_multiplier_spinbox().value() != 1.00) {
 
         // We need to use an alternative name for Shogun 2, Rome 2, Attila and Thrones because their load order logic for movie packs seems... either different or broken.
@@ -173,20 +174,35 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, game_path:
         let mut reserved_pack = Pack::new_with_version(pack_version);
         reserved_pack.set_pfh_file_type(PFHFileType::Movie);
 
+        // These are often used for editing tables. We cache them here instead of remaking them in every launch option.
+        let mut vanilla_pack = Pack::read_and_merge_ca_packs(game, game_path)?;
+        let paths = (0..app_ui.pack_list_ui().model().row_count_0a())
+            .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
+            .collect::<Vec<_>>();
+
+        let mut modded_pack = if !paths.is_empty() {
+            Pack::read_and_merge(&paths, true, false)?
+        } else {
+            Pack::default()
+        };
+
         // Skip videos.
-        prepare_skip_intro_videos(app_ui, &game, &game_path, &mut reserved_pack)?;
+        prepare_skip_intro_videos(app_ui, &game, &mut reserved_pack, &mut vanilla_pack, &mut modded_pack)?;
 
         // Logging.
         prepare_script_logging(app_ui, &game, &mut reserved_pack)?;
 
         // Trait limit removal.
-        prepare_trait_limit_removal(app_ui, &game, &game_path, &mut reserved_pack)?;
+        prepare_trait_limit_removal(app_ui, &game, &mut reserved_pack, &mut vanilla_pack, &mut modded_pack)?;
 
         // Translations.
         prepare_translations(app_ui, &game, &mut reserved_pack)?;
 
         // Unit multiplier.
-        prepare_unit_multiplier(app_ui, &game, &game_path, &mut reserved_pack)?;
+        prepare_unit_multiplier(app_ui, &game, &mut reserved_pack, &mut vanilla_pack, &mut modded_pack, &paths)?;
+
+        // Universal rebalancer.
+        prepare_universal_rebalancer(app_ui, &game, &mut reserved_pack, &mut vanilla_pack, &mut modded_pack, &paths)?;
 
         let mut encode_data = EncodeableExtraData::default();
         encode_data.set_nullify_dates(true);
@@ -213,6 +229,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
     app_ui.actions_ui().enable_translations_combobox().block_signals(true);
     app_ui.actions_ui().merge_all_mods_checkbox().block_signals(true);
     app_ui.actions_ui().unit_multiplier_spinbox().block_signals(true);
+    app_ui.actions_ui().universal_rebalancer_combobox().block_signals(true);
     app_ui.actions_ui().open_game_content_folder().block_signals(true);
     app_ui.actions_ui().save_combobox().block_signals(true);
 
@@ -238,6 +255,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -249,6 +267,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(schema.is_some());
+                app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(schema.is_some());
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -259,6 +278,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -269,6 +289,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+                app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -279,6 +300,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -289,6 +311,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -299,6 +322,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -309,6 +333,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -319,6 +344,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -329,6 +355,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(false);
             },
@@ -339,6 +366,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(false);
                 app_ui.actions_ui().save_combobox().set_enabled(false);
             },
@@ -349,6 +377,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(false);
                 app_ui.actions_ui().save_combobox().set_enabled(false);
             }
@@ -395,6 +424,39 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
             let language_to_select = setting_string(&format!("enable_translations_{}", game.key()));
             app_ui.actions_ui().enable_translations_combobox().set_current_text(&QString::from_std_str(language_to_select));
         }
+
+        // Populate the list of mods to rebalance over.
+        app_ui.actions_ui().universal_rebalancer_combobox().clear();
+        app_ui.actions_ui().universal_rebalancer_combobox().insert_item_int_q_string(0, &QString::from_std_str("--"));
+        app_ui.actions_ui().universal_rebalancer_combobox().set_current_index(0);
+
+        // We need to find all enabled packs with a copy of land_units
+        let mut load_order = app_ui.game_load_order().read().unwrap().clone();
+        if let Ok(game_data_path) = game.data_path(game_path) {
+            if let Some(ref game_config) = *app_ui.game_config().read().unwrap() {
+                load_order.update(game_config, &game_data_path);
+
+                let mut packs_for_rebalancer = load_order.packs().iter()
+                    .filter_map(|(key, pack)| {
+                        if !pack.files_by_type_and_paths(&[FileType::DB], &[ContainerPath::Folder("db/land_units_tables/".to_owned())], true).is_empty() {
+                            Some(key)
+                        } else {
+                            None
+                        }
+                    }).collect::<Vec<_>>();
+
+                packs_for_rebalancer.sort();
+                for pack in &packs_for_rebalancer {
+                    app_ui.actions_ui().universal_rebalancer_combobox().add_item_q_string(&QString::from_std_str(pack));
+                }
+
+                // Only apply it if it's still valid.
+                let pack_to_select = setting_string(&format!("universal_rebalancer_{}", game.key()));
+                if app_ui.actions_ui().universal_rebalancer_combobox().find_text_1a(&QString::from_std_str(&pack_to_select)) != -1 {
+                    app_ui.actions_ui().universal_rebalancer_combobox().set_current_text(&QString::from_std_str(&pack_to_select));
+                }
+            }
+        }
     }
 
     // Unblock all blocked signals.
@@ -412,19 +474,20 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
     app_ui.actions_ui().enable_translations_combobox().block_signals(false);
     app_ui.actions_ui().merge_all_mods_checkbox().block_signals(false);
     app_ui.actions_ui().unit_multiplier_spinbox().block_signals(false);
+    app_ui.actions_ui().universal_rebalancer_combobox().block_signals(false);
     app_ui.actions_ui().save_combobox().block_signals(false);
     app_ui.actions_ui().open_game_content_folder().block_signals(false);
 }
 
-pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack) -> Result<()> {
+pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack, mod_paths: &[PathBuf]) -> Result<()> {
     match *SCHEMA.read().unwrap() {
         Some(ref schema) => {
             if app_ui.actions_ui().unit_multiplier_spinbox().is_enabled() && app_ui.actions_ui().unit_multiplier_spinbox().value() != 1.00 {
                 match game.key() {
                     KEY_PHARAOH => Ok(()),
-                    KEY_WARHAMMER_3 => warhammer_3::prepare_unit_multiplier(app_ui, game, game_path, reserved_pack, schema),
+                    KEY_WARHAMMER_3 => warhammer_3::prepare_unit_multiplier(app_ui, game, reserved_pack, vanilla_pack, modded_pack, schema, mod_paths),
                     KEY_TROY => Ok(()),
-                    KEY_THREE_KINGDOMS => three_kingdoms::prepare_unit_multiplier(app_ui, game, game_path, reserved_pack, schema),
+                    KEY_THREE_KINGDOMS => three_kingdoms::prepare_unit_multiplier(app_ui, game, reserved_pack, vanilla_pack, modded_pack, schema, mod_paths),
                     KEY_WARHAMMER_2 |
                     KEY_WARHAMMER |
                     KEY_THRONES_OF_BRITANNIA |
@@ -465,16 +528,16 @@ pub unsafe fn prepare_script_logging(app_ui: &AppUI, game: &GameInfo, reserved_p
     }
 }
 
-pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack) -> Result<()> {
+pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack) -> Result<()> {
     if app_ui.actions_ui().enable_skip_intro_checkbox().is_enabled() && app_ui.actions_ui().enable_skip_intro_checkbox().is_checked() {
         match game.key() {
             KEY_PHARAOH => match *SCHEMA.read().unwrap() {
-                Some(ref schema) => pharaoh::prepare_skip_intro_videos(app_ui, game, game_path, reserved_pack, schema),
+                Some(ref schema) => pharaoh::prepare_skip_intro_videos(game, reserved_pack, vanilla_pack, modded_pack, schema),
                 None => Ok(())
             }
             KEY_WARHAMMER_3 => warhammer_3::prepare_skip_intro_videos(reserved_pack),
             KEY_TROY => match *SCHEMA.read().unwrap() {
-                Some(ref schema) => troy::prepare_skip_intro_videos(app_ui, game, game_path, reserved_pack, schema),
+                Some(ref schema) => troy::prepare_skip_intro_videos(game, reserved_pack, vanilla_pack, modded_pack, schema),
                 None => Ok(())
             }
             KEY_THREE_KINGDOMS => three_kingdoms::prepare_skip_intro_videos(reserved_pack),
@@ -493,13 +556,13 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_pa
     }
 }
 
-pub unsafe fn prepare_trait_limit_removal(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack) -> Result<()> {
+pub unsafe fn prepare_trait_limit_removal(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack) -> Result<()> {
     match *SCHEMA.read().unwrap() {
         Some(ref schema) => {
             if app_ui.actions_ui().remove_trait_limit_checkbox().is_enabled() && app_ui.actions_ui().remove_trait_limit_checkbox().is_checked() {
                 match game.key() {
                     KEY_PHARAOH => Ok(()),
-                    KEY_WARHAMMER_3 => warhammer_3::prepare_trait_limit_removal(app_ui, game, game_path, reserved_pack, schema),
+                    KEY_WARHAMMER_3 => warhammer_3::prepare_trait_limit_removal(game, reserved_pack, vanilla_pack, modded_pack, schema),
                     KEY_TROY |
                     KEY_THREE_KINGDOMS |
                     KEY_WARHAMMER_2 |
@@ -824,4 +887,31 @@ pub fn rename_file_name_to_low_priority(file: &mut RFile) {
     }
 
     file.set_path_in_container_raw(&path.join("/"));
+}
+
+pub unsafe fn prepare_universal_rebalancer(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack, mod_paths: &[PathBuf]) -> Result<()> {
+    match *SCHEMA.read().unwrap() {
+        Some(ref schema) => {
+            if app_ui.actions_ui().universal_rebalancer_combobox().is_enabled() && app_ui.actions_ui().universal_rebalancer_combobox().current_index() != 0 {
+                match game.key() {
+                    KEY_PHARAOH => Ok(()),
+                    KEY_WARHAMMER_3 => warhammer_3::prepare_universal_rebalancer(app_ui, game, reserved_pack, vanilla_pack, modded_pack, schema, mod_paths),
+                    KEY_TROY |
+                    KEY_THREE_KINGDOMS |
+                    KEY_WARHAMMER_2 |
+                    KEY_WARHAMMER |
+                    KEY_THRONES_OF_BRITANNIA |
+                    KEY_ATTILA |
+                    KEY_ROME_2 |
+                    KEY_SHOGUN_2 |
+                    KEY_NAPOLEON |
+                    KEY_EMPIRE => Ok(()),
+                    _ => Ok(())
+                }
+            } else {
+                Ok(())
+            }
+        }
+        None => Ok(())
+    }
 }

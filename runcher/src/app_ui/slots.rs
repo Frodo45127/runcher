@@ -51,6 +51,7 @@ pub struct AppUISlots {
     toggle_merge_all_mods: QBox<SlotOfBool>,
     toggle_enable_translations: QBox<SlotOfQString>,
     change_unit_multiplier: QBox<SlotOfDouble>,
+    toggle_universal_rebalancer: QBox<SlotOfQString>,
     open_settings: QBox<SlotNoArgs>,
     open_folders_submenu: QBox<SlotNoArgs>,
     open_game_root_folder: QBox<SlotNoArgs>,
@@ -159,6 +160,14 @@ impl AppUISlots {
                 let game = view.game_selected().read().unwrap();
                 let setting = format!("unit_multiplier_{}", game.key());
                 set_setting_f32(&setting, value as f32);
+            }
+        ));
+
+        let toggle_universal_rebalancer = SlotOfQString::new(view.main_window(), clone!(
+            view => move |lang| {
+                let game = view.game_selected().read().unwrap();
+                let setting = format!("universal_rebalancer_{}", game.key());
+                set_setting_string(&setting, &lang.to_std_string());
             }
         ));
 
@@ -660,6 +669,7 @@ impl AppUISlots {
             toggle_merge_all_mods,
             toggle_enable_translations,
             change_unit_multiplier,
+            toggle_universal_rebalancer,
             open_settings,
             open_folders_submenu,
             open_game_root_folder,

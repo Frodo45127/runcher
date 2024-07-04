@@ -51,6 +51,7 @@ pub struct ActionsUI {
     enable_translations_combobox: QBox<QComboBox>,
     merge_all_mods_checkbox: QBox<QCheckBox>,
     unit_multiplier_spinbox: QBox<QDoubleSpinBox>,
+    universal_rebalancer_combobox: QBox<QComboBox>,
 
     settings_button: QPtr<QToolButton>,
     folders_button: QPtr<QToolButton>,
@@ -112,6 +113,7 @@ impl ActionsUI {
         let enable_translations_icon = QIcon::from_theme_1a(&QString::from_std_str("language-chooser"));
         let merge_all_mods_icon = QIcon::from_theme_1a(&QString::from_std_str("merge"));
         let unit_multiplier_icon = QIcon::from_theme_1a(&QString::from_std_str("view-time-schedule-calculus"));
+        let universal_rebalancer_icon = QIcon::from_theme_1a(&QString::from_std_str("view-time-schedule-calculus"));
 
         let menu = self.play_button().menu();
         for index in 0..menu.actions().count_0a() {
@@ -129,6 +131,7 @@ impl ActionsUI {
                 3 => label.set_pixmap(&enable_translations_icon.pixmap_2_int(22, 22)),
                 4 => label.set_pixmap(&merge_all_mods_icon.pixmap_2_int(22, 22)),
                 5 => label.set_pixmap(&unit_multiplier_icon.pixmap_2_int(22, 22)),
+                6 => label.set_pixmap(&universal_rebalancer_icon.pixmap_2_int(22, 22)),
                 _ => {}
             }
         }
@@ -170,8 +173,10 @@ impl ActionsUI {
         let enable_translations_combobox = Self::new_launch_option_combobox(&play_menu, "enable_translations", "language-chooser");
         let merge_all_mods_checkbox = Self::new_launch_option_checkbox(&play_menu, "merge_all_mods", "merge");
         let unit_multiplier_spinbox = Self::new_launch_option_doublespinbox(&play_menu, "unit_multiplier", "view-time-schedule-calculus");
+        let universal_rebalancer_combobox = Self::new_launch_option_combobox(&play_menu, "universal_rebalancer", "view-time-schedule-calculus");
         enable_translations_combobox.set_current_index(0);
         unit_multiplier_spinbox.set_value(1.00);
+        universal_rebalancer_combobox.set_current_index(0);
 
         play_button.set_menu(play_menu.into_raw_ptr());
         play_button.set_popup_mode(ToolButtonPopupMode::MenuButtonPopup);
@@ -227,6 +232,8 @@ impl ActionsUI {
             enable_translations_combobox,
             merge_all_mods_checkbox,
             unit_multiplier_spinbox,
+            universal_rebalancer_combobox,
+            //universal_balancer_ignored: QToolButton::new_0a();
 
             settings_button,
             folders_button,

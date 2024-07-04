@@ -10,13 +10,10 @@
 
 use anyhow::Result;
 
-use std::path::{Path, PathBuf};
-
 use rpfm_lib::schema::Schema;
 use rpfm_lib::files::{Container, ContainerPath, DecodeableExtraData, EncodeableExtraData, FileType, pack::Pack, RFile, RFileDecoded, table::DecodedData};
 use rpfm_lib::games::GameInfo;
 
-use crate::app_ui::AppUI;
 use crate::games::rename_file_name_to_low_priority;
 
 const SCRIPT_DEBUG_ACTIVATOR_PATH: &str = "script/enable_console_logging";
@@ -55,8 +52,7 @@ pub unsafe fn prepare_script_logging(reserved_pack: &mut Pack) -> Result<()> {
     Ok(())
 }
 
-pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack, schema: &Schema) -> Result<()> {
-    let vanilla_pack = Pack::read_and_merge_ca_packs(game, game_path)?;
+pub unsafe fn prepare_skip_intro_videos(game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack, schema: &Schema) -> Result<()> {
     let mut videos = vanilla_pack.files_by_path(&ContainerPath::Folder("db/videos_tables/".to_string()), true)
         .into_iter()
         .cloned()
@@ -83,32 +79,26 @@ pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, game_pa
     videos.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
     campaign_videos.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
 
-    let paths = (0..app_ui.pack_list_ui().model().row_count_0a())
-        .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
-        .collect::<Vec<_>>();
+    videos.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/videos_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-    if !paths.is_empty() {
-        let modded_pack = Pack::read_and_merge(&paths, true, false)?;
-        videos.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/videos_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
+    campaign_videos.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/campaign_videos_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-        campaign_videos.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/campaign_videos_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
+    //locs.append(&mut modded_pack.files_by_type(&[FileType::Loc])
+    //    .into_iter()
+    //    .cloned()
+    //    .collect::<Vec<_>>());
 
-        //locs.append(&mut modded_pack.files_by_type(&[FileType::Loc])
-        //    .into_iter()
-        //    .cloned()
-        //    .collect::<Vec<_>>());
+    non_replaceable_videos.append(&mut modded_pack.files_by_paths(&non_replaceable_videos_paths, true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-        non_replaceable_videos.append(&mut modded_pack.files_by_paths(&non_replaceable_videos_paths, true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
-    }
 
     videos.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/videos_tables/".to_string()), true)
         .into_iter()

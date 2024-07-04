@@ -12,7 +12,7 @@ use anyhow::Result;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use rpfm_lib::schema::Schema;
 use rpfm_lib::files::{Container, ContainerPath, DecodeableExtraData, EncodeableExtraData, FileType, pack::Pack, RFile, RFileDecoded, table::DecodedData};
@@ -30,10 +30,9 @@ const INTRO_MOVIE_PATHS_BY_GAME: [&str; 2] = [
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
-pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path: &Path, reserved_pack: &mut Pack, schema: &Schema) -> Result<()> {
+pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack, schema: &Schema, mod_paths: &[PathBuf]) -> Result<()> {
     let unit_multiplier = app_ui.actions_ui().unit_multiplier_spinbox().value();
 
-    let vanilla_pack = Pack::read_and_merge_ca_packs(game, game_path)?;
     let mut kv_key_buildings = vanilla_pack.files_by_path(&ContainerPath::Folder("db/_kv_key_buildings_tables/".to_string()), true)
         .into_iter()
         .cloned()
@@ -66,37 +65,31 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
     land_units.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
     land_units_templates.iter_mut().for_each(|x| rename_file_name_to_low_priority(x));
 
-    let paths = (0..app_ui.pack_list_ui().model().row_count_0a())
-        .map(|index| PathBuf::from(app_ui.pack_list_ui().model().item_2a(index, 2).text().to_std_string()))
-        .collect::<Vec<_>>();
+    kv_key_buildings.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_key_buildings_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-    if !paths.is_empty() {
-        let modded_pack = Pack::read_and_merge(&paths, true, false)?;
-        kv_key_buildings.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_key_buildings_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
+    kv_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-        kv_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
+    kv_unit_ability_scaling_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_unit_ability_scaling_rules_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-        kv_unit_ability_scaling_rules.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/_kv_unit_ability_scaling_rules_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
+    land_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-        land_units.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
+    land_units_templates.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/land_units_templates_tables/".to_string()), true)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>());
 
-        land_units_templates.append(&mut modded_pack.files_by_path(&ContainerPath::Folder("db/land_units_templates_tables/".to_string()), true)
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>());
-    }
 
     kv_key_buildings.append(&mut reserved_pack.files_by_path(&ContainerPath::Folder("db/_kv_key_buildings_tables/".to_string()), true)
         .into_iter()
@@ -290,7 +283,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, game_path
         }
     }
 
-    let pack_names = paths.iter().map(|path| path.file_name().unwrap().to_string_lossy().to_string()).collect::<Vec<_>>();
+    let pack_names = mod_paths.iter().map(|path| path.file_name().unwrap().to_string_lossy().to_string()).collect::<Vec<_>>();
     reserved_pack.set_dependencies(pack_names);
 
     Ok(())
