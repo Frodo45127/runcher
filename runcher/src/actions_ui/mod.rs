@@ -113,7 +113,7 @@ impl ActionsUI {
         let enable_translations_icon = QIcon::from_theme_1a(&QString::from_std_str("language-chooser"));
         let merge_all_mods_icon = QIcon::from_theme_1a(&QString::from_std_str("merge"));
         let unit_multiplier_icon = QIcon::from_theme_1a(&QString::from_std_str("view-time-schedule-calculus"));
-        let universal_rebalancer_icon = QIcon::from_theme_1a(&QString::from_std_str("view-time-schedule-calculus"));
+        let universal_rebalancer_icon = QIcon::from_theme_1a(&QString::from_std_str("autocorrection"));
 
         let menu = self.play_button().menu();
         for index in 0..menu.actions().count_0a() {
