@@ -54,27 +54,15 @@ const BAT_GET_PUBLISHED_FILE_DETAILS: &str = "get-published-file-details.bat";
 #[derive(Debug, Clone, Deserialize)]
 pub struct QueryResultDerive {
     pub published_file_id: u64,
-    pub creator_app_id: Option<u32>,
-    pub consumer_app_id: Option<u32>,
     pub title: String,
     pub description: String,
     pub owner: u64,
     pub time_created: u32,
     pub time_updated: u32,
-    pub time_added_to_user_list: u32,
     pub visibility: PublishedFileVisibilityDerive,
-    pub banned: bool,
-    pub accepted_for_use: bool,
     pub tags: Vec<String>,
-    pub tags_truncated: bool,
     pub file_name: String,
-    pub file_type: FileTypeDerive,
     pub file_size: u32,
-    pub url: String,
-    pub num_upvotes: u32,
-    pub num_downvotes: u32,
-    pub score: f32,
-    pub num_children: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
