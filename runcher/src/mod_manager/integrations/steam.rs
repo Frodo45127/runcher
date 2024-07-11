@@ -120,6 +120,12 @@ pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str, owner_id: &str) ->
 }
 
 pub fn request_mods_data(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<Mod>> {
+
+    // Do not call the cmd if there are no mods.
+    if mod_ids.is_empty() {
+        return Ok(vec![])
+    }
+
     let workshop_items = request_mods_data_raw(game, mod_ids)?;
 
     let mut mods = vec![];
@@ -142,6 +148,12 @@ pub fn request_mods_data(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<Mod>
 }
 
 pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<QueryResultDerive>> {
+
+    // Do not call the cmd if there are no mods.
+    if mod_ids.is_empty() {
+        return Ok(vec![])
+    }
+
     let game_path = setting_path(game.key());
     let steam_id = game.steam_id(&game_path)? as u32;
     let published_file_ids = mod_ids.join(",");
@@ -180,6 +192,12 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
 }
 
 pub fn request_user_names(user_ids: &[String]) -> Result<HashMap<String, String>> {
+
+    // Do not call the cmd if there are no users.
+    if user_ids.is_empty() {
+        return Ok(HashMap::new())
+    }
+
     let mut client = Workshop::new(None);
     let api_key = setting_string("steam_api_key");
     if !api_key.is_empty() {
@@ -211,6 +229,10 @@ pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_
             Some(modd.creator().to_owned())
         } else { None }
         ).collect::<Vec<_>>();
+
+    if user_ids.is_empty() {
+        return Ok(());
+    }
 
     if let Ok(user_names) = request_user_names(&user_ids) {
         populate_mods_with_author_names(mods, &user_names);
