@@ -436,18 +436,54 @@ impl AppUI {
         for game in SUPPORTED_GAMES.games_sorted().iter() {
             let has_exe = game.executable_path(&setting_path(game.key())).filter(|path| path.is_file()).is_some();
             match game.key() {
-                KEY_PHARAOH => app_ui.game_selected_pharaoh().set_enabled(has_exe),
-                KEY_WARHAMMER_3 => app_ui.game_selected_warhammer_3().set_enabled(has_exe),
-                KEY_TROY => app_ui.game_selected_troy().set_enabled(has_exe),
-                KEY_THREE_KINGDOMS => app_ui.game_selected_three_kingdoms().set_enabled(has_exe),
-                KEY_WARHAMMER_2 => app_ui.game_selected_warhammer_2().set_enabled(has_exe),
-                KEY_WARHAMMER => app_ui.game_selected_warhammer().set_enabled(has_exe),
-                KEY_THRONES_OF_BRITANNIA => app_ui.game_selected_thrones_of_britannia().set_enabled(has_exe),
-                KEY_ATTILA => app_ui.game_selected_attila().set_enabled(has_exe),
-                KEY_ROME_2 => app_ui.game_selected_rome_2().set_enabled(has_exe),
-                KEY_SHOGUN_2 => app_ui.game_selected_shogun_2().set_enabled(has_exe),
-                KEY_NAPOLEON => app_ui.game_selected_napoleon().set_enabled(has_exe),
-                KEY_EMPIRE => app_ui.game_selected_empire().set_enabled(has_exe),
+                KEY_PHARAOH => {
+                    app_ui.game_selected_pharaoh().set_enabled(has_exe);
+                    app_ui.game_selected_pharaoh().set_visible(has_exe);
+                }
+                KEY_WARHAMMER_3 => {
+                    app_ui.game_selected_warhammer_3().set_enabled(has_exe);
+                    app_ui.game_selected_warhammer_3().set_visible(has_exe);
+                }
+                KEY_TROY => {
+                    app_ui.game_selected_troy().set_enabled(has_exe);
+                    app_ui.game_selected_troy().set_visible(has_exe);
+                }
+                KEY_THREE_KINGDOMS => {
+                    app_ui.game_selected_three_kingdoms().set_enabled(has_exe);
+                    app_ui.game_selected_three_kingdoms().set_visible(has_exe);
+                }
+                KEY_WARHAMMER_2 => {
+                    app_ui.game_selected_warhammer_2().set_enabled(has_exe);
+                    app_ui.game_selected_warhammer_2().set_visible(has_exe);
+                }
+                KEY_WARHAMMER => {
+                    app_ui.game_selected_warhammer().set_enabled(has_exe);
+                    app_ui.game_selected_warhammer().set_visible(has_exe);
+                }
+                KEY_THRONES_OF_BRITANNIA => {
+                    app_ui.game_selected_thrones_of_britannia().set_enabled(has_exe);
+                    app_ui.game_selected_thrones_of_britannia().set_visible(has_exe);
+                }
+                KEY_ATTILA => {
+                    app_ui.game_selected_attila().set_enabled(has_exe);
+                    app_ui.game_selected_attila().set_visible(has_exe);
+                }
+                KEY_ROME_2 => {
+                    app_ui.game_selected_rome_2().set_enabled(has_exe);
+                    app_ui.game_selected_rome_2().set_visible(has_exe);
+                }
+                KEY_SHOGUN_2 => {
+                    app_ui.game_selected_shogun_2().set_enabled(has_exe);
+                    app_ui.game_selected_shogun_2().set_visible(has_exe);
+                }
+                KEY_NAPOLEON => {
+                    app_ui.game_selected_napoleon().set_enabled(has_exe);
+                    app_ui.game_selected_napoleon().set_visible(has_exe);
+                }
+                KEY_EMPIRE => {
+                    app_ui.game_selected_empire().set_enabled(has_exe);
+                    app_ui.game_selected_empire().set_visible(has_exe);
+                }
                 _ => {},
             }
         }
