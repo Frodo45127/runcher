@@ -49,6 +49,10 @@ pub enum Commands {
         /// List of published file ids, separated by comma.
         #[arg(short, long, required = true, value_name = "PUBLISHED_FILE_IDS")]
         published_file_ids: String,
+
+        /// Name of the IPC channel the response will be sent through.
+        #[arg(short, long, value_name = "IPC_CHANNEL")]
+        ipc_channel: String,
     },
 
     Launch {
@@ -145,5 +149,9 @@ pub enum Commands {
         /// SteamId/AppId of a game to initialize the api with.
         #[arg(short, long, value_name = "STEAM_ID")]
         steam_id: u32,
+
+        /// Name of the IPC channel the response will be sent through.
+        #[arg(short, long, value_name = "IPC_CHANNEL")]
+        ipc_channel: String,
     },
 }

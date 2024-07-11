@@ -47,9 +47,6 @@ const WORKSHOPPER_EXE: &str = "workshopper.exe";
 const BAT_UPLOAD_TO_WORKSHOP: &str = "upload-to-workshop.bat";
 const BAT_GET_PUBLISHED_FILE_DETAILS: &str = "get-published-file-details.bat";
 
-const IPC_NAME_GET_PUBLISHED_FILE_DETAILS: &str = "runcher_get_published_file_details";
-const IPC_NAME_GET_STEAM_USER_ID: &str = "runcher_get_steam_user_id";
-
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
 //-------------------------------------------------------------------------------//
@@ -160,8 +157,9 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
     let game_path = setting_path(game.key());
     let steam_id = game.steam_id(&game_path)? as u32;
     let published_file_ids = mod_ids.join(",");
+    let ipc_channel = rand::random::<u64>().to_string();
 
-    let command_string = format!("{} get-published-file-details -s {steam_id} -p {published_file_ids} & exit", &*WORKSHOPPER_PATH);
+    let command_string = format!("{} get-published-file-details -s {steam_id} -p {published_file_ids} -i {ipc_channel} & exit", &*WORKSHOPPER_PATH);
     let mut file = BufWriter::new(File::create(BAT_GET_PUBLISHED_FILE_DETAILS)?);
     file.write_all(command_string.as_bytes())?;
     file.flush()?;
@@ -179,7 +177,7 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
 
     command.spawn()?;
 
-    let channel = IPC_NAME_GET_PUBLISHED_FILE_DETAILS.to_ns_name::<GenericNamespaced>()?;
+    let channel = ipc_channel.to_ns_name::<GenericNamespaced>()?;
     let server = ListenerOptions::new().name(channel).create_sync()?;
     let mut stream = server.accept()?;
 
@@ -359,6 +357,7 @@ pub fn download_subscribed_mods(game: &GameInfo, published_file_ids: &Option<Vec
 pub fn user_id(game: &GameInfo) -> Result<u64> {
     let game_path = setting_path(game.key());
     let steam_id = game.steam_id(&game_path)? as u32;
+    let ipc_channel = rand::random::<u64>().to_string();
 
     let mut command = Command::new("cmd");
     command.arg("/C");
@@ -367,6 +366,8 @@ pub fn user_id(game: &GameInfo) -> Result<u64> {
     command.arg("user-id");
     command.arg("-s");
     command.arg(steam_id.to_string());
+    command.arg("-i");
+    command.arg(&ipc_channel);
 
     // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
     #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
@@ -377,7 +378,7 @@ pub fn user_id(game: &GameInfo) -> Result<u64> {
 
     let _ = command.spawn()?;
 
-    let channel = IPC_NAME_GET_STEAM_USER_ID.to_ns_name::<GenericNamespaced>()?;
+    let channel = ipc_channel.to_ns_name::<GenericNamespaced>()?;
     let server = ListenerOptions::new().name(channel).create_sync()?;
     let mut stream = server.accept()?;
 

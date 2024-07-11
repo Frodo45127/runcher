@@ -26,8 +26,6 @@ use std::thread::JoinHandle;
 use rpfm_lib::{games::GameInfo, integrations::log::{error, info, warn}};
 use rpfm_lib::utils::path_to_absolute_path;
 
-const IPC_NAME_GET_PUBLISHED_FILE_DETAILS: &str = "runcher_get_published_file_details";
-
 const TOTAL_WAR_BASE_TAG: &str = "mod";
 
 //-------------------------------------------------------------------------------//
@@ -168,7 +166,7 @@ impl From<FileType> for FileTypeDerive {
 //                      UGC (Workshop) public functions
 //---------------------------------------------------------------------------//
 
-pub fn published_file_details(steam_id: u32, published_file_ids: &str) -> Result<()> {
+pub fn published_file_details(steam_id: u32, published_file_ids: &str, ipc_channel: &str) -> Result<()> {
     let mut published_file_ids_enums = vec![];
     let published_file_ids_split = published_file_ids.split(",").collect::<Vec<_>>();
     for id in &published_file_ids_split {
@@ -181,7 +179,7 @@ pub fn published_file_details(steam_id: u32, published_file_ids: &str) -> Result
     }
 
     // Initialize the API.
-    let (client, tx, callback_thread) = init(steam_id, Some(IPC_NAME_GET_PUBLISHED_FILE_DETAILS))?;
+    let (client, tx, callback_thread) = init(steam_id, Some(ipc_channel))?;
     let ugc = client.ugc();
 
     // Create the query and request the results.
@@ -194,7 +192,7 @@ pub fn published_file_details(steam_id: u32, published_file_ids: &str) -> Result
             let results = results.iter().map(|result| QueryResultDerive::from(result)).collect::<Vec<_>>();
             if let Ok(message) = to_string_pretty(&results) {
 
-                if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_PUBLISHED_FILE_DETAILS.to_ns_name::<GenericNamespaced>()?) {
+                if let Ok(mut stream) = LocalSocketStream::connect(ipc_channel.to_ns_name::<GenericNamespaced>()?) {
                     let _ = stream.write(message.as_bytes());
                 }
 
@@ -206,7 +204,7 @@ pub fn published_file_details(steam_id: u32, published_file_ids: &str) -> Result
                     file.flush()?;
                 }
             } else {
-                if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_PUBLISHED_FILE_DETAILS.to_ns_name::<GenericNamespaced>()?) {
+                if let Ok(mut stream) = LocalSocketStream::connect(ipc_channel.to_ns_name::<GenericNamespaced>()?) {
                     let _ = stream.write(b"{}");
                 }
             }
@@ -215,7 +213,7 @@ pub fn published_file_details(steam_id: u32, published_file_ids: &str) -> Result
         },
         SteamWorksThreadMessage::Error(error) => {
 
-            if let Ok(mut stream) = LocalSocketStream::connect(IPC_NAME_GET_PUBLISHED_FILE_DETAILS.to_ns_name::<GenericNamespaced>()?) {
+            if let Ok(mut stream) = LocalSocketStream::connect(ipc_channel.to_ns_name::<GenericNamespaced>()?) {
                 let _ = stream.write(b"{}");
             }
 
