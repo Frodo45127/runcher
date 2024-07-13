@@ -88,6 +88,9 @@ interprocess = "^2"
 # For checking if steam is running.
 sysinfo = "^0.30"
 
+# For random ipc channel name generator.
+rand = "^0.8"
+
 # Windows shortcut support.
 [target.'cfg(windows)'.dependencies]
 mslnk = "^0.1"
