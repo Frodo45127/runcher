@@ -6,6 +6,19 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.3]
+### Added
+- Implemented prototype of Universal Rebalancer (only for WH3).
+
+### Changed
+- Icons for non-installed games are now hidden by default.
+- Optimized launch option's processing to take a fraction of the time they took before.
+
+### Fixed
+- Fixed Runcher hanging when workshopper failed to execute in a previous launch.
+- Fixed Runcher passing incorrect args to the game when there are no mods in the load order.
+- Fixed a few situations where Runcher called Workshopper without correct args.
+
 ## [0.9.2]
 ### Fixed
 - Fixed double-update when restarting Runcher after an update.
@@ -303,7 +316,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.3...HEAD
+[0.9.3]: https://github.com/Frodo45127/runcher/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/Frodo45127/runcher/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/Frodo45127/runcher/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/Frodo45127/runcher/compare/v0.8.2...v0.9.0
