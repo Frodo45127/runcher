@@ -6,6 +6,10 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.4]
+### Fixed
+- Fixed mods not loading when launching Empire with mods enabled.
+
 ## [0.9.3]
 ### Added
 - Implemented prototype of Universal Rebalancer (only for WH3).
@@ -316,7 +320,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.3...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.4...HEAD
+[0.9.4]: https://github.com/Frodo45127/runcher/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/Frodo45127/runcher/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/Frodo45127/runcher/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/Frodo45127/runcher/compare/v0.9.0...v0.9.1
