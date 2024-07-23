@@ -130,6 +130,7 @@ const MERGE_ALL_PACKS_PACK_NAME: &str = "merge_me_sideways_honey";
 #[allow(dead_code)] const VANILLA_MOD_LIST_FILE_NAME: &str = "used_mods.txt";
 #[allow(dead_code)] const CUSTOM_MOD_LIST_FILE_NAME: &str = "mod_list.txt";
 #[allow(dead_code)] const USER_SCRIPT_FILE_NAME: &str = "user.script.txt";
+#[allow(dead_code)] const USER_SCRIPT_EMPIRE_FILE_NAME: &str = "user.empire_script.txt";
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -982,7 +983,12 @@ impl AppUI {
             let scripts_path = config_path.join("scripts");
             DirBuilder::new().recursive(true).create(&scripts_path)?;
 
-            scripts_path.join(USER_SCRIPT_FILE_NAME)
+            // Empire has its own user script.
+            if game.key() == KEY_EMPIRE {
+                scripts_path.join(USER_SCRIPT_EMPIRE_FILE_NAME)
+            } else {
+                scripts_path.join(USER_SCRIPT_FILE_NAME)
+            }
         };
 
         let mut file = BufWriter::new(File::create(file_path)?);
