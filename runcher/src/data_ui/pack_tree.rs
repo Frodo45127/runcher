@@ -20,7 +20,6 @@ use qt_core::QString;
 use qt_core::QVariant;
 use qt_core::QPtr;
 
-use cpp_core::CppBox;
 use cpp_core::Ptr;
 use cpp_core::Ref;
 use cpp_core::CastFrom;
@@ -58,30 +57,8 @@ const ITEM_TYPE_PACKFILE: i32 = 3;
 /// may not be suitable for all purposes.
 pub trait PackTree {
 
-    /// This function is used to expand the entire path from the PackFile to an specific item in the `TreeView`.
-    ///
-    /// It returns the `ModelIndex` of the final item of the path, or None if it wasn't found or it's hidden by the filter.
-    unsafe fn expand_treeview_to_item(&self, path: &str) -> Option<Ptr<QModelIndex>>;
-
     /// This function is used to expand an item and all it's children recursively.
     unsafe fn expand_all_from_item(tree_view: &QTreeView, item: Ptr<QStandardItem>, first_item: bool);
-
-    /// This function is used to expand an item and all it's children recursively.
-    unsafe fn expand_all_from_type(tree_view: &QTreeView, item: &ContainerPath);
-
-    /// This function gives you the items selected in the provided `TreeView`.
-    unsafe fn get_items_from_selection(&self, has_filter: bool) -> Vec<Ptr<QStandardItem>>;
-
-    /// This function gives you the `TreeViewTypes` of the items selected in the provided TreeView.
-    unsafe fn get_item_types_from_selection(&self, has_filter: bool) -> Vec<ContainerPath>;
-
-    /// This function returns the `ContainerPath`s not hidden by the applied filter corresponding to the current selection.
-    ///
-    /// This always assumes the `TreeView` has a filter. It'll die horrendously otherwise.
-    unsafe fn get_item_types_from_selection_filtered(&self) -> Vec<ContainerPath>;
-
-    /// This function gives you the item corresponding to an specific `ContainerPath`.
-    unsafe fn item_from_path(path: &ContainerPath, model: &QPtr<QStandardItemModel>) -> Ptr<QStandardItem>;
 
     /// This function returns the `ContainerPath` of the provided item. Unsafe version.
     unsafe fn get_type_from_item(item: Ptr<QStandardItem>, model: &QPtr<QStandardItemModel>) -> ContainerPath;
@@ -91,9 +68,6 @@ pub trait PackTree {
 
     /// This function is used to get the path of a specific ModelIndex in a StandardItemModel. Unsafe version.
     unsafe fn get_path_from_index(index: Ref<QModelIndex>, model: &QPtr<QStandardItemModel>) -> String;
-
-    /// This function gives you the path of the items selected in the provided TreeView.
-    unsafe fn get_path_from_selection(&self) -> Vec<String>;
 
     /// This function returns the currently visible children of the given parent, and adds them as `ContainerPath`s to the provided list.
     unsafe fn visible_children_of_item(&self, parent: &QStandardItem, visible_paths: &mut Vec<ContainerPath>);
@@ -121,92 +95,6 @@ pub enum TreeViewOperation {
 
 impl PackTree for QPtr<QTreeView> {
 
-    unsafe fn expand_treeview_to_item(&self, path: &str) -> Option<Ptr<QModelIndex>> {
-        let filter: QPtr<QSortFilterProxyModel> = self.model().static_downcast();
-        let model: QPtr<QStandardItemModel> = filter.source_model().static_downcast();
-
-        // Get the first item's index, as that one should always exist (the Packfile).
-        let root_item = model.item_1a(0);
-        if !root_item.is_null() {
-
-            let mut item = root_item;
-            let model_index = model.index_2a(0, 0);
-            let filtered_index = filter.map_from_source(&model_index);
-
-            // If it's valid (filter didn't hid it away), we expand it and search among its children the next one to expand.
-            if filtered_index.is_valid() {
-                if !self.is_expanded(&filtered_index) {
-                    self.expand(&filtered_index);
-                }
-
-                // Indexes to see how deep we must go.
-                let mut index = 0;
-                let path = path.split('/').collect::<Vec<_>>();
-                let path_deep = path.len();
-                if path_deep > 0 {
-
-                    loop {
-
-                        let mut not_found = true;
-                        for row in 0..item.row_count() {
-                            let child = item.child_1a(row);
-
-                            // In the last cycle, we're interested in files, not folders.
-                            if index == (path_deep -1) {
-
-                                if child.has_children() { continue; }
-
-                                // We guarantee that the name of the files/folders is unique, so we use it to find the one to expand.
-                                if path[index] == child.text().to_std_string() {
-                                    item = child;
-
-                                    let model_index = model.index_from_item(item);
-                                    let filtered_index = filter.map_from_source(&model_index);
-
-                                    if filtered_index.is_valid() { return Some(filtered_index.into_ptr()); }
-                                    else { return None }
-                                }
-                            }
-
-                            // In the rest, we look for children with children of its own.
-                            else {
-                                if !child.has_children() { continue; }
-
-                                // We guarantee that the name of the files/folders is unique, so we use it to find the one to expand.
-                                if path[index] == child.text().to_std_string() {
-                                    item = child;
-                                    index += 1;
-                                    not_found = false;
-
-                                    // Expand the folder, if exists.
-                                    let model_index = model.index_from_item(item);
-                                    let filtered_index = filter.map_from_source(&model_index);
-
-                                    if filtered_index.is_valid() { self.expand(&filtered_index); }
-                                    else { not_found = true; }
-
-                                    // Break the loop.
-                                    break;
-                                }
-                            }
-                        }
-
-                        // If the child was not found, stop and return the parent.
-                        if not_found { break; }
-                    }
-                }
-            }
-        }
-        None
-    }
-
-    unsafe fn expand_all_from_type(tree_view: &QTreeView, item: &ContainerPath) {
-        let filter: QPtr<QSortFilterProxyModel> = tree_view.model().static_downcast();
-        let model: QPtr<QStandardItemModel> = filter.source_model().static_downcast();
-        let item = Self::item_from_path(item, &model);
-        Self::expand_all_from_item(tree_view, item, true);
-    }
-
     unsafe fn expand_all_from_item(tree_view: &QTreeView, item: Ptr<QStandardItem>, first_item: bool) {
         let filter: QPtr<QSortFilterProxyModel> = tree_view.model().static_downcast();
         let model: QPtr<QStandardItemModel> = filter.source_model().static_downcast();
@@ -232,56 +120,6 @@ impl PackTree for QPtr<QTreeView> {
         }
     }
 
-    unsafe fn get_items_from_selection(&self, has_filter: bool) -> Vec<Ptr<QStandardItem>> {
-        let filter: Option<QPtr<QSortFilterProxyModel>> = if has_filter { Some(self.model().static_downcast()) } else { None };
-        let model: QPtr<QStandardItemModel> = if let Some(ref filter) = filter { filter.source_model().static_downcast() } else { self.model().static_downcast()};
-
-        let indexes_visual = self.selection_model().selection().indexes();
-        let mut indexes_visual = (0..indexes_visual.count_0a()).rev().map(|x| indexes_visual.take_at(x)).collect::<Vec<CppBox<QModelIndex>>>();
-        indexes_visual.reverse();
-        let indexes_real = if let Some(filter) = filter {
-            indexes_visual.iter().map(|x| filter.map_to_source(x.as_ref())).collect::<Vec<CppBox<QModelIndex>>>()
-        } else {
-            indexes_visual
-        };
-
-        indexes_real.iter().map(|x| model.item_from_index(x.as_ref())).collect()
-    }
-
-    unsafe fn get_item_types_from_selection(&self, has_filter: bool) -> Vec<ContainerPath> {
-        let items = self.get_items_from_selection(has_filter);
-
-        let model: QPtr<QStandardItemModel> = if has_filter {
-            let filter: QPtr<QSortFilterProxyModel> = self.model().static_downcast();
-            filter.source_model().static_downcast()
-        } else {
-            self.model().static_downcast()
-        };
-
-        items.iter().map(|x| Self::get_type_from_item(*x, &model)).collect()
-    }
-
-    unsafe fn get_item_types_from_selection_filtered(&self)-> Vec<ContainerPath> {
-        let filter: QPtr<QSortFilterProxyModel> = self.model().static_downcast();
-        let model: QPtr<QStandardItemModel> = filter.source_model().static_downcast();
-
-        let mut item_types = vec![];
-        let item_types_selected = self.get_item_types_from_selection(true);
-        for item_type in &item_types_selected {
-            match item_type {
-                 ContainerPath::File(_) => item_types.push(item_type.clone()),
-                 ContainerPath::Folder(_) => {
-                    item_types.push(item_type.clone());
-                    let item = Self::item_from_path(item_type, &model);
-                    self.visible_children_of_item(&item, &mut item_types);
-                 }
-            }
-        }
-
-        item_types = ContainerPath::dedup(&item_types);
-        item_types
-    }
-
     unsafe fn visible_children_of_item(&self, parent: &QStandardItem, visible_paths: &mut Vec<ContainerPath>) {
         let filter: QPtr<QSortFilterProxyModel> = self.model().static_downcast();
         let model: QPtr<QStandardItemModel> = filter.source_model().static_downcast();
@@ -299,85 +137,6 @@ impl PackTree for QPtr<QTreeView> {
                 }
             }
         }
-    }
-
-    unsafe fn item_from_path(path: &ContainerPath, model: &QPtr<QStandardItemModel>) -> Ptr<QStandardItem> {
-        let mut item = model.item_1a(0);
-        let is_file = path.is_file();
-        let path = path.path_raw();
-        let count = path.split('/').count() - 1;
-
-        for (index, path_element) in path.split('/').enumerate() {
-            let children_count = item.row_count();
-
-            // If we reached the folder of the item...
-            if index == count {
-                let path_element_q_string = QString::from_std_str(path_element);
-                for row in 0..children_count {
-                    let child = item.child_1a(row);
-
-                    // We ignore files or folders, depending on what we want to create.
-                    if is_file && child.data_1a(ITEM_TYPE).to_int_0a() == ITEM_TYPE_FOLDER { continue }
-                    if !is_file && child.data_1a(ITEM_TYPE).to_int_0a() == ITEM_TYPE_FILE { continue }
-
-                    let compare = child.text().compare_q_string(&path_element_q_string);
-                    match compare.cmp(&0) {
-                        Ordering::Equal => {
-                            item = child;
-                            break;
-                        },
-
-                        // If it's less, we still can find the item.
-                        Ordering::Less => {}
-
-                        // If it's greater, we passed the item. In theory, this can't happen.
-                        Ordering::Greater => {
-                            dbg!(child.text().to_std_string());
-                            dbg!(path_element_q_string.to_std_string());
-                            dbg!("bug?");
-                            break;
-                        },
-                    }
-                }
-                break;
-            }
-
-            // If we are not still in the folder of the file...
-            else {
-
-                // Get the amount of children of the current item and go through them until we find our folder.
-                let mut not_found = true;
-                let text_to_search = QString::from_std_str(path_element);
-                for row in 0..children_count {
-                    let child = item.child_1a(row);
-
-                    // Items are sorted with folders first. If we start finding files, we already skipped our item.
-                    if child.data_1a(ITEM_TYPE).to_int_0a() == ITEM_TYPE_FILE { break; }
-
-                    let compare = QString::compare_2_q_string(child.text().as_ref(), text_to_search.as_ref());
-                    match compare.cmp(&0) {
-                        Ordering::Equal => {
-                            item = child;
-                            not_found = false;
-                            break;
-                        },
-
-                        // If it's less, we still can find the item.
-                        Ordering::Less => {}
-
-                        // If it's greater, we passed all the possible items and we can no longer find the folder.
-                        Ordering::Greater => {
-                            break;
-                        },
-                    }
-                }
-
-                // If the child was not found, stop and return the parent.
-                if not_found { break; }
-            }
-        }
-
-        item
     }
 
     unsafe fn get_type_from_item(item: Ptr<QStandardItem>, model: &QPtr<QStandardItemModel>) -> ContainerPath {
@@ -416,21 +175,6 @@ impl PackTree for QPtr<QTreeView> {
         // Reverse it, as we want it from arent to children.
         path.reverse();
         path.join("/")
-    }
-
-    unsafe fn get_path_from_selection(&self) -> Vec<String> {
-
-        // Create the vector to hold the Paths and get the selected indexes of the TreeView.
-        let filter: QPtr<QSortFilterProxyModel> = self.model().static_downcast();
-        let model: QPtr<QStandardItemModel> = filter.source_model().static_downcast();
-        let selection_model = self.selection_model();
-
-        let mut paths: Vec<_> = vec![];
-        let indexes = filter.map_selection_to_source(&selection_model.selection()).indexes();
-        for index_num in 0..indexes.count_0a() {
-            paths.push(Self::get_path_from_index(indexes.at(index_num), &model));
-        }
-        paths
     }
 
     unsafe fn update_treeview(&self, has_filter: bool, operation: &mut TreeViewOperation) {
