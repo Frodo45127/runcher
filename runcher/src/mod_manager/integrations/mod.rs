@@ -65,8 +65,8 @@ pub fn populate_mods_with_online_data(mods: &mut HashMap<String, Mod>, workshop_
     steam::populate_mods_with_online_data(mods, workshop_items)
 }
 
-pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, description: &str, tags: &[String], changelog: &str, visibility: &Option<u32>) -> Result<()> {
-    steam::upload_mod_to_workshop(game, modd, title, description, tags, changelog, visibility)
+pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, description: &str, tags: &[String], changelog: &str, visibility: &Option<u32>, force_update: bool) -> Result<()> {
+    steam::upload_mod_to_workshop(game, modd, title, description, tags, changelog, visibility, force_update)
 }
 
 pub fn launch_game(game: &GameInfo, command_to_pass: &str, wait_for_finish: bool) -> Result<()> {

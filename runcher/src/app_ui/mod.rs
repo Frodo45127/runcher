@@ -2315,7 +2315,7 @@ impl AppUI {
                             title = modd.id().to_string();
                         }
 
-                        crate::mod_manager::integrations::upload_mod_to_workshop(&game, modd, &title, &description, &tags, &changelog, &Some(visibility)).map(Some)
+                        crate::mod_manager::integrations::upload_mod_to_workshop(&game, modd, &title, &description, &tags, &changelog, &Some(visibility), true).map(Some)
                     } else {
                         Ok(None)
                     }

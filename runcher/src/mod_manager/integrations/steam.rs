@@ -22,6 +22,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 #[cfg(target_os = "windows")]use std::os::windows::process::CommandExt;
 
+use rpfm_lib::files::{EncodeableExtraData, pack::Pack};
 use rpfm_lib::games::GameInfo;
 use rpfm_lib::utils::path_to_absolute_string;
 
@@ -252,7 +253,7 @@ pub fn populate_mods_with_author_names(mods: &mut HashMap<String, Mod>, user_nam
 /// This function uploads a mod to the workshop through workshopper.
 ///
 /// If the mod doesn't yet exists in the workshop, it creates it. If it already exists, it updates it.
-pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, description: &str, tags: &[String], changelog: &str, visibility: &Option<u32>) -> Result<()> {
+pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, description: &str, tags: &[String], changelog: &str, visibility: &Option<u32>, force_update: bool) -> Result<()> {
     let game_path = setting_path(game.key());
     let steam_id = game.steam_id(&game_path)? as u32;
 
@@ -261,6 +262,13 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
     } else {
         path_to_absolute_string(&modd.paths()[0])
     };
+
+    // If we're force-updating (the default) we just open and resave the pack to update the timestamp so steam detects it as different.
+    if force_update {
+        let extra_data = Some(EncodeableExtraData::new_from_game_info(game));
+        let mut pack = Pack::read_and_merge(&[PathBuf::from(&pack_path)], true, false)?;
+        pack.save(None, &game, &extra_data)?;
+    }
 
     // If we have a published_file_id, it means this file exists in the workshop.
     //
