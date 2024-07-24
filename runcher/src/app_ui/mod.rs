@@ -525,10 +525,9 @@ impl AppUI {
                 // Ignore network errors.
                 let _ = app_ui.update_mod_list_with_online_data(&network_receiver);
             },
-            Err(error) => {
-                show_dialog(app_ui.main_window(), error, false);
-                exit(1);
-            },
+
+            // Do not close on incorrect args.
+            Err(error) => show_dialog(app_ui.main_window(), error, false),
         }
 
         // Check for updates.
