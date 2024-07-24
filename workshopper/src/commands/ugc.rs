@@ -610,6 +610,7 @@ fn subscribe_item(ugc: &UGC<ClientManager>, sender: Sender<SteamWorksThreadMessa
 /// Function to unsubscribe from an specific item in the workshop.
 ///
 /// This function does NOT finish the background thread.
+#[allow(dead_code)]
 fn unsubscribe_item(ugc: &UGC<ClientManager>, sender: Sender<SteamWorksThreadMessage>, published_file_id: PublishedFileId) {
     ugc.unsubscribe_item(
         published_file_id,
