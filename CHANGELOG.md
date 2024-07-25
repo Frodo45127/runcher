@@ -6,6 +6,13 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.5]
+### Added
+- Implemented support for Pharaoh's Dynasties update.
+
+### Changed
+- When uploading a mod to the workshop, Runcher will automatically alter the pack so Steam doesn't reject the update due to no changes. This means there's no need anymore to re-save the pack after a patch in order to upload it to remove the "outdated" mark.
+
 ## [0.9.4]
 ### Fixed
 - Fixed mods not loading when launching Empire with mods enabled.
@@ -320,7 +327,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.4...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.5...HEAD
+[0.9.5]: https://github.com/Frodo45127/runcher/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/Frodo45127/runcher/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/Frodo45127/runcher/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/Frodo45127/runcher/compare/v0.9.1...v0.9.2
