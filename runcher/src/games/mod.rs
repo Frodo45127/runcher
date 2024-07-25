@@ -248,7 +248,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
 
         // Only set enabled the launch options that work for the current game.
         match game.key() {
-            KEY_PHARAOH => {
+            KEY_PHARAOH | KEY_PHARAOH_DYNASTIES => {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
@@ -484,6 +484,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_
         Some(ref schema) => {
             if app_ui.actions_ui().unit_multiplier_spinbox().is_enabled() && app_ui.actions_ui().unit_multiplier_spinbox().value() != 1.00 {
                 match game.key() {
+                    KEY_PHARAOH_DYNASTIES |
                     KEY_PHARAOH => Ok(()),
                     KEY_WARHAMMER_3 => warhammer_3::prepare_unit_multiplier(app_ui, game, reserved_pack, vanilla_pack, modded_pack, schema, mod_paths),
                     KEY_TROY => Ok(()),
@@ -509,7 +510,7 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_
 pub unsafe fn prepare_script_logging(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack) -> Result<()> {
     if app_ui.actions_ui().enable_logging_checkbox().is_enabled() && app_ui.actions_ui().enable_logging_checkbox().is_checked() {
         match game.key() {
-            KEY_PHARAOH => pharaoh::prepare_script_logging(reserved_pack),
+            KEY_PHARAOH | KEY_PHARAOH_DYNASTIES => pharaoh::prepare_script_logging(reserved_pack),
             KEY_WARHAMMER_3 => warhammer_3::prepare_script_logging(reserved_pack),
             KEY_TROY => troy::prepare_script_logging(reserved_pack),
             KEY_THREE_KINGDOMS => Ok(()),
@@ -531,7 +532,7 @@ pub unsafe fn prepare_script_logging(app_ui: &AppUI, game: &GameInfo, reserved_p
 pub unsafe fn prepare_skip_intro_videos(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack) -> Result<()> {
     if app_ui.actions_ui().enable_skip_intro_checkbox().is_enabled() && app_ui.actions_ui().enable_skip_intro_checkbox().is_checked() {
         match game.key() {
-            KEY_PHARAOH => match *SCHEMA.read().unwrap() {
+            KEY_PHARAOH | KEY_PHARAOH_DYNASTIES => match *SCHEMA.read().unwrap() {
                 Some(ref schema) => pharaoh::prepare_skip_intro_videos(game, reserved_pack, vanilla_pack, modded_pack, schema),
                 None => Ok(())
             }
@@ -561,7 +562,7 @@ pub unsafe fn prepare_trait_limit_removal(app_ui: &AppUI, game: &GameInfo, reser
         Some(ref schema) => {
             if app_ui.actions_ui().remove_trait_limit_checkbox().is_enabled() && app_ui.actions_ui().remove_trait_limit_checkbox().is_checked() {
                 match game.key() {
-                    KEY_PHARAOH => Ok(()),
+                    KEY_PHARAOH | KEY_PHARAOH_DYNASTIES => Ok(()),
                     KEY_WARHAMMER_3 => warhammer_3::prepare_trait_limit_removal(game, reserved_pack, vanilla_pack, modded_pack, schema),
                     KEY_TROY |
                     KEY_THREE_KINGDOMS |
@@ -894,7 +895,7 @@ pub unsafe fn prepare_universal_rebalancer(app_ui: &AppUI, game: &GameInfo, rese
         Some(ref schema) => {
             if app_ui.actions_ui().universal_rebalancer_combobox().is_enabled() && app_ui.actions_ui().universal_rebalancer_combobox().current_index() != 0 {
                 match game.key() {
-                    KEY_PHARAOH => Ok(()),
+                    KEY_PHARAOH | KEY_PHARAOH_DYNASTIES => Ok(()),
                     KEY_WARHAMMER_3 => warhammer_3::prepare_universal_rebalancer(app_ui, game, reserved_pack, vanilla_pack, modded_pack, schema, mod_paths),
                     KEY_TROY |
                     KEY_THREE_KINGDOMS |

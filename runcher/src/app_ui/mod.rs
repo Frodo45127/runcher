@@ -158,6 +158,7 @@ pub struct AppUI {
     //-------------------------------------------------------------------------------//
     // `Game Selected` menu.
     //-------------------------------------------------------------------------------//
+    game_selected_pharaoh_dynasties: QPtr<QAction>,
     game_selected_pharaoh: QPtr<QAction>,
     game_selected_warhammer_3: QPtr<QAction>,
     game_selected_troy: QPtr<QAction>,
@@ -296,6 +297,7 @@ impl AppUI {
         game_selected_bar.set_fixed_width(64);
 
         let icon_folder = format!("{}/icons/", ASSETS_PATH.to_string_lossy());
+        let game_selected_pharaoh_dynasties = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_PHARAOH_DYNASTIES).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_PHARAOH_DYNASTIES));
         let game_selected_pharaoh = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_PHARAOH).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_PHARAOH));
         let game_selected_warhammer_3 = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_WARHAMMER_3).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_WARHAMMER_3));
         let game_selected_troy = game_selected_bar.add_action_2a(&QIcon::from_q_string(&QString::from_std_str(icon_folder.clone() + SUPPORTED_GAMES.game(KEY_TROY).unwrap().icon_small())), &QString::from_std_str(DISPLAY_NAME_TROY));
@@ -312,6 +314,7 @@ impl AppUI {
         let game_selected_group = QActionGroup::new(&game_selected_bar);
 
         // Configure the `Game Selected` Menu.
+        game_selected_group.add_action_q_action(&game_selected_pharaoh_dynasties);
         game_selected_group.add_action_q_action(&game_selected_pharaoh);
         game_selected_group.add_action_q_action(&game_selected_warhammer_3);
         game_selected_group.add_action_q_action(&game_selected_troy);
@@ -324,6 +327,7 @@ impl AppUI {
         game_selected_group.add_action_q_action(&game_selected_shogun_2);
         game_selected_group.add_action_q_action(&game_selected_napoleon);
         game_selected_group.add_action_q_action(&game_selected_empire);
+        game_selected_pharaoh_dynasties.set_checkable(true);
         game_selected_pharaoh.set_checkable(true);
         game_selected_warhammer_3.set_checkable(true);
         game_selected_troy.set_checkable(true);
@@ -376,6 +380,7 @@ impl AppUI {
             //-------------------------------------------------------------------------------//
             // "Game Selected" menu.
             //-------------------------------------------------------------------------------//
+            game_selected_pharaoh_dynasties,
             game_selected_pharaoh,
             game_selected_warhammer_3,
             game_selected_troy,
@@ -437,6 +442,10 @@ impl AppUI {
         for game in SUPPORTED_GAMES.games_sorted().iter() {
             let has_exe = game.executable_path(&setting_path(game.key())).filter(|path| path.is_file()).is_some();
             match game.key() {
+                KEY_PHARAOH_DYNASTIES => {
+                    app_ui.game_selected_pharaoh_dynasties().set_enabled(has_exe);
+                    app_ui.game_selected_pharaoh_dynasties().set_visible(has_exe);
+                }
                 KEY_PHARAOH => {
                     app_ui.game_selected_pharaoh().set_enabled(has_exe);
                     app_ui.game_selected_pharaoh().set_visible(has_exe);
@@ -562,6 +571,7 @@ impl AppUI {
         self.actions_ui().profile_save_button().released().connect(slots.save_profile());
         self.actions_ui().profile_manager_button().released().connect(slots.open_profile_manager());
 
+        self.game_selected_pharaoh_dynasties().triggered().connect(slots.change_game_selected());
         self.game_selected_pharaoh().triggered().connect(slots.change_game_selected());
         self.game_selected_warhammer_3().triggered().connect(slots.change_game_selected());
         self.game_selected_troy().triggered().connect(slots.change_game_selected());
@@ -836,6 +846,7 @@ impl AppUI {
                     for game in SUPPORTED_GAMES.games_sorted().iter() {
                         let has_exe = game.executable_path(&setting_path(game.key())).filter(|path| path.is_file()).is_some();
                         match game.key() {
+                            KEY_PHARAOH_DYNASTIES => self.game_selected_pharaoh_dynasties().set_enabled(has_exe),
                             KEY_PHARAOH => self.game_selected_pharaoh().set_enabled(has_exe),
                             KEY_WARHAMMER_3 => self.game_selected_warhammer_3().set_enabled(has_exe),
                             KEY_TROY => self.game_selected_troy().set_enabled(has_exe),

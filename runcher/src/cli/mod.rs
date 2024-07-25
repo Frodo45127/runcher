@@ -98,6 +98,7 @@ impl Cli {
                 //
                 // Note: set_checked does *NOT* trigger the slot for changing game selected. We need to trigger that one manually.
                 match &**game {
+                    KEY_PHARAOH_DYNASTIES |
                     KEY_PHARAOH |
                     KEY_WARHAMMER_3 |
                     KEY_TROY |
@@ -122,6 +123,7 @@ impl Cli {
 
         // Set the default game, and set it in the UI too.
         match &*default_game {
+            KEY_PHARAOH_DYNASTIES => app_ui.game_selected_pharaoh_dynasties().set_checked(true),
             KEY_PHARAOH => app_ui.game_selected_pharaoh().set_checked(true),
             KEY_WARHAMMER_3 => app_ui.game_selected_warhammer_3().set_checked(true),
             KEY_TROY => app_ui.game_selected_troy().set_checked(true),
