@@ -672,9 +672,6 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_
         }
     }
 
-    let pack_names = mod_paths.iter().map(|path| path.file_name().unwrap().to_string_lossy().to_string()).collect::<Vec<_>>();
-    reserved_pack.set_dependencies(pack_names);
-
     Ok(())
 }
 

@@ -207,6 +207,10 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, game_path:
         let mut encode_data = EncodeableExtraData::default();
         encode_data.set_nullify_dates(true);
 
+        // Set the dependencies to be the entire load order.
+        let pack_names = paths.iter().map(|path| path.file_name().unwrap().to_string_lossy().to_string()).collect::<Vec<_>>();
+        reserved_pack.set_dependencies(pack_names);
+
         reserved_pack.save(Some(&temp_path), &game, &Some(encode_data))?;
     }
 
