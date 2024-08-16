@@ -2582,7 +2582,7 @@ dependencies = [
 
 [[package]]
 name = "runcher"
-version = "0.9.5"
+version = "0.9.6"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4179,7 +4179,7 @@ dependencies = [
 
 [[package]]
 name = "workshopper"
-version = "0.9.5"
+version = "0.9.6"
 dependencies = [
  "anyhow",
  "base64 0.22.1",

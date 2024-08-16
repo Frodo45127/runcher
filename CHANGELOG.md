@@ -6,6 +6,12 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.6]
+### Fixed
+- Fixed game crash when using some launch options and not using the unit multiplier on heavy load orders.
+- Fixed autotranslator mistranslating entries of mods with loc files outside text/. 
+- Fixed an issue where some custom load orders will cause unexpected behavior ingame when using launch options. 
+
 ## [0.9.5]
 ### Added
 - Implemented support for Pharaoh's Dynasties update.
@@ -327,7 +333,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.5...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.6...HEAD
+[0.9.6]: https://github.com/Frodo45127/runcher/compare/v0.9.5...v0.9.6
 [0.9.5]: https://github.com/Frodo45127/runcher/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/Frodo45127/runcher/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/Frodo45127/runcher/compare/v0.9.2...v0.9.3
