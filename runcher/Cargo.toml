@@ -71,7 +71,7 @@ time = { version = "^0.3", features = ["formatting"] }
 itertools = "^0.13"
 
 # Autoupdate support.
-self_update = { version = "^0.40", features = ["archive-zip", "compression-zip-deflate", "compression-zip-bzip2", "compression-flate2"] }
+self_update = { version = "^0.41", features = ["archive-zip", "compression-zip-deflate", "compression-zip-bzip2", "compression-flate2"] }
 tempfile = "^3.8"
 zip-extract = "^0.1"
 reqwest = "^0.12"
@@ -86,7 +86,7 @@ flate2 = "^1"
 interprocess = "^2"
 
 # For checking if steam is running.
-sysinfo = "^0.30"
+sysinfo = "^0.31"
 
 # For random ipc channel name generator.
 rand = "^0.8"
