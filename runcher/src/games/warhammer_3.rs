@@ -1207,7 +1207,6 @@ pub unsafe fn prepare_universal_rebalancer(app_ui: &AppUI, game: &GameInfo, rese
 
             let mut a = averaged_categories_stats.iter().map(|(a, b)| (a, b)).collect::<Vec<_>>();
             a.sort_by_key(|a| a.0);
-            dbg!(a);
 
             // And finally, go over all units outside of the base mod (and outside mods that treat it as parent), and apply the avg multipliers.
             if !mod_paths.is_empty() {
