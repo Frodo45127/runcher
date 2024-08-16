@@ -12,7 +12,6 @@ use anyhow::Result;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
 
 use rpfm_lib::schema::Schema;
 use rpfm_lib::files::{Container, ContainerPath, DecodeableExtraData, EncodeableExtraData, FileType, pack::Pack, RFile, RFileDecoded, table::DecodedData};
@@ -30,7 +29,7 @@ const INTRO_MOVIE_PATHS_BY_GAME: [&str; 2] = [
 //                             Implementations
 //-------------------------------------------------------------------------------//
 
-pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack, schema: &Schema, mod_paths: &[PathBuf]) -> Result<()> {
+pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack, schema: &Schema) -> Result<()> {
     let unit_multiplier = app_ui.actions_ui().unit_multiplier_spinbox().value();
 
     let mut kv_key_buildings = vanilla_pack.files_by_path(&ContainerPath::Folder("db/_kv_key_buildings_tables/".to_string()), true)

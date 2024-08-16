@@ -181,7 +181,7 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, game_path:
             .collect::<Vec<_>>();
 
         let mut modded_pack = if !paths.is_empty() {
-            Pack::read_and_merge(&paths, true, false)?
+            Pack::read_and_merge(&paths, true, false, true)?
         } else {
             Pack::default()
         };
@@ -199,7 +199,7 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, game_path:
         prepare_translations(app_ui, &game, &mut reserved_pack)?;
 
         // Unit multiplier.
-        prepare_unit_multiplier(app_ui, &game, &mut reserved_pack, &mut vanilla_pack, &mut modded_pack, &paths)?;
+        prepare_unit_multiplier(app_ui, &game, &mut reserved_pack, &mut vanilla_pack, &mut modded_pack)?;
 
         // Universal rebalancer.
         prepare_universal_rebalancer(app_ui, &game, &mut reserved_pack, &mut vanilla_pack, &mut modded_pack, &paths)?;
@@ -483,16 +483,16 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
     app_ui.actions_ui().open_game_content_folder().block_signals(false);
 }
 
-pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack, mod_paths: &[PathBuf]) -> Result<()> {
+pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack) -> Result<()> {
     match *SCHEMA.read().unwrap() {
         Some(ref schema) => {
             if app_ui.actions_ui().unit_multiplier_spinbox().is_enabled() && app_ui.actions_ui().unit_multiplier_spinbox().value() != 1.00 {
                 match game.key() {
                     KEY_PHARAOH_DYNASTIES |
                     KEY_PHARAOH => Ok(()),
-                    KEY_WARHAMMER_3 => warhammer_3::prepare_unit_multiplier(app_ui, game, reserved_pack, vanilla_pack, modded_pack, schema, mod_paths),
+                    KEY_WARHAMMER_3 => warhammer_3::prepare_unit_multiplier(app_ui, game, reserved_pack, vanilla_pack, modded_pack, schema),
                     KEY_TROY => Ok(()),
-                    KEY_THREE_KINGDOMS => three_kingdoms::prepare_unit_multiplier(app_ui, game, reserved_pack, vanilla_pack, modded_pack, schema, mod_paths),
+                    KEY_THREE_KINGDOMS => three_kingdoms::prepare_unit_multiplier(app_ui, game, reserved_pack, vanilla_pack, modded_pack, schema),
                     KEY_WARHAMMER_2 |
                     KEY_WARHAMMER |
                     KEY_THRONES_OF_BRITANNIA |
@@ -704,9 +704,13 @@ pub unsafe fn prepare_translations(app_ui: &AppUI, game: &GameInfo, reserved_pac
 
                     // If there's no translation data, just merge their locs.
                     if !translation_found {
-                        let mut pack = Pack::read_and_merge(&[pack_path.to_path_buf()], true, false)?;
+                        let mut pack = Pack::read_and_merge(&[pack_path.to_path_buf()], true, false, true)?;
 
                         let mut locs = pack.files_by_type_mut(&[FileType::Loc]);
+
+                        // Some people (SCM Team) decided it was a good idea to put a loc wiping entries outside the text folder.
+                        // This filters out anything not in text/.
+                        locs.retain(|loc| loc.path_in_container_raw().starts_with("text/"));
                         locs.sort_by(|a, b| a.path_in_container_raw().cmp(b.path_in_container_raw()));
 
                         let locs_split = locs.iter_mut()

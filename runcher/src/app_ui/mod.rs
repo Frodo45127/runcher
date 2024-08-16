@@ -922,7 +922,7 @@ impl AppUI {
                 .collect::<Vec<_>>();
 
                 if !pack_paths.is_empty() {
-                    let mut reserved_pack = Pack::read_and_merge(&pack_paths, true, false)?;
+                    let mut reserved_pack = Pack::read_and_merge(&pack_paths, true, false, true)?;
                     let pack_version = game.pfh_version_by_file_type(PFHFileType::Mod);
                     reserved_pack.set_pfh_version(pack_version);
 
@@ -2141,7 +2141,7 @@ impl AppUI {
                                     if legacy_mod && modd.file_name().ends_with(".pack"){
 
                                         // This is for Packs. Map mods use a different process.
-                                        if let Ok(mut pack) = Pack::read_and_merge(&[last_path.to_path_buf()], true, false) {
+                                        if let Ok(mut pack) = Pack::read_and_merge(&[last_path.to_path_buf()], true, false, false) {
                                             if let Ok(ref data_path) = game_data_path {
 
                                                 let mod_name = if legacy_mod {

@@ -121,7 +121,7 @@ impl LoadOrder {
             .filter_map(|mod_id| {
                 let modd = game_config.mods().get(&mod_id)?;
                 let path = modd.paths().first()?;
-                Some((mod_id.to_owned(), Pack::read_and_merge(&[path.to_path_buf()], true, false).ok()?))
+                Some((mod_id.to_owned(), Pack::read_and_merge(&[path.to_path_buf()], true, false, false).ok()?))
             })
             .collect();
     }

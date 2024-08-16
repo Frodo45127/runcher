@@ -150,7 +150,7 @@ pub unsafe fn prepare_trait_limit_removal(game: &GameInfo, reserved_pack: &mut P
     Ok(())
 }
 
-pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack, schema: &Schema, mod_paths: &[PathBuf]) -> Result<()> {
+pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_pack: &mut Pack, vanilla_pack: &mut Pack, modded_pack: &mut Pack, schema: &Schema) -> Result<()> {
     let unit_multiplier = app_ui.actions_ui().unit_multiplier_spinbox().value();
 
     let mut kv_rules = vanilla_pack.files_by_path(&ContainerPath::Folder("db/_kv_rules_tables/".to_string()), true)
@@ -711,7 +711,7 @@ pub unsafe fn prepare_universal_rebalancer(app_ui: &AppUI, game: &GameInfo, rese
             dec_extra_data.set_schema(Some(schema));
             let dec_extra_data = Some(dec_extra_data);
 
-            let base_pack = Pack::read_and_merge(&[PathBuf::from(base_pack_path)], true, false)?;
+            let base_pack = Pack::read_and_merge(&[PathBuf::from(base_pack_path)], true, false, false)?;
             let mut land_units_base = base_pack.files_by_path(&ContainerPath::Folder("db/land_units_tables/".to_string()), true)
                 .into_iter()
                 .cloned()
@@ -1209,7 +1209,7 @@ pub unsafe fn prepare_universal_rebalancer(app_ui: &AppUI, game: &GameInfo, rese
             if !mod_paths.is_empty() {
                 let packs_deps = mod_paths.iter()
                     .map(|path| {
-                        let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false).unwrap_or_default();
+                        let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false, false).unwrap_or_default();
                         (pack.disk_file_name(), pack.dependencies().to_vec())
                     })
                     .collect::<HashMap<_,_>>();
