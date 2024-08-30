@@ -6,6 +6,11 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.7]
+### Fixed
+- Fixed CTD on Empire and Napoleon when using launch options.
+- Fixed language not being detected correctly by the launch options in certain games.
+
 ## [0.9.6]
 ### Fixed
 - Fixed game crash when using some launch options and not using the unit multiplier on heavy load orders.
@@ -333,7 +338,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.6...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.7...HEAD
+[0.9.7]: https://github.com/Frodo45127/runcher/compare/v0.9.6...v0.9.7
 [0.9.6]: https://github.com/Frodo45127/runcher/compare/v0.9.5...v0.9.6
 [0.9.5]: https://github.com/Frodo45127/runcher/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/Frodo45127/runcher/compare/v0.9.3...v0.9.4

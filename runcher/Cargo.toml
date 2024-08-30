@@ -73,7 +73,7 @@ itertools = "^0.13"
 # Autoupdate support.
 self_update = { version = "^0.41", features = ["archive-zip", "compression-zip-deflate", "compression-zip-bzip2", "compression-flate2"] }
 tempfile = "^3.8"
-zip-extract = "^0.1"
+zip-extract = "^0.2"
 reqwest = "^0.12"
 
 # CLI parsing, formatting and color support.
