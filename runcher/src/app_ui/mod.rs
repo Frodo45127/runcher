@@ -1166,6 +1166,9 @@ impl AppUI {
             self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
         }
 
+        // Make sure the one we saved stays selected!!!
+        self.actions_ui().profile_combobox().set_current_text(&QString::from_std_str(&profile_name));
+
         profile.save(&self.game_selected().read().unwrap(), &profile_name)
     }
 
