@@ -207,11 +207,11 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, game_path:
         let mut encode_data = EncodeableExtraData::default();
         encode_data.set_nullify_dates(true);
 
-        // Set the dependencies to be the entire çload order.
+        // Set the dependencies to be the entire load order.
         //
         // Except for napoleon and empire. Those two seem to crash if a movie pack has mod dependencies.
         if game.key() != KEY_EMPIRE && game.key() != KEY_NAPOLEON {
-            let pack_names = paths.iter().map(|path| path.file_name().unwrap().to_string_lossy().to_string()).collect::<Vec<_>>();
+            let pack_names = paths.iter().map(|path| (true, path.file_name().unwrap().to_string_lossy().to_string())).collect::<Vec<_>>();
             reserved_pack.set_dependencies(pack_names);
         }
 

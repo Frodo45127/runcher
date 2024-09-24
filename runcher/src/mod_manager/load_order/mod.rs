@@ -223,7 +223,9 @@ impl LoadOrder {
     pub fn build_load_order_string(&self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path, pack_string: &mut String, folder_paths: &mut String) {
         let mut added_secondary_folder = false;
         let secondary_mods_path = secondary_mods_path(game.key()).unwrap_or_else(|_| PathBuf::new());
-        let secondary_mods_masks_path = secondary_mods_path.join(SECONDARY_FOLDER_NAME);
+        let secondary_mods_masks_path = path_to_absolute_path(&secondary_mods_path.join(SECONDARY_FOLDER_NAME), true);
+        let game_data_path = game_data_path.canonicalize().unwrap();
+        let mut folder_paths_mods = String::new();
 
         for mod_id in self.mods() {
             if let Some(modd) = game_config.mods().get(mod_id) {
@@ -242,8 +244,8 @@ impl LoadOrder {
                 // Also, Shogun 2 requires some custom file management to move and convert mods to /data, but that's not done here.
                 let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
                 let path = &modd.paths()[0];
-                if !path.starts_with(game_data_path) && *game.raw_db_version() >= 1 {
-                    let mut folder_path = path_to_absolute_path(path);
+                if !path.starts_with(&game_data_path) && *game.raw_db_version() >= 1 {
+                    let mut folder_path = path_to_absolute_path(path, false);
                     folder_path.pop();
 
                     // If it's the secondary folder, just add it once. If it's the contents folder, add one per mod.
@@ -252,12 +254,12 @@ impl LoadOrder {
                         if !added_secondary_folder {
 
                             // We have to add both, the secondary folder and the masking folder, so movie packs in secondary can be toggled by using masks.
-                            folder_paths.push_str(&format!("add_working_directory \"{}\";\n", secondary_mods_masks_path.to_string_lossy()));
-                            folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
+                            folder_paths_mods.insert_str(0, &format!("add_working_directory \"{}\";\n", folder_path_str));
+                            folder_paths_mods.insert_str(0, &format!("add_working_directory \"{}\";\n", secondary_mods_masks_path.to_string_lossy()));
                             added_secondary_folder = true;
                         }
                     } else {
-                        folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
+                        folder_paths_mods.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
                     }
                 }
 
@@ -272,12 +274,11 @@ impl LoadOrder {
         // Once we're done loading mods, we need to check for toggleable movie packs and add their paths as working folders if they're enabled.
         for mod_id in self.movies() {
             if let Some(modd) = game_config.mods().get(mod_id) {
-                if modd.can_be_toggled(game_data_path) {
+                if modd.can_be_toggled(&game_data_path) {
 
                     // This only works for Rome 2 and later games.
                     if *game.raw_db_version() >= 1 {
-                        let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                        let mut folder_path = path_to_absolute_path(&modd.paths()[0]);
+                        let mut folder_path = path_to_absolute_path(&modd.paths()[0], false);
                         folder_path.pop();
 
                         // If it's the secondary folder, just add it once. If it's the contents folder, add one per mod.
@@ -286,26 +287,18 @@ impl LoadOrder {
                             if !added_secondary_folder {
 
                                 // We have to add both, the secondary folder and the masking folder, so movie packs in secondary can be toggled by using masks.
-                                folder_paths.push_str(&format!("add_working_directory \"{}\";\n", secondary_mods_masks_path.to_string_lossy()));
-                                folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
+                                folder_paths_mods.insert_str(0, &format!("add_working_directory \"{}\";\n", folder_path_str));
+                                folder_paths_mods.insert_str(0, &format!("add_working_directory \"{}\";\n", secondary_mods_masks_path.to_string_lossy()));
                                 added_secondary_folder = true;
                             }
                         } else {
-                            folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
+                            folder_paths_mods.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
                         }
-
-                        if !pack_string.is_empty() {
-                            pack_string.push('\n');
-                        }
-
-                        // This isn't neccesary for the game to load the movie pack, but if we don't put it in there,
-                        // mod list files generated with it do not show that the pack was enabled.
-                        //
-                        // This is mostly a fix so stuff like profiles and import load orders recognizes these packs correctly.
-                        pack_string.push_str(&format!("mod \"{}\";", &pack_name));
                     }
                 }
             }
         }
+
+        folder_paths.push_str(&folder_paths_mods);
     }
 }

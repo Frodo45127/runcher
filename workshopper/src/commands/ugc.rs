@@ -294,7 +294,7 @@ pub fn update(
     let ugc = ugc.unwrap_or_else(|| client.ugc());
 
     // Sanitize the pack_path.
-    let pack_path = path_to_absolute_path(pack_path);
+    let pack_path = path_to_absolute_path(pack_path, true);
 
     // Prepare the preview path. We replicate the same behavior as the vanilla launcher.
     let mut preview_path = pack_path.to_path_buf();

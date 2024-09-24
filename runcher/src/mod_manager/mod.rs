@@ -42,7 +42,7 @@ pub fn copy_to_secondary(game: &GameInfo, game_config: &GameConfig, mod_ids: &[S
 
     let game_path = setting_path(game.key());
     let secondary_path = secondary_mods_path(game.key())?;
-    let content_path = path_to_absolute_path(&game.content_path(&game_path)?);
+    let content_path = path_to_absolute_path(&game.content_path(&game_path)?, true);
     let secondary_path_str = path_to_absolute_string(&secondary_path);
     let content_path_str = path_to_absolute_string(&content_path);
 

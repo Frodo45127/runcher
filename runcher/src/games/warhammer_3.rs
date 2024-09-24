@@ -1210,7 +1210,12 @@ pub unsafe fn prepare_universal_rebalancer(app_ui: &AppUI, game: &GameInfo, rese
                 let packs_deps = mod_paths.iter()
                     .map(|path| {
                         let pack = Pack::read_and_merge(&[path.to_path_buf()], true, false, false).unwrap_or_default();
-                        (pack.disk_file_name(), pack.dependencies().to_vec())
+                        (pack.disk_file_name(), pack.dependencies().iter()
+                            .filter_map(|(hard, pack)| if *hard {
+                                Some(pack.to_string())
+                            } else {
+                                None
+                            }).collect::<Vec<_>>())
                     })
                     .collect::<HashMap<_,_>>();
 
@@ -1231,7 +1236,7 @@ pub unsafe fn prepare_universal_rebalancer(app_ui: &AppUI, game: &GameInfo, rese
                     if cont_name != base_pack.disk_file_name() &&
                         (
                             packs_deps.get(&cont_name).is_none() ||
-                            !packs_deps.get(&cont_name).unwrap().contains(&base_pack.disk_file_name())
+                            !packs_deps.get(&cont_name).unwrap().contains(&&base_pack.disk_file_name())
                         ) {
 
                         if let Some(RFileDecoded::DB(mut data)) = table.decode(&dec_extra_data, false, true)? {
