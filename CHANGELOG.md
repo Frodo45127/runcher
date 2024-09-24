@@ -6,6 +6,10 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.8]
+- Fixed many instances where incorrect/duplicated paths were added to the mod list file.
+- Fixed profile selected resetting after saving it.
+
 ## [0.9.7]
 ### Fixed
 - Fixed CTD on Empire and Napoleon when using launch options.
