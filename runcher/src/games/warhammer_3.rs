@@ -396,7 +396,8 @@ pub unsafe fn prepare_unit_multiplier(app_ui: &AppUI, game: &GameInfo, reserved_
                                                 // There are some exceptions for this that need to be manually marked as single entities. Mainly:
                                                 // - Lords & heroes.
                                                 // - Anything marked as using hitpoints in campaign.
-                                                if (caste_value == "lord" || caste_value == "hero" || hitpoins_in_campaign_value) && !processed_units.contains(&land_unit_value) {
+                                                // - Anything with just 1 entity.
+                                                if (caste_value == "lord" || caste_value == "hero" || hitpoins_in_campaign_value || *num_men_value == 1) && !processed_units.contains(&land_unit_value) {
                                                     single_entity_units.insert(land_unit_value.to_owned());
                                                 }
 
