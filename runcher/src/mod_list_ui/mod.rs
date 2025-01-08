@@ -28,7 +28,9 @@ use qt_gui::QStandardItemModel;
 use qt_core::AlignmentFlag;
 use qt_core::CaseSensitivity;
 use qt_core::CheckState;
+use qt_core::ItemFlag;
 use qt_core::QBox;
+use qt_core::QFlags;
 use qt_core::QModelIndex;
 use qt_core::QObject;
 use qt_core::QPtr;
@@ -423,7 +425,10 @@ impl ModListUI {
                                 else {
                                     item_mod_name.set_checkable(true);
                                     item_mod_name.set_check_state(CheckState::Checked);
-                                    item_mod_name.set_enabled(false);
+
+                                    let mut flags = item_mod_name.flags().to_int();
+                                    flags &= !ItemFlag::ItemIsUserCheckable.to_int();
+                                    item_mod_name.set_flags(QFlags::from(flags));
                                 }
 
                                 item_file_size.set_text_alignment(AlignmentFlag::AlignVCenter | AlignmentFlag::AlignRight);
