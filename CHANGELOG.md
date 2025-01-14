@@ -6,7 +6,14 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.9]
+### Fixed
+- Fixed some cornercases of modded single-entity units not being treated as such by the unit multiplier.
+- Fixed some crashes with launch options enabled in older games.
+- Fixed mods with movie packs on data not being clickable.
+
 ## [0.9.8]
+### Fixed
 - Fixed many instances where incorrect/duplicated paths were added to the mod list file.
 - Fixed profile selected resetting after saving it.
 
@@ -342,7 +349,9 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.7...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.9...HEAD
+[0.9.9]: https://github.com/Frodo45127/runcher/compare/v0.9.8...v0.9.9
+[0.9.8]: https://github.com/Frodo45127/runcher/compare/v0.9.7...v0.9.8
 [0.9.7]: https://github.com/Frodo45127/runcher/compare/v0.9.6...v0.9.7
 [0.9.6]: https://github.com/Frodo45127/runcher/compare/v0.9.5...v0.9.6
 [0.9.5]: https://github.com/Frodo45127/runcher/compare/v0.9.4...v0.9.5
