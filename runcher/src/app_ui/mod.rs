@@ -515,7 +515,7 @@ impl AppUI {
         QApplication::set_font_1a(&font);
 
         // Check that Steam is running, so any usage of the Steamworks API doesn't silently fail.
-        let sys = sysinfo::System::new_with_specifics(sysinfo::RefreshKind::new().with_processes(sysinfo::ProcessRefreshKind::new()));
+        let sys = sysinfo::System::new_with_specifics(sysinfo::RefreshKind::everything().with_processes(sysinfo::ProcessRefreshKind::everything()));
         if sys.processes_by_exact_name("steam.exe".as_ref()).count() == 0 {
             show_dialog(app_ui.main_window(), "Steam is not running. Make sure Steam is running or some parts of the launcher may not work as expected.", false);
             exit(1)
