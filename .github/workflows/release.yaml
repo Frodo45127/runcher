@@ -200,6 +200,9 @@ jobs:
           cp ${{ matrix.DDISK }}:\steam_api64.dll ${{ matrix.DDISK }}:\deploy\runcher-release-assets\
           cp E:\runner_runcher\_work\runcher\runcher/target/release/workshopper.exe ${{ matrix.DDISK }}:\deploy\runcher-release-assets
 
+          # TWPatcher for load order patching support.
+          cp E:\runner_runcher\_work\runcher\runcher/target/release/twpatcher.exe ${{ matrix.DDISK }}:\deploy\runcher-release-assets
+
           # Here we copy assets from the repo.
           mkdir icons
           mkdir locale
