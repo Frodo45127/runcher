@@ -23,9 +23,8 @@ use rpfm_ui_common::settings::error_path;
 
 use crate::CENTRAL_COMMAND;
 use crate::communications::*;
-use crate::games::{TRANSLATIONS_REPO, TRANSLATIONS_BRANCH, TRANSLATIONS_REMOTE};
 use crate::mod_manager::{game_config::GameConfig, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::ShareableMod};
-use crate::settings_ui::{schemas_path, translations_remote_path};
+use crate::settings_ui::schemas_path;
 use crate::SCHEMA;
 
 /// This is the background loop that's going to be executed in a parallel thread to the UI. No UI or "Unsafe" stuff here.
@@ -73,19 +72,6 @@ pub fn background_loop() {
                 }
             }
 
-            Command::UpdateTranslations => {
-                match translations_remote_path() {
-                    Ok(local_path) => {
-                        let git_integration = GitIntegration::new(&local_path, TRANSLATIONS_REPO, TRANSLATIONS_BRANCH, TRANSLATIONS_REMOTE);
-                        match git_integration.update_repo() {
-                            Ok(_) => CentralCommand::send_back(&sender, Response::Success),
-                            Err(error) => CentralCommand::send_back(&sender, Response::Error(From::from(error))),
-                        }
-                    },
-                    Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
-                }
-            }
-
             Command::GetStringFromLoadOrder(game_config, game_data_path, load_order) => {
                 match get_string_from_load_order(game_config, &game_data_path, load_order) {
                     Ok(encoded) => CentralCommand::send_back(&sender, Response::String(encoded)),
@@ -100,7 +86,7 @@ pub fn background_loop() {
                 }
             }
 
-            Command::CheckUpdates | Command::CheckSchemaUpdates | Command::CheckTranslationsUpdates | Command::RequestModsData(_,_) => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
+            Command::CheckUpdates | Command::CheckSchemaUpdates | Command::RequestModsData(_,_) => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
         }
     }
 }

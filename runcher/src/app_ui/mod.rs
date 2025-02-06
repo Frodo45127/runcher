@@ -128,7 +128,7 @@ const LOG_ANALYSIS_VIEW_RELEASE: &str = "ui/log_analysis_dialog.ui";
 const MERGE_ALL_PACKS_PACK_NAME: &str = "merge_me_sideways_honey";
 
 #[allow(dead_code)] const VANILLA_MOD_LIST_FILE_NAME: &str = "used_mods.txt";
-#[allow(dead_code)] const CUSTOM_MOD_LIST_FILE_NAME: &str = "mod_list.txt";
+#[allow(dead_code)] pub const CUSTOM_MOD_LIST_FILE_NAME: &str = "mod_list.txt";
 #[allow(dead_code)] const USER_SCRIPT_FILE_NAME: &str = "user.script.txt";
 #[allow(dead_code)] const USER_SCRIPT_EMPIRE_FILE_NAME: &str = "user.empire_script.txt";
 
@@ -899,9 +899,6 @@ impl AppUI {
         let game_path = setting_path(game.key());
         let data_path = game.data_path(&game_path)?;
 
-        // Setup the launch options stuff.
-        prepare_launch_options(self, &game, &game_path, &data_path, &mut folder_list)?;
-
         // If we have "merge all mods" checked, we need to load the entire load order into a single pack, and load that pack instead of the entire load order.
         //
         // TODO: Review this before re-enabling merged mods. This pretty sure breaks on older games.
@@ -1001,18 +998,14 @@ impl AppUI {
             }
         };
 
-        let mut file = BufWriter::new(File::create(file_path)?);
+        // Setup the launch options stuff. This may add a line to the folder list, so we need to resave the load order file after this.
+        let folder_list_pre = folder_list.to_owned();
+        Self::save_load_order_file(&file_path, &game, &folder_list, &pack_list)?;
+        prepare_launch_options(self, &game, &data_path, &mut folder_list)?;
 
-        // Napoleon, Empire and Shogun 2 require the user.script.txt or mod list file (for Shogun's latest update) to be in UTF-16 LE. What the actual fuck.
-        if *game.raw_db_version() < 2 {
-            file.write_string_u16(&folder_list)?;
-            file.write_string_u16(&pack_list)?;
-        } else {
-            file.write_all(folder_list.as_bytes())?;
-            file.write_all(pack_list.as_bytes())?;
+        if folder_list != folder_list_pre {
+            Self::save_load_order_file(&file_path, &game, &folder_list, &pack_list)?;
         }
-
-        file.flush()?;
 
         // Launch is done through workshopper to getup the Steam Api.
         //
@@ -2712,5 +2705,20 @@ impl AppUI {
         }
 
         Ok(())
+    }
+
+    fn save_load_order_file(file_path: &Path, game: &GameInfo, folder_list: &str, pack_list: &str) -> Result<()> {
+        let mut file = BufWriter::new(File::create(&file_path)?);
+
+        // Napoleon, Empire and Shogun 2 require the user.script.txt or mod list file (for Shogun's latest update) to be in UTF-16 LE. What the actual fuck.
+        if *game.raw_db_version() < 2 {
+            file.write_string_u16(&folder_list)?;
+            file.write_string_u16(&pack_list)?;
+        } else {
+            file.write_all(folder_list.as_bytes())?;
+            file.write_all(pack_list.as_bytes())?;
+        }
+
+        file.flush().map_err(From::from)
     }
 }

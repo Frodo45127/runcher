@@ -18,9 +18,8 @@ use rpfm_ui_common::settings::error_path;
 
 use crate::CENTRAL_COMMAND;
 use crate::communications::*;
-use crate::games::{TRANSLATIONS_REPO, TRANSLATIONS_REMOTE, TRANSLATIONS_BRANCH};
 use crate::mod_manager::integrations::request_mods_data;
-use crate::settings_ui::{schemas_path, translations_remote_path};
+use crate::settings_ui::schemas_path;
 use crate::updater_ui::check_updates_main_program;
 
 /// This is the network loop that's going to be executed in a parallel thread to the UI. No UI or "Unsafe" stuff here.
@@ -58,19 +57,6 @@ pub fn network_loop() {
                 match schemas_path() {
                     Ok(local_path) => {
                         let git_integration = GitIntegration::new(&local_path, SCHEMA_REPO, SCHEMA_BRANCH, SCHEMA_REMOTE);
-                        match git_integration.check_update() {
-                            Ok(response) => CentralCommand::send_back(&sender, Response::APIResponseGit(response)),
-                            Err(error) => CentralCommand::send_back(&sender, Response::Error(From::from(error))),
-                        }
-                    }
-                    Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
-                }
-            }
-
-            Command::CheckTranslationsUpdates => {
-                match translations_remote_path() {
-                    Ok(local_path) => {
-                        let git_integration = GitIntegration::new(&local_path, TRANSLATIONS_REPO, TRANSLATIONS_BRANCH, TRANSLATIONS_REMOTE);
                         match git_integration.check_update() {
                             Ok(response) => CentralCommand::send_back(&sender, Response::APIResponseGit(response)),
                             Err(error) => CentralCommand::send_back(&sender, Response::Error(From::from(error))),

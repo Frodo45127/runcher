@@ -55,8 +55,6 @@ pub enum Command {
     UpdateMainProgram,
     CheckSchemaUpdates,
     UpdateSchemas(String),
-    CheckTranslationsUpdates,
-    UpdateTranslations,
     GetStringFromLoadOrder(GameConfig, PathBuf, LoadOrder),
     GetLoadOrderFromString(ImportedLoadOrderMode),
     RequestModsData(Box<GameInfo>, Vec<String>),
