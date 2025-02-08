@@ -1,3 +1,6 @@
 [submodule "twpatcher"]
 	path = twpatcher
 	url = https://github.com/Frodo45127/twpatcher.git
+[submodule "workshopper"]
+	path = workshopper
+	url = https://github.com/Frodo45127/workshopper.git
