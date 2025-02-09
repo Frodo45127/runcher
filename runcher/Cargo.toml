@@ -85,9 +85,6 @@ flate2 = "^1"
 # IPC Support
 interprocess = "^2"
 
-# For checking if steam is running.
-sysinfo = "^0"
-
 # For random ipc channel name generator.
 rand = "^0.8"
 

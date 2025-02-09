@@ -2789,7 +2789,6 @@ dependencies = [
  "serde_json",
  "sha256",
  "steam-workshop-api",
- "sysinfo",
  "tempfile",
  "thiserror 2.0.11",
  "time",
@@ -4535,6 +4534,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "steamworks",
+ "sysinfo",
  "winres",
 ]
 

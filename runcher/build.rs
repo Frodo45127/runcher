@@ -21,6 +21,9 @@ use std::process::{Command, exit};
 fn main() {
     common_config();
 
+    // Copy the dll needed for workshopper.
+    std::fs::copy("./../workshopper/3rdparty/steam_api64.dll", "./../target/debug/steam_api64.dll").unwrap();
+
     // This compiles the custom widgets lib.
     match Command::new("nmake").current_dir("./../3rdparty/src/qt_runcher_extensions/").output() {
         Ok(output) => {
