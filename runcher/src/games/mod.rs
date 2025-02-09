@@ -12,6 +12,7 @@ use qt_core::QString;
 
 use anyhow::{anyhow, Result};
 
+#[cfg(target_os = "windows")]use std::os::windows::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
 
@@ -23,6 +24,7 @@ use rpfm_ui_common::{settings::*, PROGRAM_PATH};
 
 use crate::app_ui::{AppUI, CUSTOM_MOD_LIST_FILE_NAME};
 use crate::SCHEMA;
+use crate::mod_manager::integrations::{CREATE_NO_WINDOW, DETACHED_PROCESS};
 use crate::settings_ui::temp_packs_folder;
 
 pub const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
@@ -113,6 +115,13 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
         if actions_ui.unit_multiplier_spinbox().is_enabled() && actions_ui.unit_multiplier_spinbox().value() != 1.00 {
             cmd.arg("-m");
             cmd.arg(app_ui.actions_ui().unit_multiplier_spinbox().value().to_string());
+        }
+
+        // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
+        #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
+            cmd.creation_flags(DETACHED_PROCESS);
+        } else {
+            cmd.creation_flags(CREATE_NO_WINDOW);
         }
 
         cmd.output().map_err(|err| anyhow!("Error when preparing the game patch: {}", err))?;
