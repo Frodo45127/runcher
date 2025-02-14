@@ -48,6 +48,7 @@ pub struct AppUISlots {
     toggle_logging: QBox<SlotOfBool>,
     toggle_skip_intros: QBox<SlotOfBool>,
     toggle_remove_trait_limit: QBox<SlotOfBool>,
+    toggle_remove_siege_attacker: QBox<SlotOfBool>,
     toggle_merge_all_mods: QBox<SlotOfBool>,
     toggle_enable_translations: QBox<SlotOfQString>,
     change_unit_multiplier: QBox<SlotOfDouble>,
@@ -135,6 +136,14 @@ impl AppUISlots {
             view => move |state| {
                 let game = view.game_selected().read().unwrap();
                 let setting = format!("remove_trait_limit_{}", game.key());
+                set_setting_bool(&setting, state);
+            }
+        ));
+
+        let toggle_remove_siege_attacker = SlotOfBool::new(view.main_window(), clone!(
+            view => move |state| {
+                let game = view.game_selected().read().unwrap();
+                let setting = format!("remove_siege_attacker_{}", game.key());
                 set_setting_bool(&setting, state);
             }
         ));
@@ -666,6 +675,7 @@ impl AppUISlots {
             toggle_logging,
             toggle_skip_intros,
             toggle_remove_trait_limit,
+            toggle_remove_siege_attacker,
             toggle_merge_all_mods,
             toggle_enable_translations,
             change_unit_multiplier,

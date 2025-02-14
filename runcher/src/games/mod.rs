@@ -20,7 +20,7 @@ use rpfm_lib::files::{Container, ContainerPath, FileType};
 use rpfm_lib::games::{*, supported_games::*};
 use rpfm_lib::utils::files_from_subdir;
 
-use rpfm_ui_common::{settings::*, PROGRAM_PATH};
+use rpfm_ui_common::settings::*;
 
 use crate::app_ui::{AppUI, CUSTOM_MOD_LIST_FILE_NAME};
 use crate::SCHEMA;
@@ -29,6 +29,14 @@ use crate::settings_ui::temp_packs_folder;
 
 pub const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
 pub const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
+
+lazy_static::lazy_static! {
+    static ref PATCHER_PATH: String = if cfg!(debug_assertions) {
+        format!(".\\target\\debug\\{}", PATCHER_EXE)
+    } else {
+        PATCHER_EXE.to_string()
+    };
+}
 
 const PATCHER_EXE: &str = "twpatcher.exe";
 
@@ -43,6 +51,7 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
     if (actions_ui.enable_logging_checkbox().is_enabled() && actions_ui.enable_logging_checkbox().is_checked()) ||
         (actions_ui.enable_skip_intro_checkbox().is_enabled() && actions_ui.enable_skip_intro_checkbox().is_checked()) ||
         (actions_ui.remove_trait_limit_checkbox().is_enabled() && actions_ui.remove_trait_limit_checkbox().is_checked()) ||
+        (actions_ui.remove_siege_attacker_checkbox().is_enabled() && actions_ui.remove_siege_attacker_checkbox().is_checked()) ||
         (actions_ui.enable_translations_combobox().is_enabled() && actions_ui.enable_translations_combobox().current_index() != 0) ||
         (actions_ui.universal_rebalancer_combobox().is_enabled() && actions_ui.universal_rebalancer_combobox().current_index() != 0) ||
         (actions_ui.unit_multiplier_spinbox().is_enabled() && actions_ui.unit_multiplier_spinbox().value() != 1.00) {
@@ -74,8 +83,7 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
         };
 
         // Prepare the command to generate the temp pack.
-        let patcher_path = PROGRAM_PATH.join(PATCHER_EXE);
-        let mut cmd = Command::new(patcher_path);
+        let mut cmd = Command::new(&*PATCHER_PATH);
         cmd.arg("-g");
         cmd.arg(game.key());
         cmd.arg("-l");
@@ -97,6 +105,11 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
         // Remove Trait Limit check.
         if actions_ui.remove_trait_limit_checkbox().is_enabled() && actions_ui.remove_trait_limit_checkbox().is_checked() {
             cmd.arg("-r");
+        }
+
+        // Remove Siege Attacker check.
+        if actions_ui.remove_siege_attacker_checkbox().is_enabled() && actions_ui.remove_siege_attacker_checkbox().is_checked() {
+            cmd.arg("-a");
         }
 
         // Translations check.
@@ -143,6 +156,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
     app_ui.actions_ui().enable_logging_checkbox().block_signals(true);
     app_ui.actions_ui().enable_skip_intro_checkbox().block_signals(true);
     app_ui.actions_ui().remove_trait_limit_checkbox().block_signals(true);
+    app_ui.actions_ui().remove_siege_attacker_checkbox().block_signals(true);
     app_ui.actions_ui().enable_translations_combobox().block_signals(true);
     app_ui.actions_ui().merge_all_mods_checkbox().block_signals(true);
     app_ui.actions_ui().unit_multiplier_spinbox().block_signals(true);
@@ -169,6 +183,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().remove_siege_attacker_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
@@ -181,6 +196,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
+                app_ui.actions_ui().remove_siege_attacker_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(schema.is_some());
@@ -192,6 +208,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().remove_siege_attacker_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
@@ -203,6 +220,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);    // 3K doesn't support logging by default.
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().remove_siege_attacker_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
@@ -214,6 +232,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().remove_siege_attacker_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
@@ -225,6 +244,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);    // Warhammer 1 doesn't support logging by default.
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().remove_siege_attacker_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
@@ -236,6 +256,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().remove_siege_attacker_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
@@ -247,6 +268,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().remove_siege_attacker_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
@@ -258,6 +280,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().remove_siege_attacker_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
@@ -269,6 +292,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().remove_siege_attacker_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
@@ -280,6 +304,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().remove_siege_attacker_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
@@ -291,6 +316,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
                 app_ui.actions_ui().enable_logging_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_skip_intro_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().remove_trait_limit_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().remove_siege_attacker_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().enable_translations_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
@@ -308,6 +334,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
         app_ui.actions_ui().enable_logging_checkbox().set_checked(setting_bool(&format!("enable_logging_{}", game.key())));
         app_ui.actions_ui().enable_skip_intro_checkbox().set_checked(setting_bool(&format!("enable_skip_intros_{}", game.key())));
         app_ui.actions_ui().remove_trait_limit_checkbox().set_checked(setting_bool(&format!("remove_trait_limit_{}", game.key())));
+        app_ui.actions_ui().remove_siege_attacker_checkbox().set_checked(setting_bool(&format!("remove_siege_attacker_{}", game.key())));
         app_ui.actions_ui().merge_all_mods_checkbox().set_checked(setting_bool(&format!("merge_all_mods_{}", game.key())));
         app_ui.actions_ui().unit_multiplier_spinbox().set_value({
             let value = setting_f32(&format!("unit_multiplier_{}", game.key()));
@@ -388,6 +415,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
     app_ui.actions_ui().enable_logging_checkbox().block_signals(false);
     app_ui.actions_ui().enable_skip_intro_checkbox().block_signals(false);
     app_ui.actions_ui().remove_trait_limit_checkbox().block_signals(false);
+    app_ui.actions_ui().remove_siege_attacker_checkbox().block_signals(false);
     app_ui.actions_ui().enable_translations_combobox().block_signals(false);
     app_ui.actions_ui().merge_all_mods_checkbox().block_signals(false);
     app_ui.actions_ui().unit_multiplier_spinbox().block_signals(false);

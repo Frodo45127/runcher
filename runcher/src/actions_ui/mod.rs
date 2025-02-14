@@ -48,6 +48,7 @@ pub struct ActionsUI {
     enable_logging_checkbox: QBox<QCheckBox>,
     enable_skip_intro_checkbox: QBox<QCheckBox>,
     remove_trait_limit_checkbox: QBox<QCheckBox>,
+    remove_siege_attacker_checkbox: QBox<QCheckBox>,
     enable_translations_combobox: QBox<QComboBox>,
     merge_all_mods_checkbox: QBox<QCheckBox>,
     unit_multiplier_spinbox: QBox<QDoubleSpinBox>,
@@ -110,6 +111,7 @@ impl ActionsUI {
         let enable_logging_icon = QIcon::from_theme_1a(&QString::from_std_str("verb"));
         let enable_skip_intro_icon = QIcon::from_theme_1a(&QString::from_std_str("kdenlive-hide-video"));
         let remove_trait_limit_icon = QIcon::from_theme_1a(&QString::from_std_str("folder-unlocked-symbolic"));
+        let remove_siege_attacker_icon = QIcon::from_theme_1a(&QString::from_std_str("folder-unlocked-symbolic"));
         let enable_translations_icon = QIcon::from_theme_1a(&QString::from_std_str("language-chooser"));
         let merge_all_mods_icon = QIcon::from_theme_1a(&QString::from_std_str("merge"));
         let unit_multiplier_icon = QIcon::from_theme_1a(&QString::from_std_str("view-time-schedule-calculus"));
@@ -128,10 +130,11 @@ impl ActionsUI {
                 0 => label.set_pixmap(&enable_logging_icon.pixmap_2_int(22, 22)),
                 1 => label.set_pixmap(&enable_skip_intro_icon.pixmap_2_int(22, 22)),
                 2 => label.set_pixmap(&remove_trait_limit_icon.pixmap_2_int(22, 22)),
-                3 => label.set_pixmap(&enable_translations_icon.pixmap_2_int(22, 22)),
-                4 => label.set_pixmap(&merge_all_mods_icon.pixmap_2_int(22, 22)),
-                5 => label.set_pixmap(&unit_multiplier_icon.pixmap_2_int(22, 22)),
-                6 => label.set_pixmap(&universal_rebalancer_icon.pixmap_2_int(22, 22)),
+                3 => label.set_pixmap(&remove_siege_attacker_icon.pixmap_2_int(22, 22)),
+                4 => label.set_pixmap(&enable_translations_icon.pixmap_2_int(22, 22)),
+                5 => label.set_pixmap(&merge_all_mods_icon.pixmap_2_int(22, 22)),
+                6 => label.set_pixmap(&unit_multiplier_icon.pixmap_2_int(22, 22)),
+                7 => label.set_pixmap(&universal_rebalancer_icon.pixmap_2_int(22, 22)),
                 _ => {}
             }
         }
@@ -170,6 +173,7 @@ impl ActionsUI {
         let enable_logging_checkbox = Self::new_launch_option_checkbox(&play_menu, "enable_logging", "verb");
         let enable_skip_intro_checkbox = Self::new_launch_option_checkbox(&play_menu, "enable_skip_intro", "kdenlive-hide-video");
         let remove_trait_limit_checkbox = Self::new_launch_option_checkbox(&play_menu, "remove_trait_limit", "folder-unlocked-symbolic");
+        let remove_siege_attacker_checkbox = Self::new_launch_option_checkbox(&play_menu, "remove_siege_attacker", "folder-unlocked-symbolic");
         let enable_translations_combobox = Self::new_launch_option_combobox(&play_menu, "enable_translations", "language-chooser");
         let merge_all_mods_checkbox = Self::new_launch_option_checkbox(&play_menu, "merge_all_mods", "merge");
         let unit_multiplier_spinbox = Self::new_launch_option_doublespinbox(&play_menu, "unit_multiplier", "view-time-schedule-calculus");
@@ -229,6 +233,7 @@ impl ActionsUI {
             enable_logging_checkbox,
             enable_skip_intro_checkbox,
             remove_trait_limit_checkbox,
+            remove_siege_attacker_checkbox,
             enable_translations_combobox,
             merge_all_mods_checkbox,
             unit_multiplier_spinbox,

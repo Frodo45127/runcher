@@ -616,6 +616,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
             set_setting_if_new_bool(&q_settings, &format!("enable_logging_{}", game.key()), false);
             set_setting_if_new_bool(&q_settings, &format!("enable_skip_intros_{}", game.key()), false);
             set_setting_if_new_bool(&q_settings, &format!("remove_trait_limit_{}", game.key()), false);
+            set_setting_if_new_bool(&q_settings, &format!("remove_siege_attacker_{}", game.key()), false);
             set_setting_if_new_bool(&q_settings, &format!("merge_all_mods_{}", game.key()), false);
             set_setting_if_new_string(&q_settings, &format!("enable_translations_{}", game.key()), "--");
             set_setting_if_new_f32(&q_settings, &format!("unit_multiplier_{}", game.key()), 1.0);

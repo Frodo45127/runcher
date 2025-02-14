@@ -283,5 +283,6 @@ full_log = Full Log
 check_logs = Check Logs After Closing a Game
 enable_debug_terminal = Enable Debug Terminal
 remove_trait_limit = Remove Trait Limit
+remove_siege_attacker = Remove Siege Attacker
 updates_locked = Updates Locked
 universal_rebalancer = Universal Rebalancer
