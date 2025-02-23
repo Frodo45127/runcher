@@ -6,6 +6,17 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [Unreleased]
+### Added
+- Implemented "Remove Siege Attacker" launch option.
+- Implemented experimental support for applying SQL scripts to the load order.
+
+### Changed
+- Migrated patcher logic to a separate redistributeable exe: [TWPatcher](https://github.com/Frodo45127/twpatcher).
+- Migrated workshop logic to a separate repo: [Workshopper](https://github.com/Frodo45127/workshopper)
+- Improved compilation support.
+- Disabled log-checking logic by default.
+
 ## [0.9.9]
 ### Fixed
 - Fixed some cornercases of modded single-entity units not being treated as such by the unit multiplier.
