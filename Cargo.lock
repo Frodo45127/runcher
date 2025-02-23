@@ -2796,7 +2796,7 @@ dependencies = [
 [[package]]
 name = "rpfm_extensions"
 version = "4.3.14"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=TableTrait#cba054ab9a5bddddea3989d6c2d1a385908e87e4"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#ed037b4981c8183c33a2665c04461e4b784026f5"
 dependencies = [
  "bincode",
  "caseless",
@@ -2807,27 +2807,7 @@ dependencies = [
  "lazy_static",
  "rayon",
  "regex",
- "rpfm_lib 4.3.14 (git+https://github.com/Frodo45127/rpfm.git?branch=TableTrait)",
- "serde",
- "serde_derive",
- "serde_json",
-]
-
-[[package]]
-name = "rpfm_extensions"
-version = "4.3.14"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#5377562d363179ee64be30299bdfb619b749abdc"
-dependencies = [
- "bincode",
- "caseless",
- "fancy-regex",
- "float_eq",
- "getset",
- "itertools 0.14.0",
- "lazy_static",
- "rayon",
- "regex",
- "rpfm_lib 4.3.14 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
+ "rpfm_lib",
  "serde",
  "serde_derive",
  "serde_json",
@@ -2836,7 +2816,7 @@ dependencies = [
 [[package]]
 name = "rpfm_lib"
 version = "4.3.14"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=TableTrait#cba054ab9a5bddddea3989d6c2d1a385908e87e4"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#ed037b4981c8183c33a2665c04461e4b784026f5"
 dependencies = [
  "backtrace",
  "base64 0.22.1",
@@ -2880,52 +2860,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "rpfm_lib"
-version = "4.3.14"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#5377562d363179ee64be30299bdfb619b749abdc"
-dependencies = [
- "backtrace",
- "base64 0.22.1",
- "bincode",
- "bitflags 2.8.0",
- "byteorder",
- "caseless",
- "content_inspector",
- "csv",
- "directories",
- "encoding_rs",
- "float_eq",
- "fraction",
- "getset",
- "git2",
- "itertools 0.14.0",
- "lazy_static",
- "log",
- "memchr",
- "nalgebra",
- "os_info",
- "pelite",
- "rand 0.8.5",
- "rayon",
- "regex",
- "ron",
- "sentry",
- "serde",
- "serde-xml-rs",
- "serde_derive",
- "serde_json",
- "simplelog",
- "steamlocate",
- "thiserror 2.0.11",
- "toml 0.8.20",
- "uuid",
- "xz2",
-]
-
-[[package]]
 name = "rpfm_ui_common"
 version = "4.3.14"
-source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#5377562d363179ee64be30299bdfb619b749abdc"
+source = "git+https://github.com/Frodo45127/rpfm.git?branch=develop#ed037b4981c8183c33a2665c04461e4b784026f5"
 dependencies = [
  "anyhow",
  "cpp_core",
@@ -2938,8 +2875,8 @@ dependencies = [
  "qt_gui",
  "qt_ui_tools",
  "qt_widgets",
- "rpfm_extensions 4.3.14 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
- "rpfm_lib 4.3.14 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
+ "rpfm_extensions",
+ "rpfm_lib",
  "serde",
  "serde_derive",
  "serde_json",
@@ -2972,8 +2909,8 @@ dependencies = [
  "rayon",
  "regex",
  "reqwest 0.12.12",
- "rpfm_extensions 4.3.14 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
- "rpfm_lib 4.3.14 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
+ "rpfm_extensions",
+ "rpfm_lib",
  "rpfm_ui_common",
  "self_update",
  "serde",
@@ -4062,8 +3999,8 @@ dependencies = [
  "r2d2_sqlite",
  "rayon",
  "reqwest 0.12.12",
- "rpfm_extensions 4.3.14 (git+https://github.com/Frodo45127/rpfm.git?branch=TableTrait)",
- "rpfm_lib 4.3.14 (git+https://github.com/Frodo45127/rpfm.git?branch=TableTrait)",
+ "rpfm_extensions",
+ "rpfm_lib",
  "rusqlite",
  "self_update",
  "tempfile",
@@ -4748,7 +4685,7 @@ dependencies = [
  "interprocess",
  "lazy_static",
  "rayon",
- "rpfm_lib 4.3.14 (git+https://github.com/Frodo45127/rpfm.git?branch=develop)",
+ "rpfm_lib",
  "serde",
  "serde_derive",
  "serde_json",
