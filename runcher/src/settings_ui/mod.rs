@@ -609,7 +609,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_bool(&q_settings, "check_updates_on_start", true);
     set_setting_if_new_bool(&q_settings, "check_schema_updates_on_start", true);
     set_setting_if_new_bool(&q_settings, "dark_mode", false);
-    set_setting_if_new_bool(&q_settings, "check_logs", true);
+    set_setting_if_new_bool(&q_settings, "check_logs", false);
 
     for game in &SUPPORTED_GAMES.games_sorted() {
         if game.key() != KEY_ARENA {
