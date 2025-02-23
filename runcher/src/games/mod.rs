@@ -24,7 +24,6 @@ use rpfm_lib::utils::files_from_subdir;
 
 use rpfm_ui_common::settings::*;
 
-use crate::actions_ui::ActionsUI;
 use crate::app_ui::{AppUI, CUSTOM_MOD_LIST_FILE_NAME};
 use crate::mod_manager::integrations::{CREATE_NO_WINDOW, DETACHED_PROCESS};
 use crate::SCHEMA;
