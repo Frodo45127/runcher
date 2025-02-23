@@ -51,3 +51,7 @@ get_published_file_details.json
 
 # Ignore cmd scripts.
 *.bat
+
+# Ignore sql stuff.
+*.sql
+*.db3

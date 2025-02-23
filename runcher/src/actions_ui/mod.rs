@@ -30,6 +30,7 @@ use anyhow::Result;
 use getset::*;
 
 use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 
 use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::utils::*;
@@ -53,6 +54,8 @@ pub struct ActionsUI {
     merge_all_mods_checkbox: QBox<QCheckBox>,
     unit_multiplier_spinbox: QBox<QDoubleSpinBox>,
     universal_rebalancer_combobox: QBox<QComboBox>,
+    scripts_container: QBox<QWidget>,
+    scripts_to_execute: Arc<RwLock<Vec<(String, QBox<QCheckBox>)>>>,
 
     settings_button: QPtr<QToolButton>,
     folders_button: QPtr<QToolButton>,
@@ -84,6 +87,34 @@ pub struct ActionsUI {
 //-------------------------------------------------------------------------------//
 
 impl ActionsUI {
+
+
+    pub unsafe fn new_launch_script_option(&self, text_key: &str, icon_key: &str) -> QBox<QCheckBox> {
+        let container = QWidget::new_1a(self.scripts_container());
+        let checkbox = QCheckBox::from_q_widget(&container);
+
+        let icon = QIcon::from_theme_1a(&QString::from_std_str(icon_key));
+        let label_icon = QLabel::from_q_widget(&container);
+        label_icon.set_pixmap(&icon.pixmap_2_int(22, 22));
+        label_icon.set_maximum_width(22);
+
+        let label_text = QLabel::from_q_string_q_widget(&QString::from_std_str(text_key), &container);
+        label_text.set_fixed_height(26);
+
+        let label_fill = QLabel::from_q_widget(&container);
+        let layout = create_grid_layout(container.static_upcast());
+
+        layout.add_widget_5a(&label_icon, 0, 0, 1, 1);
+        layout.add_widget_5a(&label_text, 0, 1, 1, 1);
+        layout.add_widget_5a(&label_fill, 0, 2, 1, 1);
+        layout.add_widget_5a(&checkbox, 0, 3, 1, 1);
+        layout.set_column_stretch(2, 10);
+
+        let layout = self.scripts_container().layout().static_downcast::<QGridLayout>();
+        layout.add_widget(&container);
+
+        checkbox
+    }
 
     pub unsafe fn new_launch_option(menu: &QBox<QMenu>, text_key: &str, icon_key: &str, base_widget: &QBox<QWidget>, option_widget: &QPtr<QWidget>) {
         let action = QWidgetAction::new(menu);
@@ -119,23 +150,26 @@ impl ActionsUI {
 
         let menu = self.play_button().menu();
         for index in 0..menu.actions().count_0a() {
-            let action = menu.actions().value_1a(index);
-            let widget_action = action.static_downcast::<QWidgetAction>();
-            let widget = widget_action.default_widget();
-            let layout = widget.layout().static_downcast::<QGridLayout>();
-            let child = layout.item_at_position(0, 0).widget();
-            let label = child.static_downcast::<QLabel>();
 
-            match index {
-                0 => label.set_pixmap(&enable_logging_icon.pixmap_2_int(22, 22)),
-                1 => label.set_pixmap(&enable_skip_intro_icon.pixmap_2_int(22, 22)),
-                2 => label.set_pixmap(&remove_trait_limit_icon.pixmap_2_int(22, 22)),
-                3 => label.set_pixmap(&remove_siege_attacker_icon.pixmap_2_int(22, 22)),
-                4 => label.set_pixmap(&enable_translations_icon.pixmap_2_int(22, 22)),
-                5 => label.set_pixmap(&merge_all_mods_icon.pixmap_2_int(22, 22)),
-                6 => label.set_pixmap(&unit_multiplier_icon.pixmap_2_int(22, 22)),
-                7 => label.set_pixmap(&universal_rebalancer_icon.pixmap_2_int(22, 22)),
-                _ => {}
+            if index < 8 {
+                let action = menu.actions().value_1a(index);
+                let widget_action = action.static_downcast::<QWidgetAction>();
+                let widget = widget_action.default_widget();
+                let layout = widget.layout().static_downcast::<QGridLayout>();
+                let child = layout.item_at_position(0, 0).widget();
+                let label = child.static_downcast::<QLabel>();
+
+                match index {
+                    0 => label.set_pixmap(&enable_logging_icon.pixmap_2_int(22, 22)),
+                    1 => label.set_pixmap(&enable_skip_intro_icon.pixmap_2_int(22, 22)),
+                    2 => label.set_pixmap(&remove_trait_limit_icon.pixmap_2_int(22, 22)),
+                    3 => label.set_pixmap(&remove_siege_attacker_icon.pixmap_2_int(22, 22)),
+                    4 => label.set_pixmap(&enable_translations_icon.pixmap_2_int(22, 22)),
+                    5 => label.set_pixmap(&merge_all_mods_icon.pixmap_2_int(22, 22)),
+                    6 => label.set_pixmap(&unit_multiplier_icon.pixmap_2_int(22, 22)),
+                    7 => label.set_pixmap(&universal_rebalancer_icon.pixmap_2_int(22, 22)),
+                    _ => {}
+                }
             }
         }
     }
@@ -181,6 +215,13 @@ impl ActionsUI {
         enable_translations_combobox.set_current_index(0);
         unit_multiplier_spinbox.set_value(1.00);
         universal_rebalancer_combobox.set_current_index(0);
+
+        let scripts_action = QWidgetAction::new(&play_menu);
+        let scripts_container = QWidget::new_1a(&play_menu);
+        create_grid_layout(scripts_container.static_upcast());
+        scripts_action.set_default_widget(&scripts_container);
+
+        play_menu.add_action(&scripts_action);
 
         play_button.set_menu(play_menu.into_raw_ptr());
         play_button.set_popup_mode(ToolButtonPopupMode::MenuButtonPopup);
@@ -239,6 +280,8 @@ impl ActionsUI {
             unit_multiplier_spinbox,
             universal_rebalancer_combobox,
             //universal_balancer_ignored: QToolButton::new_0a();
+            scripts_container,
+            scripts_to_execute: Arc::new(RwLock::new(vec![])),
 
             settings_button,
             folders_button,

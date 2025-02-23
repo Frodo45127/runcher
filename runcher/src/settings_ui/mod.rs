@@ -621,6 +621,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
             set_setting_if_new_string(&q_settings, &format!("enable_translations_{}", game.key()), "--");
             set_setting_if_new_f32(&q_settings, &format!("unit_multiplier_{}", game.key()), 1.0);
             set_setting_if_new_string(&q_settings, &format!("universal_rebalancer_{}", game.key()), "--");
+            set_setting_if_new_string(&q_settings, &format!("scripts_to_execute_{}", game.key()), "");
 
             let game_path = if let Ok(Some(game_path)) = game.find_game_install_location() {
                 game_path.to_string_lossy().to_string()
@@ -660,6 +661,7 @@ pub fn init_config_path() -> Result<()> {
     for game in SUPPORTED_GAMES.games_sorted().iter() {
         if game.key() != KEY_ARENA {
             DirBuilder::new().recursive(true).create(config_path()?.join("temp_packs").join(game.key()))?;
+            DirBuilder::new().recursive(true).create(sql_scripts_path()?.join(game.key()))?;
         }
     }
 
@@ -680,6 +682,10 @@ pub fn game_config_path() -> Result<PathBuf> {
 
 pub fn profiles_path() -> Result<PathBuf> {
     Ok(config_path()?.join("profiles"))
+}
+
+pub fn sql_scripts_path() -> Result<PathBuf> {
+    Ok(config_path()?.join("sql_scripts"))
 }
 
 pub fn rpfm_config_path() -> Result<PathBuf> {

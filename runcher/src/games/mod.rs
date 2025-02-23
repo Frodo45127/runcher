@@ -8,6 +8,8 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use qt_widgets::QGridLayout;
+
 use qt_core::QString;
 
 use anyhow::{anyhow, Result};
@@ -22,10 +24,11 @@ use rpfm_lib::utils::files_from_subdir;
 
 use rpfm_ui_common::settings::*;
 
+use crate::actions_ui::ActionsUI;
 use crate::app_ui::{AppUI, CUSTOM_MOD_LIST_FILE_NAME};
-use crate::SCHEMA;
 use crate::mod_manager::integrations::{CREATE_NO_WINDOW, DETACHED_PROCESS};
-use crate::settings_ui::temp_packs_folder;
+use crate::SCHEMA;
+use crate::settings_ui::{temp_packs_folder, sql_scripts_path};
 
 pub const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
 pub const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
@@ -54,7 +57,8 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
         (actions_ui.remove_siege_attacker_checkbox().is_enabled() && actions_ui.remove_siege_attacker_checkbox().is_checked()) ||
         (actions_ui.enable_translations_combobox().is_enabled() && actions_ui.enable_translations_combobox().current_index() != 0) ||
         (actions_ui.universal_rebalancer_combobox().is_enabled() && actions_ui.universal_rebalancer_combobox().current_index() != 0) ||
-        (actions_ui.unit_multiplier_spinbox().is_enabled() && actions_ui.unit_multiplier_spinbox().value() != 1.00) {
+        (actions_ui.unit_multiplier_spinbox().is_enabled() && actions_ui.unit_multiplier_spinbox().value() != 1.00) ||
+        actions_ui.scripts_to_execute().read().unwrap().iter().any(|(_, item)| item.is_checked()) {
 
         // We need to use an alternative name for Shogun 2, Rome 2, Attila and Thrones because their load order logic for movie packs seems... either different or broken.
         let reserved_pack_name = if game.key() == KEY_SHOGUN_2 || game.key() == KEY_ROME_2 || game.key() == KEY_ATTILA || game.key() == KEY_THRONES_OF_BRITANNIA {
@@ -130,6 +134,16 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
             cmd.arg(app_ui.actions_ui().unit_multiplier_spinbox().value().to_string());
         }
 
+        // Script checks.
+        let sql_folder = sql_scripts_path()?.join(game.key());
+        actions_ui.scripts_to_execute().read().unwrap()
+            .iter()
+            .filter_map(|(key, item)| if item.is_checked() { Some(key) } else { None })
+            .for_each(|key| {
+                cmd.arg("--sql-script");
+                cmd.arg(sql_folder.join(format!("{key}.sql")));
+            });
+
         // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
         #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
             cmd.creation_flags(DETACHED_PROCESS);
@@ -142,7 +156,8 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
 
     Ok(())
 }
-pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
+
+pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -> Result<()> {
 
     // The blockers are needed to avoid issues with game change causing incorrect status to be saved.
     app_ui.actions_ui().play_button().block_signals(true);
@@ -422,4 +437,42 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) {
     app_ui.actions_ui().universal_rebalancer_combobox().block_signals(false);
     app_ui.actions_ui().save_combobox().block_signals(false);
     app_ui.actions_ui().open_game_content_folder().block_signals(false);
+
+    // Scripts are done in a separate step, because they're dynamic.
+    {
+        let script_parent = app_ui.actions_ui().scripts_container();
+        let script_layout = script_parent.layout();
+
+        if !script_layout.is_null() {
+            let script_layout = script_layout.static_downcast::<QGridLayout>();
+            loop {
+                let item = script_layout.take_at(0);
+                if !item.is_null() {
+                    item.widget().delete_later();
+                } else {
+                    break;
+                }
+            }
+        }
+
+        let sql_script_paths = files_from_subdir(&sql_scripts_path()?.join(game.key()), false)?;
+        let mut script_items = app_ui.actions_ui().scripts_to_execute().write().unwrap();
+        script_items.clear();
+
+        let script_settings = setting_string(&format!("scripts_to_execute_{}", game.key()));
+        let enabled_scripts = script_settings.split(",,,").collect::<Vec<_>>();
+        for path in sql_script_paths {
+            let script_key = path.file_stem().unwrap().to_string_lossy().to_string();
+            let script_item = app_ui.actions_ui().new_launch_script_option(&script_key, "autocorrection");
+            if enabled_scripts.contains(&&*script_key) {
+                script_item.set_checked(true);
+            }
+
+            script_items.push((script_key, script_item));
+        }
+    }
+
+    app_ui.set_connections(&app_ui.slots().read().unwrap().as_ref().unwrap(), true);
+
+    Ok(())
 }

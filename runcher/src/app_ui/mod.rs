@@ -197,6 +197,7 @@ pub struct AppUI {
     //-------------------------------------------------------------------------------//
     // Extra stuff
     //-------------------------------------------------------------------------------//
+    slots: Rc<RwLock<Option<AppUISlots>>>,
     focused_widget: Rc<RwLock<Option<QPtr<QWidget>>>>,
     disabled_counter: Rc<RwLock<u32>>,
 
@@ -419,6 +420,7 @@ impl AppUI {
             //-------------------------------------------------------------------------------//
             // "Extra stuff" menu.
             //-------------------------------------------------------------------------------//
+            slots: Rc::new(RwLock::new(None)),
             focused_widget: Rc::new(RwLock::new(None)),
             disabled_counter: Rc::new(RwLock::new(0)),
 
@@ -433,7 +435,8 @@ impl AppUI {
         });
 
         let slots = AppUISlots::new(&app_ui);
-        app_ui.set_connections(&slots);
+        app_ui.set_connections(&slots, false);
+        *app_ui.slots.write().unwrap() = Some(slots);
 
         // Initialize settings.
         init_settings(&app_ui.main_window().static_upcast());
@@ -538,7 +541,16 @@ impl AppUI {
         Ok(app_ui)
     }
 
-    pub unsafe fn set_connections(&self, slots: &AppUISlots) {
+    pub unsafe fn set_connections(&self, slots: &AppUISlots, only_dynamic_connections: bool) {
+        let script_items = self.actions_ui().scripts_to_execute().read().unwrap();
+        for (_, script_item) in &*script_items {
+            script_item.toggled().connect(slots.toggle_scripts_to_execute());
+        }
+
+        if only_dynamic_connections {
+            return;
+        }
+
         self.actions_ui().play_button().released().connect(slots.launch_game());
         self.actions_ui().enable_logging_checkbox().toggled().connect(slots.toggle_logging());
         self.actions_ui().enable_skip_intro_checkbox().toggled().connect(slots.toggle_skip_intros());
@@ -705,7 +717,7 @@ impl AppUI {
                 // Load the launch options for the game selected.
                 let game_path_str = setting_string(game.key());
                 let game_path = PathBuf::from(&game_path_str);
-                setup_actions(self, game, &game_path);
+                let _ = setup_actions(self, game, &game_path);
 
                 // Load the saves list for the selected game.
                 if let Err(error) = self.load_saves_to_ui(game, &game_path) {

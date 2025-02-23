@@ -41,7 +41,7 @@ use super::*;
 //                              Enums & Structs
 //-------------------------------------------------------------------------------//
 
-#[derive(Getters)]
+#[derive(Debug, Getters)]
 #[getset(get = "pub")]
 pub struct AppUISlots {
     launch_game: QBox<SlotNoArgs>,
@@ -53,6 +53,7 @@ pub struct AppUISlots {
     toggle_enable_translations: QBox<SlotOfQString>,
     change_unit_multiplier: QBox<SlotOfDouble>,
     toggle_universal_rebalancer: QBox<SlotOfQString>,
+    toggle_scripts_to_execute: QBox<SlotOfBool>,
     open_settings: QBox<SlotNoArgs>,
     open_folders_submenu: QBox<SlotNoArgs>,
     open_game_root_folder: QBox<SlotNoArgs>,
@@ -177,6 +178,20 @@ impl AppUISlots {
                 let game = view.game_selected().read().unwrap();
                 let setting = format!("universal_rebalancer_{}", game.key());
                 set_setting_string(&setting, &lang.to_std_string());
+            }
+        ));
+
+        let toggle_scripts_to_execute = SlotOfBool::new(view.main_window(), clone!(
+            view => move |_| {
+                let game = view.game_selected().read().unwrap();
+                let setting = format!("scripts_to_execute_{}", game.key());
+
+                let toggled_scripts = view.actions_ui().scripts_to_execute().read().unwrap()
+                    .iter()
+                    .filter_map(|(key, item)| if item.is_checked() { Some(key.to_owned()) } else { None })
+                    .join(",,,");
+
+                set_setting_string(&setting, &toggled_scripts);
             }
         ));
 
@@ -680,6 +695,7 @@ impl AppUISlots {
             toggle_enable_translations,
             change_unit_multiplier,
             toggle_universal_rebalancer,
+            toggle_scripts_to_execute,
             open_settings,
             open_folders_submenu,
             open_game_root_folder,
