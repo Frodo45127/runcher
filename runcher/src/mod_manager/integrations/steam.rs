@@ -109,10 +109,10 @@ pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str, owner_id: &str) ->
     }
 
     // If we're not the author, do not even let us upload it.
-    let steam_user_id = user_id(game)?.to_string();
-    if steam_user_id.is_empty() || owner_id != steam_user_id {
-        return Err(anyhow!("You're not the original uploader of this mod, or steam hasn't been detected on your system."));
-    }
+    //let steam_user_id = user_id(game)?.to_string();
+    //if steam_user_id.is_empty() || owner_id != steam_user_id {
+    //    return Err(anyhow!("You're not the original uploader of this mod, or steam hasn't been detected on your system."));
+    //}
 
     let workshop_item = workshop_items.first().unwrap();
     let data = PreUploadInfo::from(workshop_item);

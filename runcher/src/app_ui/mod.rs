@@ -2252,7 +2252,6 @@ impl AppUI {
                     // Before loading the dialog, we need to do some sanity checks, which include:
                     // - Check if the mod was previously uploaded.
                     // - Retrieve updated data from the workshop if the file is already uploaded.
-                    // - Check if you're actually the author of the mod.
                     //
                     // We use the updated data to populate the dialog. If it was never uploaded (no steam id), we just load the dialog.
                     let mod_data = if let Some(steam_id) = modd.steam_id() {
