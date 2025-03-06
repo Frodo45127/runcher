@@ -1023,8 +1023,11 @@ impl AppUI {
 
                     // For post-shogun 2 games, we use the same command to bypass the launcher.
                     let command = if *game.raw_db_version() >= 1 {
-
-                        let mut command = format!("cmd /C start /W /d \"{}\" \"{}\" {};", game_path.to_string_lossy().replace('\\', "/"), exec_game.file_name().unwrap().to_string_lossy(), CUSTOM_MOD_LIST_FILE_NAME);
+                        let mut command = format!("cmd /C start /W /d \"{}\" \"{}\" {};",
+                            game_path.to_string_lossy().replace('\\', "/"),
+                            exec_game.file_name().unwrap().to_string_lossy(),
+                            CUSTOM_MOD_LIST_FILE_NAME
+                        );
 
                         for arg in &extra_args {
                             command.push(' ');
@@ -1036,7 +1039,11 @@ impl AppUI {
 
                     // Empire and Napoleon do not have a launcher. We can make our lives easier calling steam instead of launching the game manually.
                     else {
-                        format!("cmd /C start /W /d \"{}\" \"{}\"", game_path.to_string_lossy().replace('\\', "/"), exec_game.file_name().unwrap().to_string_lossy())
+                        format!("cmd /C start /W /d \"{}\" \"{}\" \"{}\";",
+                            game_path.to_string_lossy().replace('\\', "/"),
+                            exec_game.file_name().unwrap().to_string_lossy(),
+                            file_path.to_string_lossy().replace('\\', "/")
+                        )
                     };
 
                     self.toggle_main_window(false);
