@@ -621,6 +621,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
             set_setting_if_new_string(&q_settings, &format!("enable_translations_{}", game.key()), "--");
             set_setting_if_new_f32(&q_settings, &format!("unit_multiplier_{}", game.key()), 1.0);
             set_setting_if_new_string(&q_settings, &format!("universal_rebalancer_{}", game.key()), "--");
+            set_setting_if_new_bool(&q_settings, &format!("enable_dev_only_ui_{}", game.key()), false);
             set_setting_if_new_string(&q_settings, &format!("scripts_to_execute_{}", game.key()), "");
 
             let game_path = if let Ok(Some(game_path)) = game.find_game_install_location() {

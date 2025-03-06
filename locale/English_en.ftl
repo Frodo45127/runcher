@@ -286,3 +286,4 @@ remove_trait_limit = Remove Trait Limit
 remove_siege_attacker = Remove Siege Attacker
 updates_locked = Updates Locked
 universal_rebalancer = Universal Rebalancer
+enable_dev_only_ui = Enable Dev-Only UI

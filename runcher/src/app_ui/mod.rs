@@ -561,6 +561,7 @@ impl AppUI {
         self.actions_ui().unit_multiplier_spinbox().value_changed().connect(slots.change_unit_multiplier());
         self.actions_ui().settings_button().released().connect(slots.open_settings());
         self.actions_ui().universal_rebalancer_combobox().current_text_changed().connect(slots.toggle_universal_rebalancer());
+        self.actions_ui().enable_dev_only_ui_checkbox().toggled().connect(slots.toggle_dev_only_ui());
         self.actions_ui().folders_button().released().connect(slots.open_folders_submenu());
         self.actions_ui().open_game_root_folder().triggered().connect(slots.open_game_root_folder());
         self.actions_ui().open_game_data_folder().triggered().connect(slots.open_game_data_folder());

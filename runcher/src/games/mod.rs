@@ -56,6 +56,7 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
         (actions_ui.remove_siege_attacker_checkbox().is_enabled() && actions_ui.remove_siege_attacker_checkbox().is_checked()) ||
         (actions_ui.enable_translations_combobox().is_enabled() && actions_ui.enable_translations_combobox().current_index() != 0) ||
         (actions_ui.universal_rebalancer_combobox().is_enabled() && actions_ui.universal_rebalancer_combobox().current_index() != 0) ||
+        (actions_ui.enable_dev_only_ui_checkbox().is_enabled() && actions_ui.enable_dev_only_ui_checkbox().is_checked()) ||
         (actions_ui.unit_multiplier_spinbox().is_enabled() && actions_ui.unit_multiplier_spinbox().value() != 1.00) ||
         actions_ui.scripts_to_execute().read().unwrap().iter().any(|(_, item)| item.is_checked()) {
 
@@ -113,6 +114,11 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
         // Remove Siege Attacker check.
         if actions_ui.remove_siege_attacker_checkbox().is_enabled() && actions_ui.remove_siege_attacker_checkbox().is_checked() {
             cmd.arg("-a");
+        }
+
+        // Enable Dev-only UI check.
+        if actions_ui.enable_dev_only_ui_checkbox().is_enabled() && actions_ui.enable_dev_only_ui_checkbox().is_checked() {
+            cmd.arg("-d");
         }
 
         // Translations check.
@@ -175,6 +181,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
     app_ui.actions_ui().merge_all_mods_checkbox().block_signals(true);
     app_ui.actions_ui().unit_multiplier_spinbox().block_signals(true);
     app_ui.actions_ui().universal_rebalancer_combobox().block_signals(true);
+    app_ui.actions_ui().enable_dev_only_ui_checkbox().block_signals(true);
     app_ui.actions_ui().open_game_content_folder().block_signals(true);
     app_ui.actions_ui().save_combobox().block_signals(true);
 
@@ -202,6 +209,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().enable_dev_only_ui_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -215,6 +223,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(schema.is_some());
                 app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(schema.is_some());
+                app_ui.actions_ui().enable_dev_only_ui_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -227,6 +236,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().enable_dev_only_ui_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -239,6 +249,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().enable_dev_only_ui_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -251,6 +262,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().enable_dev_only_ui_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -263,6 +275,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().enable_dev_only_ui_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -275,6 +288,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().enable_dev_only_ui_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -287,6 +301,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().enable_dev_only_ui_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -299,6 +314,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().enable_dev_only_ui_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(true);
             },
@@ -311,6 +327,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().enable_dev_only_ui_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(true);
                 app_ui.actions_ui().save_combobox().set_enabled(false);
             },
@@ -323,6 +340,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().enable_dev_only_ui_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(false);
                 app_ui.actions_ui().save_combobox().set_enabled(false);
             },
@@ -335,6 +353,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 app_ui.actions_ui().merge_all_mods_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(true);
                 app_ui.actions_ui().unit_multiplier_spinbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().universal_rebalancer_combobox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
+                app_ui.actions_ui().enable_dev_only_ui_checkbox().parent().static_downcast::<qt_widgets::QWidget>().set_enabled(false);
                 app_ui.actions_ui().open_game_content_folder().set_enabled(false);
                 app_ui.actions_ui().save_combobox().set_enabled(false);
             }
@@ -350,6 +369,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
         app_ui.actions_ui().remove_trait_limit_checkbox().set_checked(setting_bool(&format!("remove_trait_limit_{}", game.key())));
         app_ui.actions_ui().remove_siege_attacker_checkbox().set_checked(setting_bool(&format!("remove_siege_attacker_{}", game.key())));
         app_ui.actions_ui().merge_all_mods_checkbox().set_checked(setting_bool(&format!("merge_all_mods_{}", game.key())));
+        app_ui.actions_ui().enable_dev_only_ui_checkbox().set_checked(setting_bool(&format!("enable_dev_only_ui_{}", game.key())));
         app_ui.actions_ui().unit_multiplier_spinbox().set_value({
             let value = setting_f32(&format!("unit_multiplier_{}", game.key()));
             if value == 0.00 {
@@ -434,6 +454,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
     app_ui.actions_ui().merge_all_mods_checkbox().block_signals(false);
     app_ui.actions_ui().unit_multiplier_spinbox().block_signals(false);
     app_ui.actions_ui().universal_rebalancer_combobox().block_signals(false);
+    app_ui.actions_ui().enable_dev_only_ui_checkbox().block_signals(false);
     app_ui.actions_ui().save_combobox().block_signals(false);
     app_ui.actions_ui().open_game_content_folder().block_signals(false);
 

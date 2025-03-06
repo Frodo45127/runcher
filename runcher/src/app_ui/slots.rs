@@ -53,6 +53,7 @@ pub struct AppUISlots {
     toggle_enable_translations: QBox<SlotOfQString>,
     change_unit_multiplier: QBox<SlotOfDouble>,
     toggle_universal_rebalancer: QBox<SlotOfQString>,
+    toggle_dev_only_ui: QBox<SlotOfBool>,
     toggle_scripts_to_execute: QBox<SlotOfBool>,
     open_settings: QBox<SlotNoArgs>,
     open_folders_submenu: QBox<SlotNoArgs>,
@@ -178,6 +179,14 @@ impl AppUISlots {
                 let game = view.game_selected().read().unwrap();
                 let setting = format!("universal_rebalancer_{}", game.key());
                 set_setting_string(&setting, &lang.to_std_string());
+            }
+        ));
+
+        let toggle_dev_only_ui = SlotOfBool::new(view.main_window(), clone!(
+            view => move |state| {
+                let game = view.game_selected().read().unwrap();
+                let setting = format!("enable_dev_only_ui_{}", game.key());
+                set_setting_bool(&setting, state);
             }
         ));
 
@@ -695,6 +704,7 @@ impl AppUISlots {
             toggle_enable_translations,
             change_unit_multiplier,
             toggle_universal_rebalancer,
+            toggle_dev_only_ui,
             toggle_scripts_to_execute,
             open_settings,
             open_folders_submenu,

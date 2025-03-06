@@ -54,6 +54,7 @@ pub struct ActionsUI {
     merge_all_mods_checkbox: QBox<QCheckBox>,
     unit_multiplier_spinbox: QBox<QDoubleSpinBox>,
     universal_rebalancer_combobox: QBox<QComboBox>,
+    enable_dev_only_ui_checkbox: QBox<QCheckBox>,
     scripts_container: QBox<QWidget>,
     scripts_to_execute: Arc<RwLock<Vec<(String, QBox<QCheckBox>)>>>,
 
@@ -147,6 +148,7 @@ impl ActionsUI {
         let merge_all_mods_icon = QIcon::from_theme_1a(&QString::from_std_str("merge"));
         let unit_multiplier_icon = QIcon::from_theme_1a(&QString::from_std_str("view-time-schedule-calculus"));
         let universal_rebalancer_icon = QIcon::from_theme_1a(&QString::from_std_str("autocorrection"));
+        let enable_dev_only_ui_icon = QIcon::from_theme_1a(&QString::from_std_str("verb"));
 
         let menu = self.play_button().menu();
         for index in 0..menu.actions().count_0a() {
@@ -168,6 +170,7 @@ impl ActionsUI {
                     5 => label.set_pixmap(&merge_all_mods_icon.pixmap_2_int(22, 22)),
                     6 => label.set_pixmap(&unit_multiplier_icon.pixmap_2_int(22, 22)),
                     7 => label.set_pixmap(&universal_rebalancer_icon.pixmap_2_int(22, 22)),
+                    8 => label.set_pixmap(&enable_dev_only_ui_icon.pixmap_2_int(22, 22)),
                     _ => {}
                 }
             }
@@ -212,6 +215,7 @@ impl ActionsUI {
         let merge_all_mods_checkbox = Self::new_launch_option_checkbox(&play_menu, "merge_all_mods", "merge");
         let unit_multiplier_spinbox = Self::new_launch_option_doublespinbox(&play_menu, "unit_multiplier", "view-time-schedule-calculus");
         let universal_rebalancer_combobox = Self::new_launch_option_combobox(&play_menu, "universal_rebalancer", "view-time-schedule-calculus");
+        let enable_dev_only_ui_checkbox = Self::new_launch_option_checkbox(&play_menu, "enable_dev_only_ui", "verb");
         enable_translations_combobox.set_current_index(0);
         unit_multiplier_spinbox.set_value(1.00);
         universal_rebalancer_combobox.set_current_index(0);
@@ -280,6 +284,7 @@ impl ActionsUI {
             unit_multiplier_spinbox,
             universal_rebalancer_combobox,
             //universal_balancer_ignored: QToolButton::new_0a();
+            enable_dev_only_ui_checkbox,
             scripts_container,
             scripts_to_execute: Arc::new(RwLock::new(vec![])),
 
