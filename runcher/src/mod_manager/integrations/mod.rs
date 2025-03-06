@@ -82,22 +82,13 @@ pub fn store_user_id(game: &GameInfo) -> Result<u64> {
 }
 
 pub fn can_game_locked(game: &GameInfo, game_path: &Path) -> bool {
-    match steam::can_game_locked(game, game_path) {
-        Ok(result) => result,
-        Err(_) => false,
-    }
+    steam::can_game_locked(game, game_path).unwrap_or_default()
 }
 
 pub fn is_game_locked(game: &GameInfo, game_path: &Path) -> bool {
-    match steam::is_game_locked(game, game_path) {
-        Ok(result) => result,
-        Err(_) => false,
-    }
+    steam::is_game_locked(game, game_path).unwrap_or_default()
 }
 
 pub fn toggle_game_locked(game: &GameInfo, game_path: &Path, toggle: bool) -> bool {
-    match steam::toggle_game_locked(game, game_path, toggle) {
-        Ok(result) => result,
-        Err(_) => false,
-    }
+    steam::toggle_game_locked(game, game_path, toggle).unwrap_or_default()
 }

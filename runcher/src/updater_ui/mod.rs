@@ -27,6 +27,7 @@ use self_update::{backends::github::ReleaseList, Download, get_target, cargo_cra
 use tempfile::Builder;
 
 use std::env::current_exe;
+use std::fmt::Display;
 use std::fs::{DirBuilder, File};
 use std::rc::Rc;
 
@@ -356,7 +357,7 @@ pub fn update_main_program() -> Result<()> {
         }
 
         let mut tmp_file = updated_file.to_path_buf();
-        tmp_file.set_file_name(&format!("{}_replacement_tmp", updated_file.file_name().unwrap().to_str().unwrap()));
+        tmp_file.set_file_name(format!("{}_replacement_tmp", updated_file.file_name().unwrap().to_str().unwrap()));
 
         // Fix for files in folders: we have to get the destination path with the folders included.
         let tmp_file_relative = updated_file.strip_prefix(tmp_dir.path()).unwrap();
@@ -483,12 +484,11 @@ pub fn update_channel() -> UpdateChannel {
     }
 }
 
-/// Implementation of ToString.
-impl ToString for UpdateChannel {
-    fn to_string(&self) -> String {
-        match &self {
-            UpdateChannel::Stable => STABLE.to_owned(),
-            UpdateChannel::Beta => BETA.to_owned(),
-        }
+impl Display for UpdateChannel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(match &self {
+            UpdateChannel::Stable => STABLE,
+            UpdateChannel::Beta => BETA,
+        }, f)
     }
 }

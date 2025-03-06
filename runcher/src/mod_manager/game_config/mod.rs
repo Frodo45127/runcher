@@ -189,7 +189,7 @@ impl GameConfig {
             // In that case, we assume there are no packs nor mods to load to avoid further errors.
             if let Ok(vanilla_packs) = game.ca_packs_paths(game_path) {
                 let data_paths = game.data_packs_paths(game_path);
-                let content_path = game.content_path(game_path).map(|path| std::fs::canonicalize(path.clone()).unwrap_or_else(|_| path));
+                let content_path = game.content_path(game_path).map(|path| std::fs::canonicalize(path.clone()).unwrap_or(path));
                 let content_paths = game.content_packs_paths(game_path);
                 let secondary_mods_paths = secondary_mods_packs_paths(game.key());
 
@@ -222,7 +222,7 @@ impl GameConfig {
                                         modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
 
                                         // Get the steam id from the path, if possible.
-                                        let path_strip = path.strip_prefix(&content_path)?.to_string_lossy().replace("\\", "/");
+                                        let path_strip = path.strip_prefix(content_path)?.to_string_lossy().replace("\\", "/");
                                         let path_strip_split = path_strip.split("/").collect::<Vec<_>>();
                                         if !path_strip_split.is_empty() {
                                             let steam_id = path_strip_split[0].to_owned();
@@ -242,7 +242,7 @@ impl GameConfig {
                                         modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
 
                                         // Get the steam id from the path, if possible.
-                                        let path_strip = path.strip_prefix(&content_path)?.to_string_lossy().replace("\\", "/");
+                                        let path_strip = path.strip_prefix(content_path)?.to_string_lossy().replace("\\", "/");
                                         let path_strip_split = path_strip.split("/").collect::<Vec<_>>();
                                         if !path_strip_split.is_empty() {
                                             let steam_id = path_strip_split[0].to_owned();
@@ -285,7 +285,7 @@ impl GameConfig {
                                                 modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
 
                                                 // Get the steam id from the path, if possible.
-                                                let path_strip = path.strip_prefix(&content_path)?.to_string_lossy().replace("\\", "/");
+                                                let path_strip = path.strip_prefix(content_path)?.to_string_lossy().replace("\\", "/");
                                                 let path_strip_split = path_strip.split("/").collect::<Vec<_>>();
                                                 if !path_strip_split.is_empty() {
                                                     let steam_id = path_strip_split[0].to_owned();
@@ -305,7 +305,7 @@ impl GameConfig {
                                                 modd.set_time_updated(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs() as usize);
 
                                                 // Get the steam id from the path, if possible.
-                                                let path_strip = path.strip_prefix(&content_path)?.to_string_lossy().replace("\\", "/");
+                                                let path_strip = path.strip_prefix(content_path)?.to_string_lossy().replace("\\", "/");
                                                 let path_strip_split = path_strip.split("/").collect::<Vec<_>>();
                                                 if !path_strip_split.is_empty() {
                                                     let steam_id = path_strip_split[0].to_owned();

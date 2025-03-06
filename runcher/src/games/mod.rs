@@ -69,7 +69,7 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
 
         // If the reserved pack is loaded from a custom folder we need to CLEAR SAID FOLDER before anything else. Otherwise we may end up with old packs messing up stuff.
         if *game.raw_db_version() >= 1 {
-            let temp_packs_folder = temp_packs_folder(&game)?;
+            let temp_packs_folder = temp_packs_folder(game)?;
             let files = files_from_subdir(&temp_packs_folder, false)?;
             for file in &files {
                 std::fs::remove_file(file)?;
@@ -78,7 +78,7 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
 
         // Support for add_working_directory seems to be only present in rome 2 and newer games. For older games, we drop the pack into /data.
         let temp_path = if *game.raw_db_version() >= 1 {
-            let temp_packs_folder = temp_packs_folder(&game)?;
+            let temp_packs_folder = temp_packs_folder(game)?;
             let temp_path = temp_packs_folder.join(reserved_pack_name);
             folder_list.push_str(&format!("add_working_directory \"{}\";\n", temp_packs_folder.to_string_lossy()));
             temp_path
@@ -492,7 +492,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
         }
     }
 
-    app_ui.set_connections(&app_ui.slots().read().unwrap().as_ref().unwrap(), true);
+    app_ui.set_connections(app_ui.slots().read().unwrap().as_ref().unwrap(), true);
 
     Ok(())
 }

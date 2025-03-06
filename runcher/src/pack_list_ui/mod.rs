@@ -165,8 +165,8 @@ impl PackListUI {
                             item_name.set_text(&QString::from_std_str(&pack_name));
                             item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(mod_id)), VALUE_MOD_ID);
                             item_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str((pack.pfh_file_type() as u32).to_string() + &pack_name)), 20);
-                            item_type.set_text(&QString::from_std_str(&modd.pack_type().to_string()));
-                            item_path.set_text(&QString::from_std_str(&modd.paths()[0].to_string_lossy()));
+                            item_type.set_text(&QString::from_std_str(modd.pack_type().to_string()));
+                            item_path.set_text(&QString::from_std_str(modd.paths()[0].to_string_lossy()));
                             load_order.set_data_2a(&QVariant::from_int(index as i32), 2);
 
                             location.set_text(&QString::from_std_str(

@@ -1876,17 +1876,17 @@ impl AppUI {
     fn move_to_destination(&self, data_path: &Path, secondary_path: &Option<PathBuf>, steam_user_id: &str, game: &GameInfo, modd: &mut Mod, mod_name: &str, pack: &mut Pack, new_pack_type: bool) -> Result<()> {
 
         // Sometimes they come canonicalized, sometimes dont. This kinda fixes it.
-        let new_path_in_data = data_path.join(&mod_name);
+        let new_path_in_data = data_path.join(mod_name);
         let new_path_in_data = std::fs::canonicalize(new_path_in_data.clone()).unwrap_or(new_path_in_data);
         let mut in_secondary = false;
 
         // First try to move it to secondary if it's not in /data. Only if it's not in /data already.
         if let Some(ref secondary_path) = &secondary_path {
             if !new_path_in_data.is_file() {
-                let new_path_in_secondary = secondary_path.join(&mod_name);
+                let new_path_in_secondary = secondary_path.join(mod_name);
 
                 // Copy the files unless it exists and its ours.
-                if (!new_path_in_secondary.is_file() || (new_path_in_secondary.is_file() && &steam_user_id != modd.creator())) && pack.save(Some(&new_path_in_secondary), &game, &None).is_ok() {
+                if (!new_path_in_secondary.is_file() || (new_path_in_secondary.is_file() && steam_user_id != modd.creator())) && pack.save(Some(&new_path_in_secondary), game, &None).is_ok() {
                     if !modd.paths().contains(&new_path_in_secondary) {
                         modd.paths_mut().insert(0, new_path_in_secondary);
                     }
@@ -1904,7 +1904,7 @@ impl AppUI {
         if !in_secondary {
 
             // Copy the files unless it exists and its ours.
-            if (!new_path_in_data.is_file() || (new_path_in_data.is_file() && &steam_user_id != modd.creator())) && pack.save(Some(&new_path_in_data), &game, &None).is_ok() {
+            if (!new_path_in_data.is_file() || (new_path_in_data.is_file() && steam_user_id != modd.creator())) && pack.save(Some(&new_path_in_data), game, &None).is_ok() {
                 if !modd.paths().contains(&new_path_in_data) {
                     modd.paths_mut().insert(0, new_path_in_data);
                 }
@@ -1939,13 +1939,13 @@ impl AppUI {
             files.insert(file_name, data);
         }
 
-        let mut pack = Pack::new_with_name_and_version(&pack_name, game.pfh_version_by_file_type(PFHFileType::Mod));
+        let mut pack = Pack::new_with_name_and_version(pack_name, game.pfh_version_by_file_type(PFHFileType::Mod));
         let spec_path = format!("battleterrain/presets/{}/", &map_name);
 
         // We need to add the files under /BattleTerrain/presets/map_name
         for (file_name, file_data) in &files {
             let rfile_path = spec_path.to_owned() + file_name;
-            let mut rfile = RFile::new_from_vec(&file_data, FileType::Unknown, 0, &rfile_path);
+            let mut rfile = RFile::new_from_vec(file_data, FileType::Unknown, 0, &rfile_path);
             let _ = rfile.guess_file_type();
             let _ = pack.insert(rfile);
         }
@@ -1958,11 +1958,11 @@ impl AppUI {
                 if let Some(ref schema) = *SCHEMA.read().unwrap() {
                     let table_name = "battles_tables";
                     let table_version = 4;
-                    if let Some(definition) = schema.definition_by_name_and_version(&table_name, table_version) {
+                    if let Some(definition) = schema.definition_by_name_and_version(table_name, table_version) {
 
                         // DB
-                        let patches = schema.patches_for_table(&table_name);
-                        let mut file = DB::new(definition, patches, &table_name);
+                        let patches = schema.patches_for_table(table_name);
+                        let mut file = DB::new(definition, patches, table_name);
                         let mut row = file.new_row();
 
                         if let Some(column) = file.column_position_by_name("key") {
@@ -2164,7 +2164,7 @@ impl AppUI {
                                                     modd.id().to_string()
                                                 };
 
-                                                let _ = self.move_to_destination(&data_path, &secondary_path, &steam_user_id, &game, modd, &mod_name, &mut pack, false);
+                                                let _ = self.move_to_destination(data_path, &secondary_path, &steam_user_id, &game, modd, &mod_name, &mut pack, false);
                                             }
                                         }
                                     }
@@ -2192,7 +2192,7 @@ impl AppUI {
                                                                 let mut pack = self.generate_map_pack(&game, &data_dec, &pack_name, &name)?;
 
                                                                 // Once done generating the pack, just do the same as with normal mods.
-                                                                let _ = self.move_to_destination(&data_path, &secondary_path, &steam_user_id, &game, modd, &pack_name, &mut pack, false);
+                                                                let _ = self.move_to_destination(data_path, &secondary_path, &steam_user_id, &game, modd, &pack_name, &mut pack, false);
                                                             }
                                                         }
                                                     }
@@ -2374,7 +2374,7 @@ impl AppUI {
         let pack = self.data_list_ui().generate_data(&game_config, game, game_path, &load_order)?;
 
         let vanilla_paths = game.ca_packs_paths(game_path)?;
-        let files = files_from_subdir(&game_path, false)?;
+        let files = files_from_subdir(game_path, false)?;
         let paths = files.iter()
             .filter(|path| {
                 let modified = path.metadata().unwrap().modified().unwrap();
@@ -2428,14 +2428,16 @@ impl AppUI {
                 for (start_error, _) in normal_errors {
                     if let Some(end_error) = data[start_error..].find("********************") {
                         let message = data[start_error..start_error + end_error].to_owned();
-                        let mut script_break = ScriptBreak::default();
-                        script_break.full_log = message.to_owned();
+                        let mut script_break = ScriptBreak {
+                            full_log: message.to_owned(),
+                            ..Default::default()
+                        };
 
                         let start_path = "[string \"";
                         let end_path = "\"]:";
                         let mut paths = vec![];
                         for (start_path_pos, _) in message.match_indices(start_path) {
-                            if let Some(end_path_pos) = message[start_path_pos + 9..].find(&end_path) {
+                            if let Some(end_path_pos) = message[start_path_pos + 9..].find(end_path) {
                                 let path = message[start_path_pos + 9..start_path_pos + 9 + end_path_pos].replace("\\", "/");
                                 paths.push(path);
                             }
@@ -2443,7 +2445,7 @@ impl AppUI {
 
                         // NOTE: pack finding only works if the pack that caused it is in the current run. Take that into account for tests.
                         for path in &paths {
-                            if let Some(file) = pack.file(&path, true) {
+                            if let Some(file) = pack.file(path, true) {
                                 if let Some(pack_name) = file.container_name() {
                                     if !pack_name.is_empty() && vanilla_paths.iter().all(|x| &x.file_name().unwrap().to_string_lossy().to_string() != pack_name) {
                                         script_break.posible_pack = pack_name.to_owned();
@@ -2452,12 +2454,11 @@ impl AppUI {
                                         let modd = game_config.mods().get(pack_name);
                                         script_break.posible_pack_mod = modd
                                             .map(|modd| modd.name().to_string())
-                                            .unwrap_or_else(|| String::new());
-                                        script_break.posible_pack_link = modd
-                                            .map(|modd| modd.steam_id()
-                                                .clone()
-                                                .map(|id| format!("https://steamcommunity.com/sharedfiles/filedetails/?id={}", id)))
-                                            .flatten();
+                                            .unwrap_or_default();
+                                        script_break.posible_pack_link = modd.and_then(|modd| modd.steam_id()
+                                            .as_ref()
+                                            .map(|id| format!("https://steamcommunity.com/sharedfiles/filedetails/?id={}", id))
+                                        );
                                         break;
                                     }
                                 }
@@ -2492,14 +2493,16 @@ impl AppUI {
                         if let Some(second) = data[start_error + first + 3 ..].find("[out]") {
                             if let Some(end_error) = data[start_error + first + 3 + second + 3..].find("[out]") {
                                 let message = data[start_error..start_error + first + 3 + second + 3 + end_error].to_owned();
-                                let mut script_break = ScriptBreak::default();
-                                script_break.full_log = message.to_owned();
+                                let mut script_break = ScriptBreak {
+                                    full_log: message.to_owned(),
+                                    ..Default::default()
+                                };
 
                                 let start_path = "[string \"";
                                 let end_path = "\"]:";
                                 let mut paths = vec![];
                                 for (start_path_pos, _) in message.match_indices(start_path) {
-                                    if let Some(end_path_pos) = message[start_path_pos + 9..].find(&end_path) {
+                                    if let Some(end_path_pos) = message[start_path_pos + 9..].find(end_path) {
                                         let path = message[start_path_pos + 9..start_path_pos + 9 + end_path_pos].replace("\\", "/");
                                         paths.push(path);
                                     }
@@ -2507,7 +2510,7 @@ impl AppUI {
 
                                 // NOTE: pack finding only works if the pack that caused it is in the current run. Take that into account for tests.
                                 for path in &paths {
-                                    if let Some(file) = pack.file(&path, true) {
+                                    if let Some(file) = pack.file(path, true) {
                                         if let Some(pack_name) = file.container_name() {
                                             if !pack_name.is_empty() && vanilla_paths.iter().all(|x| &x.file_name().unwrap().to_string_lossy().to_string() != pack_name) {
                                                 script_break.posible_pack = pack_name.to_owned();
@@ -2516,12 +2519,11 @@ impl AppUI {
                                                 let modd = game_config.mods().get(pack_name);
                                                 script_break.posible_pack_mod = modd
                                                     .map(|modd| modd.name().to_string())
-                                                    .unwrap_or_else(|| String::new());
-                                                script_break.posible_pack_link = modd
-                                                    .map(|modd| modd.steam_id()
-                                                        .clone()
-                                                        .map(|id| format!("https://steamcommunity.com/sharedfiles/filedetails/?id={}", id)))
-                                                    .flatten();
+                                                    .unwrap_or_default();
+                                                script_break.posible_pack_link = modd.and_then(|modd| modd.steam_id()
+                                                    .as_ref()
+                                                    .map(|id| format!("https://steamcommunity.com/sharedfiles/filedetails/?id={}", id))
+                                                );
                                                 break;
                                             }
                                         }
@@ -2552,8 +2554,10 @@ impl AppUI {
                     // For end we use the third out.
                     if let Some(end_error) = data[start_error..].find("Failed to load mod:") {
                         let message = data[start_error..start_error + end_error].to_owned();
-                        let mut script_break = ScriptBreak::default();
-                        script_break.full_log = message.to_owned();
+                        let mut script_break = ScriptBreak {
+                            full_log: message.to_owned(),
+                            ..Default::default()
+                        };
 
                         // PJ for some reason uses requires that fail when the CA loader does its thing. We need to ignore his mod.
                         if message.contains("Failed to load mod file [script\\campaign\\mod\\pj_") {
@@ -2564,7 +2568,7 @@ impl AppUI {
                         let end_path = "\"]:";
                         let mut paths = vec![];
                         for (start_path_pos, _) in message.match_indices(start_path) {
-                            if let Some(end_path_pos) = message[start_path_pos + 9..].find(&end_path) {
+                            if let Some(end_path_pos) = message[start_path_pos + 9..].find(end_path) {
                                 let path = message[start_path_pos + 9..start_path_pos + 9 + end_path_pos].replace("\\", "/");
                                 paths.push(path);
                             }
@@ -2572,7 +2576,7 @@ impl AppUI {
 
                         // NOTE: pack finding only works if the pack that caused it is in the current run. Take that into account for tests.
                         for path in &paths {
-                            if let Some(file) = pack.file(&path, true) {
+                            if let Some(file) = pack.file(path, true) {
                                 if let Some(pack_name) = file.container_name() {
                                     if !pack_name.is_empty() && vanilla_paths.iter().all(|x| &x.file_name().unwrap().to_string_lossy().to_string() != pack_name) {
                                         script_break.posible_pack = pack_name.to_owned();
@@ -2581,12 +2585,11 @@ impl AppUI {
                                         let modd = game_config.mods().get(pack_name);
                                         script_break.posible_pack_mod = modd
                                             .map(|modd| modd.name().to_string())
-                                            .unwrap_or_else(|| String::new());
-                                        script_break.posible_pack_link = modd
-                                            .map(|modd| modd.steam_id()
-                                                .clone()
-                                                .map(|id| format!("https://steamcommunity.com/sharedfiles/filedetails/?id={}", id)))
-                                            .flatten();
+                                            .unwrap_or_default();
+                                        script_break.posible_pack_link = modd.and_then(|modd| modd.steam_id()
+                                            .as_ref()
+                                            .map(|id| format!("https://steamcommunity.com/sharedfiles/filedetails/?id={}", id))
+                                        );
                                         break;
                                     }
                                 }
@@ -2722,12 +2725,12 @@ impl AppUI {
     }
 
     fn save_load_order_file(file_path: &Path, game: &GameInfo, folder_list: &str, pack_list: &str) -> Result<()> {
-        let mut file = BufWriter::new(File::create(&file_path)?);
+        let mut file = BufWriter::new(File::create(file_path)?);
 
         // Napoleon, Empire and Shogun 2 require the user.script.txt or mod list file (for Shogun's latest update) to be in UTF-16 LE. What the actual fuck.
         if *game.raw_db_version() < 2 {
-            file.write_string_u16(&folder_list)?;
-            file.write_string_u16(&pack_list)?;
+            file.write_string_u16(folder_list)?;
+            file.write_string_u16(pack_list)?;
         } else {
             file.write_all(folder_list.as_bytes())?;
             file.write_all(pack_list.as_bytes())?;

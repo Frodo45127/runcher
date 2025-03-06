@@ -78,6 +78,7 @@ pub trait PackTree {
     /// BIG NOTE: Each StandardItem should keep track of his own status, meaning that their data means:
     /// - Position 20: Type. 1 is File, 2 is Folder, 4 is PackFile.
     /// - Position 21: Status. 0 is untouched, 1 is added, 2 is modified.
+    ///
     /// In case you don't realise, those are bitmasks.
     unsafe fn update_treeview(&self, has_filter: bool, operation: &mut TreeViewOperation);
 }

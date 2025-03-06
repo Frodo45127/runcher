@@ -109,7 +109,7 @@ pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str, owner_id: &str) ->
     }
 
     // If we're not the author, do not even let us upload it.
-    let steam_user_id = user_id(&game)?.to_string();
+    let steam_user_id = user_id(game)?.to_string();
     if steam_user_id.is_empty() || owner_id != steam_user_id {
         return Err(anyhow!("You're not the original uploader of this mod, or steam hasn't been detected on your system."));
     }
@@ -267,7 +267,7 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
     if force_update {
         let extra_data = Some(EncodeableExtraData::new_from_game_info(game));
         let mut pack = Pack::read_and_merge(&[PathBuf::from(&pack_path)], true, false, false)?;
-        pack.save(None, &game, &extra_data)?;
+        pack.save(None, game, &extra_data)?;
     }
 
     // If we have a published_file_id, it means this file exists in the workshop.
@@ -409,7 +409,7 @@ pub fn user_id(game: &GameInfo) -> Result<u64> {
 }
 
 fn app_manifest_path(game: &GameInfo, game_path: &Path) -> Result<PathBuf> {
-    let steam_id = game.steam_id(&game_path)? as u32;
+    let steam_id = game.steam_id(game_path)? as u32;
     let mut app_path = game_path.to_path_buf();
     app_path.pop();
     app_path.pop();

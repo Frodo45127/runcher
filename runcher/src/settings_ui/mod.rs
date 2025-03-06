@@ -346,11 +346,11 @@ impl SettingsUI {
                 if let Some(checkbox) = self.paths_games_lock_checkboxes().get(key) {
                     if let Some(game) = SUPPORTED_GAMES.game(key) {
                         let game_path = PathBuf::from(&stored_path);
-                        let can_be_locked = crate::mod_manager::integrations::can_game_locked(&game, &game_path);
+                        let can_be_locked = crate::mod_manager::integrations::can_game_locked(game, &game_path);
                         checkbox.set_enabled(can_be_locked);
 
                         if can_be_locked {
-                            checkbox.set_checked(crate::mod_manager::integrations::is_game_locked(&game, &game_path));
+                            checkbox.set_checked(crate::mod_manager::integrations::is_game_locked(game, &game_path));
                         }
                     }
                 }
@@ -568,11 +568,11 @@ impl SettingsUI {
     unsafe fn update_lock_status(&self, game: &str, game_path: &Path, toggle: bool) {
         if let Some(checkbox) = self.paths_games_lock_checkboxes().get(game) {
             if let Some(game) = SUPPORTED_GAMES.game(game) {
-                let can_be_locked = crate::mod_manager::integrations::can_game_locked(&game, &game_path);
+                let can_be_locked = crate::mod_manager::integrations::can_game_locked(game, game_path);
                 checkbox.set_enabled(can_be_locked);
 
                 if can_be_locked {
-                    checkbox.set_checked(crate::mod_manager::integrations::toggle_game_locked(&game, &game_path, toggle));
+                    checkbox.set_checked(crate::mod_manager::integrations::toggle_game_locked(game, game_path, toggle));
                     return;
                 }
             }
