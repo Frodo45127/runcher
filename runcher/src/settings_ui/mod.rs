@@ -34,14 +34,12 @@ use qt_gui::QStandardItem;
 use qt_gui::QStandardItemModel;
 
 use qt_core::QBox;
-use qt_core::QCoreApplication;
 use qt_core::QFlags;
 use qt_core::QObject;
 use qt_core::QPtr;
 use qt_core::QString;
 
-use anyhow::{anyhow, Result};
-use directories::ProjectDirs;
+use anyhow::Result;
 use getset::*;
 
 use std::cell::RefCell;
@@ -72,9 +70,6 @@ const VIEW_RELEASE: &str = "ui/settings_dialog.ui";
 pub const SLASH_DMY_DATE_FORMAT_STR: &str = "[day]/[month]/[year]";
 pub const SLASH_MDY_DATE_FORMAT_STR: &str = "[month]/[day]/[year]";
 pub const SLASH_YMD_DATE_FORMAT_STR: &str = "[year]/[month]/[day]";
-
-const TRANSLATIONS_LOCAL_FOLDER: &str = "translations_local";
-const TRANSLATIONS_REMOTE_FOLDER: &str = "translations_remote";
 
 //-------------------------------------------------------------------------------//
 //                              Enums & Structs
@@ -654,9 +649,6 @@ pub fn init_config_path() -> Result<()> {
     DirBuilder::new().recursive(true).create(profiles_path()?)?;
     DirBuilder::new().recursive(true).create(schemas_path()?)?;
 
-    DirBuilder::new().recursive(true).create(translations_local_path()?)?;
-    DirBuilder::new().recursive(true).create(translations_remote_path()?)?;
-
     // Within the config path we need to create a folder to store the temp packs of each game.
     // Otherwise they interfere with each other due to being movie packs.
     for game in SUPPORTED_GAMES.games_sorted().iter() {
@@ -687,25 +679,6 @@ pub fn profiles_path() -> Result<PathBuf> {
 
 pub fn sql_scripts_path() -> Result<PathBuf> {
     Ok(config_path()?.join("sql_scripts"))
-}
-
-pub fn rpfm_config_path() -> Result<PathBuf> {
-    if cfg!(debug_assertions) { std::env::current_dir().map_err(From::from) } else {
-        unsafe {
-            match ProjectDirs::from(&QCoreApplication::organization_domain().to_std_string(), &QCoreApplication::organization_name().to_std_string(), "rpfm") {
-                Some(proj_dirs) => Ok(proj_dirs.config_dir().to_path_buf()),
-                None => Err(anyhow!("Failed to get RPFM's config path."))
-            }
-        }
-    }
-}
-
-pub fn translations_local_path() -> Result<PathBuf> {
-    rpfm_config_path().map(|path| path.join(TRANSLATIONS_LOCAL_FOLDER))
-}
-
-pub fn translations_remote_path() -> Result<PathBuf> {
-    config_path().map(|path| path.join(TRANSLATIONS_REMOTE_FOLDER))
 }
 
 pub fn last_game_update_date(game: &GameInfo, game_path: &Path) -> Result<u64> {

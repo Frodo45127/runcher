@@ -2893,7 +2893,6 @@ dependencies = [
  "clap",
  "cpp_core",
  "crossbeam",
- "directories",
  "flate2",
  "getset",
  "interprocess",
