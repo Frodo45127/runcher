@@ -3990,6 +3990,7 @@ version = "0.9.3"
 dependencies = [
  "anyhow",
  "clap",
+ "csv",
  "directories",
  "getset",
  "itertools 0.14.0",
@@ -4003,6 +4004,7 @@ dependencies = [
  "rpfm_lib",
  "rusqlite",
  "self_update",
+ "serde",
  "tempfile",
  "zip-extract",
 ]

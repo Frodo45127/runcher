@@ -8,6 +8,7 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
+use qt_core::SlotOfDouble;
 use qt_widgets::QAction;
 use qt_widgets::QCheckBox;
 use qt_widgets::QComboBox;
@@ -15,6 +16,7 @@ use qt_widgets::QDoubleSpinBox;
 use qt_widgets::QGridLayout;
 use qt_widgets::QLabel;
 use qt_widgets::QMenu;
+use qt_widgets::QSpinBox;
 use qt_widgets::{QToolButton, q_tool_button::ToolButtonPopupMode};
 use qt_widgets::QWidget;
 use qt_widgets::QWidgetAction;
@@ -25,6 +27,8 @@ use qt_gui::QStandardItemModel;
 use qt_core::QBox;
 use qt_core::QPtr;
 use qt_core::QString;
+use qt_core::SlotOfBool;
+use qt_core::SlotOfInt;
 
 use anyhow::Result;
 use getset::*;
@@ -33,6 +37,7 @@ use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
 use rpfm_ui_common::locale::qtr;
+use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
 
 const VIEW_DEBUG: &str = "ui_templates/actions_groupbox.ui";
@@ -56,7 +61,7 @@ pub struct ActionsUI {
     universal_rebalancer_combobox: QBox<QComboBox>,
     enable_dev_only_ui_checkbox: QBox<QCheckBox>,
     scripts_container: QBox<QWidget>,
-    scripts_to_execute: Arc<RwLock<Vec<(String, QBox<QCheckBox>)>>>,
+    scripts_to_execute: Arc<RwLock<Vec<(String, QBox<QCheckBox>, Vec<(String, String, String, String)>)>>>,
 
     settings_button: QPtr<QToolButton>,
     folders_button: QPtr<QToolButton>,
@@ -90,16 +95,93 @@ pub struct ActionsUI {
 impl ActionsUI {
 
 
-    pub unsafe fn new_launch_script_option(&self, text_key: &str, icon_key: &str) -> QBox<QCheckBox> {
+    pub unsafe fn new_launch_script_option(&self, game_key: &str, icon_key: &str, script_info: &(String, String, Vec<(String, String, String, String)>)) -> QBox<QCheckBox> {
         let container = QWidget::new_1a(self.scripts_container());
-        let checkbox = QCheckBox::from_q_widget(&container);
+        let params_container = QWidget::new_1a(&container);
+        let param_layout = create_grid_layout(params_container.static_upcast());
+        params_container.set_enabled(false);
 
+        let game_key = game_key.to_owned();
+
+        let script_key = script_info.0.to_owned();
+        let script_pretty_name = &script_info.1;
+        let script_params = &script_info.2;
+
+        let settings = settings();
+
+        for (index, param) in script_params.iter().enumerate() {
+            let param_key = param.0.to_owned();
+            let param_type = &param.1;
+            let param_default = &param.2;
+            let param_name = &param.3;
+
+            let label_text = QLabel::from_q_string_q_widget(&QString::from_std_str(param_name), &params_container);
+            param_layout.add_widget_5a(&label_text, index as i32, 0, 1, 1);
+
+            let setting = format!("script_to_execute_{}_{}_{}", game_key, script_key, param_key);
+            let use_default = !settings.value_1a(&QString::from_std_str(&setting)).is_valid();
+
+            match &**param_type {
+                "bool" => {
+                    let widget = QCheckBox::from_q_widget(&params_container);
+                    widget.set_object_name(&QString::from_std_str(format!("{script_key}_{param_key}")));
+
+                    let default_value = param_default.parse::<bool>().unwrap_or_default();
+                    if use_default {
+                        widget.set_checked(default_value);
+                    } else {
+                        widget.set_checked(setting_bool(&setting));
+                    }
+
+                    param_layout.add_widget_5a(&widget, index as i32, 1, 1, 1);
+                    widget.toggled().connect(&SlotOfBool::new(&params_container, move |state| {
+                        set_setting_bool(&setting, state);
+                    }));
+                },
+                "integer" => {
+                    let widget = QSpinBox::new_1a(&params_container);
+                    widget.set_object_name(&QString::from_std_str(format!("{script_key}_{param_key}")));
+
+                    let default_value = param_default.parse::<i32>().unwrap_or_default();
+                    if use_default {
+                        widget.set_value(default_value);
+                    } else {
+                        widget.set_value(setting_int(&setting));
+                    }
+
+                    param_layout.add_widget_5a(&widget, index as i32, 1, 1, 1);
+                    widget.value_changed().connect(&SlotOfInt::new(&params_container, move |value| {
+                        set_setting_int(&setting, value);
+                    }));
+                },
+                "float" => {
+                    let widget = QDoubleSpinBox::new_1a(&params_container);
+                    widget.set_object_name(&QString::from_std_str(format!("{script_key}_{param_key}")));
+
+                    let default_value = param_default.parse::<f32>().unwrap_or_default();
+                    if use_default {
+                        widget.set_value(default_value as f64);
+                    } else {
+                        widget.set_value(setting_f32(&setting) as f64);
+                    }
+
+                    param_layout.add_widget_5a(&widget, index as i32, 1, 1, 1);
+                    widget.value_changed().connect(&SlotOfDouble::new(&params_container, move |value| {
+                        set_setting_f32(&setting, value as f32);
+                    }));
+                },
+                _ => {},
+            }
+        }
+
+
+        let checkbox = QCheckBox::from_q_widget(&container);
         let icon = QIcon::from_theme_1a(&QString::from_std_str(icon_key));
         let label_icon = QLabel::from_q_widget(&container);
         label_icon.set_pixmap(&icon.pixmap_2_int(22, 22));
         label_icon.set_maximum_width(22);
 
-        let label_text = QLabel::from_q_string_q_widget(&QString::from_std_str(text_key), &container);
+        let label_text = QLabel::from_q_string_q_widget(&QString::from_std_str(script_pretty_name.trim()), &container);
         label_text.set_fixed_height(26);
 
         let label_fill = QLabel::from_q_widget(&container);
@@ -109,11 +191,22 @@ impl ActionsUI {
         layout.add_widget_5a(&label_text, 0, 1, 1, 1);
         layout.add_widget_5a(&label_fill, 0, 2, 1, 1);
         layout.add_widget_5a(&checkbox, 0, 3, 1, 1);
+        layout.add_widget_5a(&params_container, 1, 1, 1, 3);
         layout.set_column_stretch(2, 10);
 
         let layout = self.scripts_container().layout().static_downcast::<QGridLayout>();
         layout.add_widget(&container);
 
+        let setting = format!("script_to_execute_{}_{}", game_key, script_key);
+        let is_enabled = setting_bool(&setting);
+
+        checkbox.toggled().connect(&SlotOfBool::new(&checkbox, move |state| {
+            params_container.set_enabled(state);
+
+            set_setting_bool(&setting, state);
+        }));
+
+        checkbox.set_checked(is_enabled);
         checkbox
     }
 
