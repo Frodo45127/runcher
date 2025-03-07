@@ -8,7 +8,7 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
-use qt_widgets::{QCheckBox, QDoubleSpinBox, QGridLayout, QSpinBox, QWidget};
+use qt_widgets::{QCheckBox, QDoubleSpinBox, QGridLayout, QSpinBox};
 
 use qt_core::QString;
 

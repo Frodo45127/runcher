@@ -102,7 +102,7 @@ impl From<&QueryResultDerive> for PreUploadInfo {
     }
 }
 
-pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str, owner_id: &str) -> Result<PreUploadInfo> {
+pub fn request_pre_upload_info(game: &GameInfo, mod_id: &str) -> Result<PreUploadInfo> {
     let workshop_items = request_mods_data_raw(game, &[mod_id.to_owned()])?;
     if workshop_items.is_empty() {
         return Err(anyhow!("Mod with SteamId {} not found in the Workshop.", mod_id));
