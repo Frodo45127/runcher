@@ -21,7 +21,7 @@ use rpfm_lib::schema::*;
 
 use rpfm_ui_common::settings::error_path;
 
-use crate::CENTRAL_COMMAND;
+use crate::{sql_scripts_remote_path, CENTRAL_COMMAND, SQL_SCRIPTS_BRANCH, SQL_SCRIPTS_REMOTE, SQL_SCRIPTS_REPO};
 use crate::communications::*;
 use crate::mod_manager::{game_config::GameConfig, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::ShareableMod};
 use crate::settings_ui::schemas_path;
@@ -72,6 +72,19 @@ pub fn background_loop() {
                 }
             }
 
+            Command::UpdateSqlScripts => {
+                match sql_scripts_remote_path() {
+                    Ok(local_path) => {
+                        let git_integration = GitIntegration::new(&local_path, SQL_SCRIPTS_REPO, SQL_SCRIPTS_BRANCH, SQL_SCRIPTS_REMOTE);
+                        match git_integration.update_repo() {
+                            Ok(_) => CentralCommand::send_back(&sender, Response::Success),
+                            Err(error) => CentralCommand::send_back(&sender, Response::Error(From::from(error))),
+                        }
+                    },
+                    Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
+                }
+            }
+
             Command::GetStringFromLoadOrder(game_config, game_data_path, load_order) => {
                 match get_string_from_load_order(game_config, &game_data_path, load_order) {
                     Ok(encoded) => CentralCommand::send_back(&sender, Response::String(encoded)),
@@ -86,7 +99,7 @@ pub fn background_loop() {
                 }
             }
 
-            Command::CheckUpdates | Command::CheckSchemaUpdates | Command::RequestModsData(_,_) => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
+            Command::CheckUpdates | Command::CheckSchemaUpdates | Command::CheckSqlScriptsUpdates | Command::RequestModsData(_,_) => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
         }
     }
 }

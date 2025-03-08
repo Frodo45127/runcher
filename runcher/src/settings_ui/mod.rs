@@ -64,6 +64,9 @@ use self::slots::SettingsUISlots;
 
 mod slots;
 
+const SQL_SCRIPTS_LOCAL_FOLDER: &str = "sql_scripts_local";
+const SQL_SCRIPTS_REMOTE_FOLDER: &str = "sql_scripts_remote";
+
 const VIEW_DEBUG: &str = "ui_templates/settings_dialog.ui";
 const VIEW_RELEASE: &str = "ui/settings_dialog.ui";
 
@@ -103,6 +106,7 @@ pub struct SettingsUI {
     date_format_combobox: QPtr<QComboBox>,
     check_updates_on_start_checkbox: QPtr<QCheckBox>,
     check_schema_updates_on_start_checkbox: QPtr<QCheckBox>,
+    check_sql_scripts_updates_on_start_checkbox: QPtr<QCheckBox>,
     dark_mode_checkbox: QPtr<QCheckBox>,
     open_workshop_link_in_steam_checkbox: QPtr<QCheckBox>,
     check_logs_checkbox: QPtr<QCheckBox>,
@@ -164,6 +168,7 @@ impl SettingsUI {
         let steam_api_key_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "steam_api_key_label")?;
         let check_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_updates_on_start_label")?;
         let check_schema_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_schema_updates_on_start_label")?;
+        let check_sql_scripts_updates_on_start_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_sql_scripts_updates_on_start_label")?;
         let dark_mode_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "dark_mode_label")?;
         let open_workshop_link_in_steam_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "open_workshop_link_in_steam_label")?;
         let check_logs_label: QPtr<QLabel> = find_widget(&main_widget.static_upcast(), "check_logs_label")?;
@@ -174,6 +179,7 @@ impl SettingsUI {
         let steam_api_key_line_edit: QPtr<QLineEdit> = find_widget(&main_widget.static_upcast(), "steam_api_key_line_edit")?;
         let check_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_updates_on_start_checkbox")?;
         let check_schema_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_schema_updates_on_start_checkbox")?;
+        let check_sql_scripts_updates_on_start_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_sql_scripts_updates_on_start_checkbox")?;
         let dark_mode_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "dark_mode_checkbox")?;
         let open_workshop_link_in_steam_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "open_workshop_link_in_steam_checkbox")?;
         let check_logs_checkbox: QPtr<QCheckBox> = find_widget(&main_widget.static_upcast(), "check_logs_checkbox")?;
@@ -192,6 +198,7 @@ impl SettingsUI {
         steam_api_key_label.set_text(&qtr("steam_api_key"));
         check_updates_on_start_label.set_text(&qtr("check_updates_on_start"));
         check_schema_updates_on_start_label.set_text(&qtr("check_schema_updates_on_start"));
+        check_sql_scripts_updates_on_start_label.set_text(&qtr("check_sql_scripts_updates_on_start"));
         dark_mode_label.set_text(&qtr("dark_mode"));
         open_workshop_link_in_steam_label.set_text(&qtr("open_workshop_link_in_steam"));
         check_logs_label.set_text(&qtr("check_logs"));
@@ -281,6 +288,7 @@ impl SettingsUI {
             date_format_combobox,
             check_updates_on_start_checkbox,
             check_schema_updates_on_start_checkbox,
+            check_sql_scripts_updates_on_start_checkbox,
             dark_mode_checkbox,
             open_workshop_link_in_steam_checkbox,
             check_logs_checkbox,
@@ -397,6 +405,7 @@ impl SettingsUI {
         self.open_workshop_link_in_steam_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "open_workshop_link_in_steam"));
         self.check_updates_on_start_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "check_updates_on_start"));
         self.check_schema_updates_on_start_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "check_schema_updates_on_start"));
+        self.check_sql_scripts_updates_on_start_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "check_sql_scripts_updates_on_start"));
         self.check_logs_checkbox().set_checked(setting_bool_from_q_setting(&q_settings, "check_logs"));
 
         Ok(())
@@ -453,6 +462,7 @@ impl SettingsUI {
         set_setting_bool_to_q_setting(&q_settings, "open_workshop_link_in_steam", self.open_workshop_link_in_steam_checkbox().is_checked());
         set_setting_bool_to_q_setting(&q_settings, "check_updates_on_start", self.check_updates_on_start_checkbox().is_checked());
         set_setting_bool_to_q_setting(&q_settings, "check_schema_updates_on_start", self.check_schema_updates_on_start_checkbox().is_checked());
+        set_setting_bool_to_q_setting(&q_settings, "check_sql_scripts_updates_on_start", self.check_sql_scripts_updates_on_start_checkbox().is_checked());
         set_setting_bool_to_q_setting(&q_settings, "check_logs", self.check_logs_checkbox().is_checked());
 
         // Save the settings.
@@ -603,6 +613,7 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
     set_setting_if_new_string(&q_settings, "date_format", SLASH_DMY_DATE_FORMAT_STR);
     set_setting_if_new_bool(&q_settings, "check_updates_on_start", true);
     set_setting_if_new_bool(&q_settings, "check_schema_updates_on_start", true);
+    set_setting_if_new_bool(&q_settings, "check_sql_scripts_updates_on_start", true);
     set_setting_if_new_bool(&q_settings, "dark_mode", false);
     set_setting_if_new_bool(&q_settings, "check_logs", false);
 
@@ -648,13 +659,14 @@ pub fn init_config_path() -> Result<()> {
     DirBuilder::new().recursive(true).create(game_config_path()?)?;
     DirBuilder::new().recursive(true).create(profiles_path()?)?;
     DirBuilder::new().recursive(true).create(schemas_path()?)?;
+    DirBuilder::new().recursive(true).create(sql_scripts_remote_path()?)?;
 
     // Within the config path we need to create a folder to store the temp packs of each game.
     // Otherwise they interfere with each other due to being movie packs.
     for game in SUPPORTED_GAMES.games_sorted().iter() {
         if game.key() != KEY_ARENA {
             DirBuilder::new().recursive(true).create(config_path()?.join("temp_packs").join(game.key()))?;
-            DirBuilder::new().recursive(true).create(sql_scripts_path()?.join(game.key()))?;
+            DirBuilder::new().recursive(true).create(sql_scripts_local_path()?.join(game.key()))?;
         }
     }
 
@@ -663,6 +675,14 @@ pub fn init_config_path() -> Result<()> {
 
 pub fn temp_packs_folder(game: &GameInfo) -> Result<PathBuf> {
     Ok(config_path()?.join("temp_packs").join(game.key()))
+}
+
+pub fn sql_scripts_local_path() -> Result<PathBuf> {
+    Ok(config_path()?.join(SQL_SCRIPTS_LOCAL_FOLDER))
+}
+
+pub fn sql_scripts_remote_path() -> Result<PathBuf> {
+    Ok(config_path()?.join(SQL_SCRIPTS_REMOTE_FOLDER))
 }
 
 pub fn schemas_path() -> Result<PathBuf> {
@@ -675,10 +695,6 @@ pub fn game_config_path() -> Result<PathBuf> {
 
 pub fn profiles_path() -> Result<PathBuf> {
     Ok(config_path()?.join("profiles"))
-}
-
-pub fn sql_scripts_path() -> Result<PathBuf> {
-    Ok(config_path()?.join("sql_scripts"))
 }
 
 pub fn last_game_update_date(game: &GameInfo, game_path: &Path) -> Result<u64> {

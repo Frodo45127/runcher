@@ -16,7 +16,7 @@ use rpfm_lib::integrations::{git::*, log::*};
 use rpfm_lib::schema::*;
 use rpfm_ui_common::settings::error_path;
 
-use crate::CENTRAL_COMMAND;
+use crate::{sql_scripts_remote_path, CENTRAL_COMMAND, SQL_SCRIPTS_BRANCH, SQL_SCRIPTS_REMOTE, SQL_SCRIPTS_REPO};
 use crate::communications::*;
 use crate::mod_manager::integrations::request_mods_data;
 use crate::settings_ui::schemas_path;
@@ -57,6 +57,20 @@ pub fn network_loop() {
                 match schemas_path() {
                     Ok(local_path) => {
                         let git_integration = GitIntegration::new(&local_path, SCHEMA_REPO, SCHEMA_BRANCH, SCHEMA_REMOTE);
+                        match git_integration.check_update() {
+                            Ok(response) => CentralCommand::send_back(&sender, Response::APIResponseGit(response)),
+                            Err(error) => CentralCommand::send_back(&sender, Response::Error(From::from(error))),
+                        }
+                    }
+                    Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
+                }
+            }
+
+            // When we want to check if there is a schema's update available...
+            Command::CheckSqlScriptsUpdates => {
+                match sql_scripts_remote_path() {
+                    Ok(local_path) => {
+                        let git_integration = GitIntegration::new(&local_path, SQL_SCRIPTS_REPO, SQL_SCRIPTS_BRANCH, SQL_SCRIPTS_REMOTE);
                         match git_integration.check_update() {
                             Ok(response) => CentralCommand::send_back(&sender, Response::APIResponseGit(response)),
                             Err(error) => CentralCommand::send_back(&sender, Response::Error(From::from(error))),

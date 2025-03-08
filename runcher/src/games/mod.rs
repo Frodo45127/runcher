@@ -17,7 +17,7 @@ use anyhow::{anyhow, Result};
 use std::fs::File;
 use std::io::{BufReader, Read};
 #[cfg(target_os = "windows")]use std::os::windows::process::CommandExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use rpfm_lib::files::{Container, ContainerPath, FileType};
@@ -29,7 +29,7 @@ use rpfm_ui_common::settings::*;
 use crate::app_ui::{AppUI, CUSTOM_MOD_LIST_FILE_NAME};
 #[cfg(target_os = "windows")]use crate::mod_manager::integrations::{CREATE_NO_WINDOW, DETACHED_PROCESS};
 use crate::SCHEMA;
-use crate::settings_ui::{temp_packs_folder, sql_scripts_path};
+use crate::settings_ui::{temp_packs_folder, sql_scripts_local_path, sql_scripts_remote_path};
 
 pub const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
 pub const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
@@ -142,7 +142,8 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
         }
 
         // Script checks.
-        let sql_folder = sql_scripts_path()?.join(game.key());
+        let sql_folder_local = sql_scripts_local_path()?.join(game.key());
+        let sql_folder_remote = sql_scripts_remote_path()?.join(game.key());
         actions_ui.scripts_to_execute().read().unwrap()
             .iter()
             .filter(|(_, item, _)| item.is_checked())
@@ -179,10 +180,19 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
                     script_params
                 };
 
-                if script_params.is_empty() {
-                    cmd.arg(sql_folder.join(format!("{key}.sql")));
+                // When there's a collision, default to the local script path.
+                let local_script_path = sql_folder_local.join(format!("{key}.sql"));
+                let remote_script_path = sql_folder_remote.join(format!("{key}.sql"));
+                let script_path = if PathBuf::from(&local_script_path).is_file() {
+                    local_script_path
                 } else {
-                    cmd.arg(sql_folder.join(format!("{key}.sql;{}", script_params.join(";"))));
+                    remote_script_path
+                };
+
+                if script_params.is_empty() {
+                    cmd.arg(script_path);
+                } else {
+                    cmd.arg(format!("{};{}", script_path.to_string_lossy().to_string().replace("\\", "/"), script_params.join(";")));
                 }
             });
 
@@ -512,7 +522,21 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
             }
         }
 
-        let sql_script_paths = files_from_subdir(&sql_scripts_path()?.join(game.key()), false)?;
+        let local_folder = sql_scripts_local_path()?;
+        let remote_folder = sql_scripts_remote_path()?;
+        let mut sql_script_paths = files_from_subdir(&local_folder.join(game.key()), false)?;
+
+        // Only add remote paths if they don't collide with local paths, as local paths take priority.
+        if let Ok(remote_files) = files_from_subdir(&remote_folder.join(game.key()), false) {
+            for remote_file in &remote_files {
+                if let Ok(relative_path) = remote_file.strip_prefix(&remote_folder) {
+                    if !local_folder.join(relative_path).is_file() {
+                        sql_script_paths.push(remote_file.to_path_buf());
+                    }
+                }
+            }
+        }
+
         let mut script_items = app_ui.actions_ui().scripts_to_execute().write().unwrap();
         script_items.clear();
 

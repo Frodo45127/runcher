@@ -158,6 +158,10 @@ const PATREON_URL: &str = "https://www.patreon.com/RPFM";
 const FALLBACK_LOCALE_EN: &str = include_str!("../../locale/English_en.ftl");
 const SENTRY_DSN_KEY: &str = "https://4c058b715c304d55b928c3e44a63b4ff@o152833.ingest.sentry.io/4504851217711104";
 
+const SQL_SCRIPTS_REPO: &str = "https://github.com/Frodo45127/twpatcher-sql-scripts";
+const SQL_SCRIPTS_BRANCH: &str = "master";
+const SQL_SCRIPTS_REMOTE: &str = "origin";
+
 fn main() {
 
     // This needs to be initialised before anything else.

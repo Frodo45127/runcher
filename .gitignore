@@ -13,6 +13,10 @@
 # Packs created on launch.
 /temp_packs/
 
+# SQL Scripts folders
+/sql_scripts_local/
+/sql_scripts_remote/
+
 # Translation folders.
 /translations_local/
 /translations_remote/

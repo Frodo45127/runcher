@@ -38,6 +38,7 @@ use super::UpdaterUI;
 pub struct UpdaterUISlots {
     update_program: QBox<SlotNoArgs>,
     update_schemas: QBox<SlotNoArgs>,
+    update_sql_scripts: QBox<SlotNoArgs>,
 }
 
 //-------------------------------------------------------------------------------//
@@ -110,9 +111,38 @@ impl UpdaterUISlots {
             }
         ));
 
+        let update_sql_scripts = SlotNoArgs::new(ui.main_widget(), clone!(
+            app_ui,
+            ui => move || {
+                let receiver = CENTRAL_COMMAND.send_background(Command::UpdateSqlScripts);
+                ui.update_sql_scripts_button.set_text(&qtr("updater_update_sql_scripts_updating"));
+                ui.update_sql_scripts_button.set_enabled(false);
+
+                let response = CENTRAL_COMMAND.recv_try(&receiver);
+                match response {
+                    Response::Success => {
+
+                        // We need to reload the game in question, so the script list is updated.
+                        if let Err(error) = app_ui.change_game_selected(true, true) {
+                            show_dialog(ui.dialog(), error, false);
+                            ui.update_sql_scripts_button.set_text(&qtr("updater_update_sql_scripts_error"));
+                        } else {
+                            ui.update_sql_scripts_button.set_text(&qtr("updater_update_sql_scripts_updated"));
+                        }
+                    },
+                    Response::Error(error) => {
+                        show_dialog(ui.dialog(), error, false);
+                        ui.update_sql_scripts_button.set_text(&qtr("updater_update_sql_scripts_error"));
+                    }
+                    _ => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
+                }
+            }
+        ));
+
         Self {
             update_program,
             update_schemas,
+            update_sql_scripts
         }
     }
 }

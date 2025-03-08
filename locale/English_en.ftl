@@ -137,6 +137,7 @@ schema_no_update = <h4>No new schema updates available</h4> <p>More luck next ti
 schema_new_update = <h4>New schema update available</h4> <p>Do you want to update the schemas?</p>
 schema_update_success = <h4>Schemas updated and reloaded</h4><p>You can continue using Runcher now.</p>
 check_schema_updates_on_start = Check Schema Updates on Start
+check_sql_scripts_updates_on_start = Check SQL Scripts Updates
 
 steam_user_id = Steam User Id
 merge_all_mods = Merge All Mods
@@ -161,12 +162,15 @@ updater_info = <p>This is the central update manager for Runcher. What each butt
             </ul>
         </li>
         <li><b>Schema Updates</b>: These files are required for some of the launch options. If you don't have them, some of the options may not work.</li>
+        <li><b>SQL Scripts Updates</b>: These files are required for some of the launch options. If you don't have them, some of the options will not show up.</li>
     </ul>
 
 updater_update_schemas = Schema Updates:
 updater_update_program = Program Updates:
+updater_update_sql_scripts = SQL Scripts Updates:
 updater_update_schemas_checking = Checking, pls wait...
 updater_update_program_checking = Checking, pls wait...
+updater_update_sql_scripts_checking = Checking, pls wait...
 
 updater_update_program_available = Update {"{"}{"}"} available!
 updater_update_program_no_updates = No updates found.
@@ -176,6 +180,11 @@ updater_update_schemas_no_updates = No update found.
 
 updater_update_schemas_error = Error updating schemas.
 updater_update_schemas_updated = Schemas updated!
+
+updater_update_sql_scripts_available = Update available!
+updater_update_sql_scripts_no_updates = No update found.
+updater_update_sql_scripts_error = Error updating SQL Scripts.
+updater_update_sql_scripts_updated = SQL Scripts updated!
 
 updater_update_program_error = Error updating Runcher.
 updater_update_program_updated = Runcher updated! Click here to restart it.
@@ -189,6 +198,7 @@ automatic_mode_tooltip = Automatic Mode
 
 updater_update_program_updating = Updating, pls wait...
 updater_update_schemas_updating = Updating, pls wait...
+updater_update_sql_scripts_updating = Updating, pls wait...
 
 are_you_sure_title = Are you sure?
 profile_manager = Profile Manager

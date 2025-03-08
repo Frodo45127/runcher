@@ -353,7 +353,7 @@ impl AppUISlots {
 
         let check_updates = SlotNoArgs::new(&view.main_window, clone!(
             view => move || {
-                if let Err(error) = UpdaterUI::new(&view, None, None) {
+                if let Err(error) = UpdaterUI::new(&view, None, None, None) {
                     show_dialog(view.main_window(), error, false)
                 }
             }
