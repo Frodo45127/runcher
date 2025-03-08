@@ -21,10 +21,8 @@ use std::path::{Path, PathBuf};
 
 use rpfm_lib::files::pack::Pack;
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
-use rpfm_lib::integrations::log::*;
 use rpfm_lib::utils::{path_to_absolute_path, path_to_absolute_string};
 
-use crate::mod_manager::SECONDARY_FOLDER_NAME;
 use crate::settings_ui::game_config_path;
 
 use super::game_config::GameConfig;
@@ -104,13 +102,13 @@ impl LoadOrder {
         Ok(())
     }
 
-    pub fn update(&mut self, game_config: &GameConfig, game_data_path: &Path) {
+    pub fn update(&mut self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path) {
         self.movies.clear();
 
         if self.automatic {
-            self.build_automatic(game_config, game_data_path);
+            self.build_automatic(game_config, game, game_data_path);
         } else {
-            self.build_manual(game_config, game_data_path);
+            self.build_manual(game_config, game, game_data_path);
         }
 
         // After the order is built, reload the enabled packs.
@@ -127,15 +125,15 @@ impl LoadOrder {
     }
 
     /// Automatic builds means the user input is ignored, and mods are sorted alphabetically.
-    pub fn build_automatic(&mut self, game_config: &GameConfig, game_data_path: &Path) {
+    pub fn build_automatic(&mut self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path) {
         self.mods.clear();
 
-        self.build_movies(game_config, game_data_path);
+        self.build_movies(game_config, game, game_data_path);
 
         // Pre-sort the mods, with movie mods at the end.
         self.mods = game_config.mods()
             .values()
-            .filter(|modd| modd.enabled(game_data_path) && *modd.pack_type() == PFHFileType::Mod && !modd.paths().is_empty())
+            .filter(|modd| modd.enabled(game, game_data_path) && *modd.pack_type() == PFHFileType::Mod && !modd.paths().is_empty())
             .map(|modd| modd.id().to_string())
             .collect::<Vec<_>>();
 
@@ -171,12 +169,12 @@ impl LoadOrder {
     /// Manual builds means keep the current order, remove deleted mods, and add new ones to the end.
     ///
     /// The user will take care of the rest of the re-ordering.
-    pub fn build_manual(&mut self, game_config: &GameConfig, game_data_path: &Path) {
-        self.build_movies(game_config, game_data_path);
+    pub fn build_manual(&mut self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path) {
+        self.build_movies(game_config, game, game_data_path);
 
         let enabled_mods = game_config.mods()
             .values()
-            .filter(|modd| modd.enabled(game_data_path) && *modd.pack_type() == PFHFileType::Mod && !modd.paths().is_empty())
+            .filter(|modd| modd.enabled(game, game_data_path) && *modd.pack_type() == PFHFileType::Mod && !modd.paths().is_empty())
             .map(|modd| modd.id().to_string())
             .collect::<Vec<_>>();
 
@@ -190,12 +188,12 @@ impl LoadOrder {
         })
     }
 
-    fn build_movies(&mut self, game_config: &GameConfig, game_data_path: &Path) {
+    fn build_movies(&mut self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path) {
 
         // Movies are still automatic, even in manual mode.
         self.movies = game_config.mods()
             .values()
-            .filter(|modd| modd.enabled(game_data_path) && *modd.pack_type() == PFHFileType::Movie && !modd.paths().is_empty())
+            .filter(|modd| modd.enabled(game, game_data_path) && *modd.pack_type() == PFHFileType::Movie && !modd.paths().is_empty())
             .map(|modd| modd.id().to_string())
             .collect::<Vec<_>>();
 
@@ -223,76 +221,33 @@ impl LoadOrder {
     pub fn build_load_order_string(&self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path, pack_string: &mut String, folder_paths: &mut String) {
         let mut added_secondary_folder = false;
         let secondary_mods_path = secondary_mods_path(game.key()).unwrap_or_else(|_| PathBuf::new());
-        let secondary_mods_masks_path = path_to_absolute_path(&secondary_mods_path.join(SECONDARY_FOLDER_NAME), true);
         let game_data_path = game_data_path.canonicalize().unwrap();
         let mut folder_paths_mods = String::new();
 
         for mod_id in self.mods() {
-            if let Some(modd) = game_config.mods().get(mod_id) {
-
-                if modd.paths().is_empty() {
-                    warn!("Tried to load a mod without packs. How the fuck did you do it?");
-                    continue;
-                }
-
-                // Check if the mod is from /data, /secondary or /content.
-                //
-                // Loading from content is only supported on Rome2 and later games.
-                //
-                // Loading from secondary is only supported on a fully updated Shogun 2 and later games.
-                //
-                // Also, Shogun 2 requires some custom file management to move and convert mods to /data, but that's not done here.
-                let pack_name = modd.paths()[0].file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                let path = &modd.paths()[0];
-                if !path.starts_with(&game_data_path) && *game.raw_db_version() >= 1 {
-                    let mut folder_path = path_to_absolute_path(path, false);
-                    folder_path.pop();
-
-                    // If it's the secondary folder, just add it once. If it's the contents folder, add one per mod.
-                    let folder_path_str = path_to_absolute_string(&folder_path);
-                    if secondary_mods_path.is_dir() && folder_path == secondary_mods_path {
-                        if !added_secondary_folder {
-
-                            // We have to add both, the secondary folder and the masking folder, so movie packs in secondary can be toggled by using masks.
-                            folder_paths_mods.insert_str(0, &format!("add_working_directory \"{}\";\n", folder_path_str));
-                            folder_paths_mods.insert_str(0, &format!("add_working_directory \"{}\";\n", secondary_mods_masks_path.to_string_lossy()));
-                            added_secondary_folder = true;
-                        }
-                    } else {
-                        folder_paths_mods.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
-                    }
-                }
-
-                if !pack_string.is_empty() {
-                    pack_string.push('\n');
-                }
-
-                pack_string.push_str(&format!("mod \"{}\";", &pack_name));
-            }
+            self.process_mod(game_config, game, &game_data_path, pack_string, &mut folder_paths_mods, mod_id, &mut added_secondary_folder, &secondary_mods_path);
         }
 
         // Once we're done loading mods, we need to check for toggleable movie packs and add their paths as working folders if they're enabled.
         for mod_id in self.movies() {
-            if let Some(modd) = game_config.mods().get(mod_id) {
-                if modd.can_be_toggled(&game_data_path) {
+            self.process_mod(game_config, game, &game_data_path, pack_string, &mut folder_paths_mods, mod_id, &mut added_secondary_folder, &secondary_mods_path);
+        }
 
-                    // This only works for Rome 2 and later games.
-                    if *game.raw_db_version() >= 1 {
-                        let mut folder_path = path_to_absolute_path(&modd.paths()[0], false);
+        // Movie exclusions are done in the last step. We need to go through all the movie mods, and make sure to add an exclusion if they're disabled and in data or in secondary.
+        for modd in game_config.mods().values() {
+            if !modd.enabled(game, &game_data_path) && *modd.pack_type() == PFHFileType::Movie {
+
+                // This only works for Rome 2 and later games.
+                if *game.raw_db_version() >= 1 {
+                    if let Some(path) = modd.paths().first() {
+                        let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
+
+                        let mut folder_path = path_to_absolute_path(&path, false);
                         folder_path.pop();
 
-                        // If it's the secondary folder, just add it once. If it's the contents folder, add one per mod.
-                        let folder_path_str = path_to_absolute_string(&folder_path);
-                        if secondary_mods_path.is_dir() && folder_path == secondary_mods_path {
-                            if !added_secondary_folder {
-
-                                // We have to add both, the secondary folder and the masking folder, so movie packs in secondary can be toggled by using masks.
-                                folder_paths_mods.insert_str(0, &format!("add_working_directory \"{}\";\n", folder_path_str));
-                                folder_paths_mods.insert_str(0, &format!("add_working_directory \"{}\";\n", secondary_mods_masks_path.to_string_lossy()));
-                                added_secondary_folder = true;
-                            }
-                        } else {
-                            folder_paths_mods.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
+                        // If it's the secondary folder and we're using it for another pack, or it's in data, add an exclusion for it.
+                        if (secondary_mods_path.is_dir() && folder_path == secondary_mods_path && added_secondary_folder) || path.starts_with(&game_data_path) {
+                            pack_string.push_str(&format!("\nexclude_pack_file \"{}\";", &pack_name));
                         }
                     }
                 }
@@ -300,5 +255,55 @@ impl LoadOrder {
         }
 
         folder_paths.push_str(&folder_paths_mods);
+    }
+
+    fn process_mod(
+        &self,
+        game_config: &GameConfig,
+        game: &GameInfo,
+        game_data_path: &Path,
+        pack_string: &mut String,
+        folder_paths: &mut String,
+        mod_id: &str,
+        added_secondary_folder: &mut bool,
+        secondary_mods_path: &PathBuf
+    ) {
+        if let Some(modd) = game_config.mods().get(mod_id) {
+
+            // Check if the mod is from /data, /secondary or /content.
+            //
+            // Loading from content is only supported on Rome2 and later games.
+            //
+            // Loading from secondary is only supported on a fully updated Shogun 2 and later games.
+            //
+            // Also, Shogun 2 requires some custom file management to move and convert mods to /data, but that's not done here.
+            if let Some(path) = modd.paths().first() {
+                let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
+                if !path.starts_with(&game_data_path) && *game.raw_db_version() >= 1 {
+                    let mut folder_path = path_to_absolute_path(path, false);
+                    folder_path.pop();
+
+                    // If it's the secondary folder, just add it once. If it's the contents folder, add one per mod.
+                    let folder_path_str = path_to_absolute_string(&folder_path);
+                    if secondary_mods_path.is_dir() && folder_path == *secondary_mods_path && !*added_secondary_folder {
+
+                        // We have to add both, the secondary folder and the masking folder, so movie packs in secondary can be toggled by using masks.
+                        folder_paths.insert_str(0, &format!("add_working_directory \"{}\";\n", folder_path_str));
+                        *added_secondary_folder = true;
+                    } else {
+                        folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
+                    }
+                }
+
+                if !pack_string.is_empty() {
+                    pack_string.push('\n');
+                }
+
+                // Only mods need to be added to the pack string.
+                if *modd.pack_type() == PFHFileType::Mod {
+                    pack_string.push_str(&format!("mod \"{}\";", &pack_name));
+                }
+            }
+        }
     }
 }

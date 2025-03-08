@@ -35,8 +35,6 @@ pub mod mods;
 pub mod profiles;
 pub mod saves;
 
-pub const SECONDARY_FOLDER_NAME: &str = "masks";
-
 pub fn copy_to_secondary(game: &GameInfo, game_config: &GameConfig, mod_ids: &[String]) -> Result<Vec<String>> {
     let mut mods_failed = vec![];
 

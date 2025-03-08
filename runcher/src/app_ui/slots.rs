@@ -298,7 +298,7 @@ impl AppUISlots {
                     if let Ok(game_data_path) = game_info.data_path(&game_path) {
 
                         let mut load_order = view.game_load_order().write().unwrap();
-                        load_order.update(game_config, &game_data_path);
+                        load_order.update(game_config, &game_info, &game_data_path);
 
                         if let Err(error) = load_order.save(&game_info) {
                             show_dialog(view.main_window(), error, false);
@@ -369,7 +369,7 @@ impl AppUISlots {
                     if let Ok(game_data_path) = game_info.data_path(&game_path) {
 
                         let load_order = view.game_load_order().read().unwrap().clone();
-                        let receiver = CENTRAL_COMMAND.send_background(Command::GetStringFromLoadOrder(game_config.clone(), game_data_path, load_order));
+                        let receiver = CENTRAL_COMMAND.send_background(Command::GetStringFromLoadOrder(game_config.clone(), game_info.clone(), game_data_path, load_order));
                         let response = CENTRAL_COMMAND.recv_try(&receiver);
                         match response {
                             Response::String(response) => {
@@ -618,7 +618,7 @@ impl AppUISlots {
                     if let Ok(game_data_path) = game.data_path(&game_path) {
                         let mut load_order = view.game_load_order().write().unwrap();
                         load_order.set_automatic(toggled);
-                        load_order.update(game_config, &game_data_path);
+                        load_order.update(game_config, &game, &game_data_path);
 
                         if let Err(error) = load_order.save(&game) {
                             return show_dialog(view.main_window(), error, false);

@@ -16,6 +16,7 @@ use zstd::stream::*;
 
 use std::path::{Path, PathBuf};
 
+use rpfm_lib::games::GameInfo;
 use rpfm_lib::integrations::{git::*, log::*};
 use rpfm_lib::schema::*;
 
@@ -85,8 +86,8 @@ pub fn background_loop() {
                 }
             }
 
-            Command::GetStringFromLoadOrder(game_config, game_data_path, load_order) => {
-                match get_string_from_load_order(game_config, &game_data_path, load_order) {
+            Command::GetStringFromLoadOrder(game_config, game, game_data_path, load_order) => {
+                match get_string_from_load_order(game_config, &game, &game_data_path, load_order) {
                     Ok(encoded) => CentralCommand::send_back(&sender, Response::String(encoded)),
                     Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
                 }
@@ -104,11 +105,11 @@ pub fn background_loop() {
     }
 }
 
-fn get_string_from_load_order(game_config: GameConfig, game_data_path: &Path, load_order: LoadOrder) -> Result<String> {
+fn get_string_from_load_order(game_config: GameConfig, game: &GameInfo, game_data_path: &Path, load_order: LoadOrder) -> Result<String> {
     let mods = load_order.mods()
         .par_iter()
         .filter_map(|mod_id| game_config.mods().get(mod_id))
-        .filter(|modd| modd.enabled(game_data_path) && !modd.paths().is_empty())
+        .filter(|modd| modd.enabled(game, game_data_path) && !modd.paths().is_empty())
         .map(ShareableMod::from)
         .collect::<Vec<_>>();
 

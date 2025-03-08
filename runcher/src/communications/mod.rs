@@ -57,7 +57,7 @@ pub enum Command {
     CheckSqlScriptsUpdates,
     UpdateSqlScripts,
     UpdateSchemas(String),
-    GetStringFromLoadOrder(GameConfig, PathBuf, LoadOrder),
+    GetStringFromLoadOrder(GameConfig, GameInfo, PathBuf, LoadOrder),
     GetLoadOrderFromString(ImportedLoadOrderMode),
     RequestModsData(Box<GameInfo>, Vec<String>),
 }

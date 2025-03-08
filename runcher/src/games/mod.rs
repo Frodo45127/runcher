@@ -459,7 +459,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
         let mut load_order = app_ui.game_load_order().read().unwrap().clone();
         if let Ok(game_data_path) = game.data_path(game_path) {
             if let Some(ref game_config) = *app_ui.game_config().read().unwrap() {
-                load_order.update(game_config, &game_data_path);
+                load_order.update(game_config, game, &game_data_path);
 
                 let mut packs_for_rebalancer = load_order.packs().iter()
                     .filter_map(|(key, pack)| {

@@ -15,7 +15,8 @@ use sha256::try_digest;
 
 use std::path::{Path, PathBuf};
 
-use rpfm_lib::{games::pfh_file_type::PFHFileType, utils::path_to_absolute_string};
+use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
+use rpfm_lib::utils::path_to_absolute_string;
 
 pub mod versions;
 
@@ -186,47 +187,54 @@ impl Mod {
     }
 
     /// Returns if the mod is enabled or not.
-    pub fn enabled(&self, data_path: &Path) -> bool {
+    pub fn enabled(&self, game: &GameInfo, data_path: &Path) -> bool {
 
         // For mod packs we just return it.
-        // For movie packs:
+        // For movie packs in Shogun 2 and newer games, just return it.
+        // For movie packs in Empire and Napoleon:
         // - If it's in /data it's always enabled.
         // - If it's in /secondary or /content, we respect the bool.
         if self.pack_type == PFHFileType::Mod {
             self.enabled
-        } else if let Some(path) = self.paths().first() {
-            let data_path_str = path_to_absolute_string(data_path);
-            let path_str = path_to_absolute_string(path);
-
-            if path_str.starts_with(&data_path_str) {
-                true
-            } else {
+        } else if self.pack_type == PFHFileType::Movie {
+            if *game.raw_db_version() >= 1 {
                 self.enabled
+            } else if let Some(path) = self.paths().first() {
+                if path.starts_with(&data_path) {
+                    true
+                } else {
+                    self.enabled
+                }
             }
-        }
 
-        // If no path is found, this is not a mod we have in use.
-        else {
+            // If no path is found, this is not a mod we have in use.
+            else {
+                false
+            }
+        } else {
             false
         }
     }
 
+    // TODO: add some control here so you can't set enabled to false on older movies.
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
 
-    pub fn can_be_toggled(&self, data_path: &Path) -> bool {
+    pub fn can_be_toggled(&self, game: &GameInfo, data_path: &Path) -> bool {
+
+        // Same checks as in the "enabled" function.
         if self.pack_type == PFHFileType::Mod {
             true
-        } else if let Some(path) = self.paths().first() {
-            let data_path_str = path_to_absolute_string(data_path);
-            let path_str = path_to_absolute_string(path);
-
-            !path_str.starts_with(&data_path_str)
-        }
-
-        // If no path is found, this is not a mod we have in use.
-        else {
+        } else if self.pack_type == PFHFileType::Movie {
+            if *game.raw_db_version() >= 1 {
+                true
+            } else if let Some(path) = self.paths().first() {
+                !path.starts_with(&data_path)
+            } else {
+                false
+            }
+        } else {
             false
         }
     }
