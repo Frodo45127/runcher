@@ -162,6 +162,9 @@ const SQL_SCRIPTS_REPO: &str = "https://github.com/Frodo45127/twpatcher-sql-scri
 const SQL_SCRIPTS_BRANCH: &str = "master";
 const SQL_SCRIPTS_REMOTE: &str = "origin";
 
+const REPO_OWNER: &str = "Frodo45127";
+const REPO_NAME: &str = "runcher";
+
 fn main() {
 
     // This needs to be initialised before anything else.

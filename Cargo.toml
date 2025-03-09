@@ -2,6 +2,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "common_utils",
     "twpatcher",
     "workshopper",
     "runcher",

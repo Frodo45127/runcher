@@ -14,6 +14,7 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+common_utils = { path = "../common_utils", version = "^0.1" }
 
 # Internal dependencies.
 rpfm_lib = { git = "https://github.com/Frodo45127/rpfm.git", branch = "develop", features = ["integration_log", "integration_git"] }
@@ -68,12 +69,6 @@ time = { version = "^0.3", features = ["formatting"] }
 
 # Better iterator support.
 itertools = "^0.14"
-
-# Autoupdate support.
-self_update = { version = "^0.42", features = ["archive-zip", "compression-zip-deflate", "compression-zip-bzip2", "compression-flate2"] }
-tempfile = "^3.8"
-zip-extract = "^0.2"
-reqwest = "^0.12"
 
 # CLI parsing, formatting and color support.
 clap = { version = "^4", features = ["derive", "wrap_help"] }

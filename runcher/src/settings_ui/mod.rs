@@ -49,6 +49,8 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::UNIX_EPOCH;
 
+use common_utils::updater::UpdateChannel;
+
 use rpfm_lib::games::{GameInfo, supported_games::{KEY_ARENA, KEY_WARHAMMER_3}};
 
 use rpfm_ui_common::locale::*;
@@ -392,7 +394,8 @@ impl SettingsUI {
         }
 
         for (index, update_channel_name) in [UpdateChannel::Stable, UpdateChannel::Beta].iter().enumerate() {
-            if update_channel_name == &update_channel() {
+            let channel: UpdateChannel = TryFrom::try_from(&*setting_string("update_channel"))?;
+            if update_channel_name == &channel {
                 self.update_chanel_combobox.set_current_index(index as i32);
                 break;
             }

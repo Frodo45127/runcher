@@ -21,6 +21,7 @@ use std::rc::Rc;
 
 use rpfm_ui_common::clone;
 use rpfm_ui_common::locale::qtr;
+use rpfm_ui_common::settings::setting_string;
 use rpfm_ui_common::utils::show_dialog;
 
 use crate::app_ui::AppUI;
@@ -50,7 +51,8 @@ impl UpdaterUISlots {
     pub unsafe fn new(ui: &Rc<UpdaterUI>, app_ui: &Rc<AppUI>) -> Self {
         let update_program = SlotNoArgs::new(ui.main_widget(), clone!(
             ui => move || {
-                let receiver = CENTRAL_COMMAND.send_background(Command::UpdateMainProgram);
+                let channel = TryFrom::try_from(&*setting_string("update_channel")).unwrap();
+                let receiver = CENTRAL_COMMAND.send_background(Command::UpdateMainProgram(channel));
                 ui.update_program_button.set_text(&qtr("updater_update_schemas_updating"));
                 ui.update_program_button.set_enabled(false);
 

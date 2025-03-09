@@ -17,11 +17,12 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use common_utils::updater::*;
+
 use rpfm_lib::games::GameInfo;
 use rpfm_lib::integrations::{log::info, git::GitResponse};
 
 use crate::mod_manager::{game_config::GameConfig, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::{Mod, ShareableMod}};
-use crate::updater_ui::APIResponse;
 
 /// This const is the standard message in case of message communication error. If this happens, crash the program.
 pub const THREADS_COMMUNICATION_ERROR: &str = "Error in thread communication system. Response received: ";
@@ -51,8 +52,8 @@ pub struct CentralCommand<T: Send + Sync + Debug> {
 #[derive(Debug)]
 pub enum Command {
     Exit,
-    CheckUpdates,
-    UpdateMainProgram,
+    CheckUpdates(UpdateChannel),
+    UpdateMainProgram(UpdateChannel),
     CheckSchemaUpdates,
     CheckSqlScriptsUpdates,
     UpdateSqlScripts,

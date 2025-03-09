@@ -12,6 +12,8 @@ use crossbeam::channel::Sender;
 
 use std::path::PathBuf;
 
+use common_utils::updater::Updater;
+
 use rpfm_lib::integrations::{git::*, log::*};
 use rpfm_lib::schema::*;
 use rpfm_ui_common::settings::error_path;
@@ -20,7 +22,7 @@ use crate::{sql_scripts_remote_path, CENTRAL_COMMAND, SQL_SCRIPTS_BRANCH, SQL_SC
 use crate::communications::*;
 use crate::mod_manager::integrations::request_mods_data;
 use crate::settings_ui::schemas_path;
-use crate::updater_ui::check_updates_main_program;
+use crate::{REPO_NAME, REPO_OWNER};
 
 /// This is the network loop that's going to be executed in a parallel thread to the UI. No UI or "Unsafe" stuff here.
 ///
@@ -45,8 +47,9 @@ pub fn network_loop() {
             Command::Exit => return,
 
             // When we want to check if there is an update available for RPFM...
-            Command::CheckUpdates => {
-                match check_updates_main_program() {
+            Command::CheckUpdates(channel) => {
+                let updater = Updater::new(channel, REPO_OWNER, REPO_NAME);
+                match updater.check() {
                     Ok(response) => CentralCommand::send_back(&sender, Response::APIResponse(response)),
                     Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
                 }

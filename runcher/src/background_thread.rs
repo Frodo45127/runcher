@@ -16,6 +16,8 @@ use zstd::stream::*;
 
 use std::path::{Path, PathBuf};
 
+use common_utils::updater::Updater;
+
 use rpfm_lib::games::GameInfo;
 use rpfm_lib::integrations::{git::*, log::*};
 use rpfm_lib::schema::*;
@@ -27,6 +29,7 @@ use crate::communications::*;
 use crate::mod_manager::{game_config::GameConfig, load_order::{ImportedLoadOrderMode, LoadOrder}, mods::ShareableMod};
 use crate::settings_ui::schemas_path;
 use crate::SCHEMA;
+use crate::{REPO_NAME, REPO_OWNER};
 
 /// This is the background loop that's going to be executed in a parallel thread to the UI. No UI or "Unsafe" stuff here.
 ///
@@ -49,8 +52,9 @@ pub fn background_loop() {
 
             Command::Exit => return,
 
-            Command::UpdateMainProgram => {
-                match crate::updater_ui::update_main_program() {
+            Command::UpdateMainProgram(channel) => {
+                let updater = Updater::new(channel, REPO_OWNER, REPO_NAME);
+                match updater.download() {
                     Ok(_) => CentralCommand::send_back(&sender, Response::Success),
                     Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
                 }
@@ -100,7 +104,7 @@ pub fn background_loop() {
                 }
             }
 
-            Command::CheckUpdates | Command::CheckSchemaUpdates | Command::CheckSqlScriptsUpdates | Command::RequestModsData(_,_) => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
+            Command::CheckUpdates(_) | Command::CheckSchemaUpdates | Command::CheckSqlScriptsUpdates | Command::RequestModsData(_,_) => panic!("{THREADS_COMMUNICATION_ERROR}{response:?}"),
         }
     }
 }
