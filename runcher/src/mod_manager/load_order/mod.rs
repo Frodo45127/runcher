@@ -242,7 +242,7 @@ impl LoadOrder {
                     if let Some(path) = modd.paths().first() {
                         let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
 
-                        let mut folder_path = path_to_absolute_path(&path, false);
+                        let mut folder_path = path_to_absolute_path(path, false);
                         folder_path.pop();
 
                         // If it's the secondary folder and we're using it for another pack, or it's in data, add an exclusion for it.
@@ -279,7 +279,7 @@ impl LoadOrder {
             // Also, Shogun 2 requires some custom file management to move and convert mods to /data, but that's not done here.
             if let Some(path) = modd.paths().first() {
                 let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
-                if !path.starts_with(&game_data_path) && *game.raw_db_version() >= 1 {
+                if !path.starts_with(game_data_path) && *game.raw_db_version() >= 1 {
                     let mut folder_path = path_to_absolute_path(path, false);
                     folder_path.pop();
 

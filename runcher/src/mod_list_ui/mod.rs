@@ -413,10 +413,10 @@ impl ModListUI {
                                 item_mod_name.set_data_2a(&QVariant::from_bool(false), VALUE_IS_CATEGORY);
                                 item_mod_name.set_data_2a(&QVariant::from_q_string(&QString::from_std_str(modd.pack_type().to_string())), VALUE_PACK_TYPE);
 
-                                if modd.can_be_toggled(&game, &game_data_path) {
+                                if modd.can_be_toggled(game, &game_data_path) {
                                     item_mod_name.set_checkable(true);
 
-                                    if modd.enabled(&game, &game_data_path) {
+                                    if modd.enabled(game, &game_data_path) {
                                         item_mod_name.set_check_state(CheckState::Checked);
                                     }
                                 }

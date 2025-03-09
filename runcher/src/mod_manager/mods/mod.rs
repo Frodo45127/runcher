@@ -200,7 +200,7 @@ impl Mod {
             if *game.raw_db_version() >= 1 {
                 self.enabled
             } else if let Some(path) = self.paths().first() {
-                if path.starts_with(&data_path) {
+                if path.starts_with(data_path) {
                     true
                 } else {
                     self.enabled
@@ -230,7 +230,7 @@ impl Mod {
             if *game.raw_db_version() >= 1 {
                 true
             } else if let Some(path) = self.paths().first() {
-                !path.starts_with(&data_path)
+                !path.starts_with(data_path)
             } else {
                 false
             }
