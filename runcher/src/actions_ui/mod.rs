@@ -36,6 +36,8 @@ use getset::*;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
+use common_utils::sql::{ParamType, SQLScript};
+
 use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::settings::*;
 use rpfm_ui_common::utils::*;
@@ -61,7 +63,7 @@ pub struct ActionsUI {
     universal_rebalancer_combobox: QBox<QComboBox>,
     enable_dev_only_ui_checkbox: QBox<QCheckBox>,
     scripts_container: QBox<QWidget>,
-    scripts_to_execute: Arc<RwLock<Vec<(String, QBox<QCheckBox>, Vec<(String, String, String, String)>)>>>,
+    scripts_to_execute: Arc<RwLock<Vec<(SQLScript, QBox<QCheckBox>)>>>,
 
     settings_button: QPtr<QToolButton>,
     folders_button: QPtr<QToolButton>,
@@ -94,8 +96,7 @@ pub struct ActionsUI {
 
 impl ActionsUI {
 
-
-    pub unsafe fn new_launch_script_option(&self, game_key: &str, icon_key: &str, script_info: &(String, String, Vec<(String, String, String, String)>)) -> QBox<QCheckBox> {
+    pub unsafe fn new_launch_script_option(&self, game_key: &str, icon_key: &str, script: &SQLScript) -> QBox<QCheckBox> {
         let container = QWidget::new_1a(self.scripts_container());
         let params_container = QWidget::new_1a(&container);
         let param_layout = create_grid_layout(params_container.static_upcast());
@@ -103,26 +104,45 @@ impl ActionsUI {
 
         let game_key = game_key.to_owned();
 
-        let script_key = script_info.0.to_owned();
-        let script_pretty_name = &script_info.1;
-        let script_params = &script_info.2;
+        let script_key = script.metadata().key();
+        let script_pretty_name = script.metadata().name();
+        let script_params = script.metadata().parameters();
 
         let settings = settings();
 
+        // If we have params, add a small combo widget for selecting possible prefabs.
+        if !script_params.is_empty() {
+            let label_text = QLabel::from_q_string_q_widget(&qtr("preset"), &params_container);
+            let preset_combo = QComboBox::new_1a(&params_container);
+            preset_combo.add_item_q_string(&QString::new());
+
+            param_layout.add_widget_5a(&label_text, 0, 0, 1, 1);
+            param_layout.add_widget_5a(&preset_combo, 0, 1, 1, 1);
+
+            // TODO: Only do this if we have said preset in the files.
+            let setting = format!("script_to_execute_{}_{}_preset", game_key, script_key);
+            if settings.value_1a(&QString::from_std_str(&setting)).is_valid() {
+                preset_combo.set_current_text(&QString::from_std_str(setting_string(&setting)));
+            }
+
+            label_text.set_visible(false);
+            preset_combo.set_visible(false);
+        }
+
         for (index, param) in script_params.iter().enumerate() {
-            let param_key = param.0.to_owned();
-            let param_type = &param.1;
-            let param_default = &param.2;
-            let param_name = &param.3;
+            let param_key = param.key();
+            let param_type = param.r#type();
+            let param_default = param.default_value();
+            let param_name = param.name();
 
             let label_text = QLabel::from_q_string_q_widget(&QString::from_std_str(param_name), &params_container);
-            param_layout.add_widget_5a(&label_text, index as i32, 0, 1, 1);
+            param_layout.add_widget_5a(&label_text, index as i32 + 1, 0, 1, 1);
 
             let setting = format!("script_to_execute_{}_{}_{}", game_key, script_key, param_key);
             let use_default = !settings.value_1a(&QString::from_std_str(&setting)).is_valid();
 
-            match &**param_type {
-                "bool" => {
+            match param_type {
+                ParamType::Bool => {
                     let widget = QCheckBox::from_q_widget(&params_container);
                     widget.set_object_name(&QString::from_std_str(format!("{script_key}_{param_key}")));
 
@@ -133,12 +153,12 @@ impl ActionsUI {
                         widget.set_checked(setting_bool(&setting));
                     }
 
-                    param_layout.add_widget_5a(&widget, index as i32, 1, 1, 1);
+                    param_layout.add_widget_5a(&widget, index as i32 + 1, 1, 1, 1);
                     widget.toggled().connect(&SlotOfBool::new(&params_container, move |state| {
                         set_setting_bool(&setting, state);
                     }));
                 },
-                "integer" => {
+                ParamType::Integer => {
                     let widget = QSpinBox::new_1a(&params_container);
                     widget.set_object_name(&QString::from_std_str(format!("{script_key}_{param_key}")));
 
@@ -149,12 +169,12 @@ impl ActionsUI {
                         widget.set_value(setting_int(&setting));
                     }
 
-                    param_layout.add_widget_5a(&widget, index as i32, 1, 1, 1);
+                    param_layout.add_widget_5a(&widget, index as i32 + 1, 1, 1, 1);
                     widget.value_changed().connect(&SlotOfInt::new(&params_container, move |value| {
                         set_setting_int(&setting, value);
                     }));
                 },
-                "float" => {
+                ParamType::Float => {
                     let widget = QDoubleSpinBox::new_1a(&params_container);
                     widget.set_object_name(&QString::from_std_str(format!("{script_key}_{param_key}")));
 
@@ -165,12 +185,11 @@ impl ActionsUI {
                         widget.set_value(setting_f32(&setting) as f64);
                     }
 
-                    param_layout.add_widget_5a(&widget, index as i32, 1, 1, 1);
+                    param_layout.add_widget_5a(&widget, index as i32 + 1, 1, 1, 1);
                     widget.value_changed().connect(&SlotOfDouble::new(&params_container, move |value| {
                         set_setting_f32(&setting, value as f32);
                     }));
                 },
-                _ => {},
             }
         }
 

@@ -14,11 +14,11 @@ use qt_core::QString;
 
 use anyhow::{anyhow, Result};
 
-use std::fs::File;
-use std::io::{BufReader, Read};
 #[cfg(target_os = "windows")]use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+use common_utils::sql::{ParamType, SQLScript};
 
 use rpfm_lib::files::{Container, ContainerPath, FileType};
 use rpfm_lib::games::{*, supported_games::*};
@@ -60,7 +60,7 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
         (actions_ui.universal_rebalancer_combobox().is_enabled() && actions_ui.universal_rebalancer_combobox().current_index() != 0) ||
         (actions_ui.enable_dev_only_ui_checkbox().is_enabled() && actions_ui.enable_dev_only_ui_checkbox().is_checked()) ||
         (actions_ui.unit_multiplier_spinbox().is_enabled() && actions_ui.unit_multiplier_spinbox().value() != 1.00) ||
-        actions_ui.scripts_to_execute().read().unwrap().iter().any(|(_, item, _)| item.is_checked()) {
+        actions_ui.scripts_to_execute().read().unwrap().iter().any(|(_, item)| item.is_checked()) {
 
         // We need to use an alternative name for Shogun 2, Rome 2, Attila and Thrones because their load order logic for movie packs seems... either different or broken.
         let reserved_pack_name = if game.key() == KEY_SHOGUN_2 || game.key() == KEY_ROME_2 || game.key() == KEY_ATTILA || game.key() == KEY_THRONES_OF_BRITANNIA {
@@ -89,7 +89,9 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
         };
 
         // Prepare the command to generate the temp pack.
-        let mut cmd = Command::new(&*PATCHER_PATH);
+        let mut cmd = Command::new("cmd");
+        cmd.arg("/C");
+        cmd.arg(&*PATCHER_PATH);
         cmd.arg("-g");
         cmd.arg(game.key());
         cmd.arg("-l");
@@ -146,34 +148,33 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
         let sql_folder_remote = sql_scripts_remote_path()?.join(game.key());
         actions_ui.scripts_to_execute().read().unwrap()
             .iter()
-            .filter(|(_, item, _)| item.is_checked())
-            .for_each(|(key, item, params)| {
+            .filter(|(_, item)| item.is_checked())
+            .for_each(|(script, item)| {
                 cmd.arg("--sql-script");
 
-                let script_params = if params.is_empty() {
+                let script_params = if script.metadata().parameters().is_empty() {
                     vec![]
                 } else {
                     let mut script_params = vec![];
                     let script_container = item.parent_widget().parent_widget();
-                    for param in params {
-                        let object_name = format!("{}_{}", key, param.0);
-                        match &*param.1 {
-                            "bool" => {
+                    for param in script.metadata().parameters() {
+                        let object_name = format!("{}_{}", script.metadata().key(), param.key());
+                        match param.r#type() {
+                            ParamType::Bool => {
                                 if let Ok(widget) = script_container.find_child::<QCheckBox>(&object_name) {
                                     script_params.push(widget.is_checked().to_string());
                                 }
                             },
-                            "integer" => {
+                            ParamType::Integer => {
                                 if let Ok(widget) = script_container.find_child::<QSpinBox>(&object_name) {
                                     script_params.push(widget.value().to_string());
                                 }
                             },
-                            "float" => {
+                            ParamType::Float => {
                                 if let Ok(widget) = script_container.find_child::<QDoubleSpinBox>(&object_name) {
                                     script_params.push(widget.value().to_string());
                                 }
                             },
-                            _ => {}
                         }
                     }
 
@@ -181,8 +182,9 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
                 };
 
                 // When there's a collision, default to the local script path.
-                let local_script_path = sql_folder_local.join(format!("{key}.sql"));
-                let remote_script_path = sql_folder_remote.join(format!("{key}.sql"));
+                let script_name = format!("{}.yml", script.metadata().key());
+                let local_script_path = sql_folder_local.join(&script_name);
+                let remote_script_path = sql_folder_remote.join(&script_name);
                 let script_path = if PathBuf::from(&local_script_path).is_file() {
                     local_script_path
                 } else {
@@ -196,14 +198,14 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
                 }
             });
 
-        // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-        #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
-            cmd.creation_flags(DETACHED_PROCESS);
-        } else {
-            cmd.creation_flags(CREATE_NO_WINDOW);
-        }
+        cmd.creation_flags(DETACHED_PROCESS);
 
-        cmd.output().map_err(|err| anyhow!("Error when preparing the game patch: {}", err))?;
+        let mut h = cmd.spawn().map_err(|err| anyhow!("Error when preparing the game patch: {}", err))?;
+        if let Ok(status) = h.wait() {
+            if !status.success() {
+                return Err(anyhow!("Something failed while creating the load order patch. Check the patcher terminal to see what happened."))
+            }
+        }
     }
 
     Ok(())
@@ -541,56 +543,18 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
         script_items.clear();
 
         for path in sql_script_paths {
-            if let Ok(script_info) = get_script_info(&path) {
-                let script_item = app_ui.actions_ui().new_launch_script_option(game.key(), "autocorrection", &script_info);
-                script_items.push((script_info.0, script_item, script_info.2));
-            }
-        }
-    }
+            if let Some(extension) = path.extension() {
 
-    Ok(())
-}
-
-fn get_script_info(path: &Path) -> Result<(String, String, Vec<(String, String, String, String)>)> {
-    let mut param_list = vec![];
-    let mut file = BufReader::new(File::open(path)?);
-    let mut data = String::new();
-    file.read_to_string(&mut data)?;
-
-    let script_key = path.file_stem().unwrap().to_string_lossy().to_string();
-    let pretty_name = match data.lines().find(|x| x.starts_with("-- Pretty name:")) {
-        Some(line) => line[15..].to_owned(),
-        None => script_key.clone(),
-    };
-
-    let start_pos = data.find("-- Parameters:");
-    let end_pos = data.find("-- End of parameters.");
-
-    if let Some(start_pos) = start_pos {
-        if let Some(end_pos) = end_pos {
-            if start_pos < end_pos {
-                let params = data[start_pos + 14..end_pos]
-                    .replace("-- ", "")
-                    .replace("\r\n", "\n");
-
-                let params_split = params.split("\n")
-                    .map(|x| x.trim())
-                    .filter(|x| !x.is_empty())
-                    .map(|x| x.split(":").collect::<Vec<_>>())
-                    .filter(|x| x.len() == 4)
-                    .collect::<Vec<_>>();
-
-                for param in &params_split {
-                    let param_id = param[0];
-                    let param_type = param[1];
-                    let param_default = param[2];
-                    let param_name = param[3];
-
-                    param_list.push((param_id.to_owned(), param_type.to_owned(), param_default.to_owned(), param_name.to_owned()));
+                // Only load yml files.
+                if extension == "yml" {
+                    if let Ok(script) = SQLScript::from_path(&path) {
+                        let script_item = app_ui.actions_ui().new_launch_script_option(game.key(), "autocorrection", &script);
+                        script_items.push((script, script_item));
+                    }
                 }
             }
         }
     }
 
-    Ok((script_key, pretty_name, param_list))
+    Ok(())
 }
