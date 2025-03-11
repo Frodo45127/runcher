@@ -9,13 +9,19 @@ If you're looking for the changes included in the latest beta (against the lates
 ## [Unreleased]
 ### Added
 - Implemented "Remove Siege Attacker" launch option.
-- Implemented experimental support for applying SQL scripts to the load order.
+- Implemented "Enable Dev-Only UI" launch option.
+- Implemented experimental support for applying SQL scripts as patches to the load order.
 
 ### Changed
 - Migrated patcher logic to a separate redistributeable exe: [TWPatcher](https://github.com/Frodo45127/twpatcher).
 - Migrated workshop logic to a separate repo: [Workshopper](https://github.com/Frodo45127/workshopper)
 - Improved compilation support.
 - Disabled log-checking logic by default.
+- Movie packs can now be disabled, even when they're in data.
+- Runcher no longer checks if you're the author before uploading/updating a mod in the Workshop. This should allow (if the rumors are true and Steam actually allows it) contributors to push updates in released mods. 
+
+### Fixed
+- Fixed some situations where Empire and Napoleon would start without mods enabled.
 
 ## [0.9.9]
 ### Fixed
