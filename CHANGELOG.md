@@ -19,6 +19,7 @@ If you're looking for the changes included in the latest beta (against the lates
 - Disabled log-checking logic by default.
 - Movie packs can now be disabled, even when they're in data.
 - Runcher no longer checks if you're the author before uploading/updating a mod in the Workshop. This should allow (if the rumors are true and Steam actually allows it) contributors to push updates in released mods. 
+- The TWPatcher terminal is now visible, so you know Runcher is doing something for the few seconds it freezes when launching a game.
 
 ### Fixed
 - Fixed some situations where Empire and Napoleon would start without mods enabled.
