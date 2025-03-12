@@ -49,7 +49,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::UNIX_EPOCH;
 
-use common_utils::updater::UpdateChannel;
+use common_utils::updater::{BETA, STABLE, UpdateChannel};
 
 use rpfm_lib::games::{GameInfo, supported_games::{KEY_ARENA, KEY_WARHAMMER_3}};
 
@@ -60,7 +60,6 @@ use rpfm_ui_common::utils::*;
 
 use crate::ffi::*;
 use crate::SUPPORTED_GAMES;
-use crate::updater_ui::*;
 
 use self::slots::SettingsUISlots;
 
@@ -611,7 +610,13 @@ pub unsafe fn init_settings(main_window: &QPtr<QMainWindow>) {
 
     set_setting_if_new_string(&q_settings, "steam_api_key", "");
     set_setting_if_new_string(&q_settings, "default_game", KEY_WARHAMMER_3);
-    set_setting_if_new_string(&q_settings, "update_channel", "stable");
+
+    // Fix for bugged update channels.
+    if setting_string("update_channel") == "stable" {
+        set_setting_string("update_channel", STABLE);
+    }
+
+    set_setting_if_new_string(&q_settings, "update_channel", STABLE);
     set_setting_if_new_string(&q_settings, "language", "English_en");
     set_setting_if_new_string(&q_settings, "date_format", SLASH_DMY_DATE_FORMAT_STR);
     set_setting_if_new_bool(&q_settings, "check_updates_on_start", true);

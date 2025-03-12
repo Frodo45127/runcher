@@ -37,11 +37,6 @@ use crate::CENTRAL_COMMAND;
 use crate::communications::*;
 use crate::updater_ui::slots::UpdaterUISlots;
 
-const CHANGELOG_FILE: &str = "CHANGELOG.txt";
-
-pub const STABLE: &str = "Stable";
-pub const BETA: &str = "Beta";
-
 const VIEW_DEBUG: &str = "ui_templates/updater_dialog.ui";
 const VIEW_RELEASE: &str = "ui/updater_dialog.ui";
 
