@@ -49,7 +49,7 @@ pub fn network_loop() {
             // When we want to check if there is an update available for RPFM...
             Command::CheckUpdates(channel) => {
                 let updater = Updater::new(channel, REPO_OWNER, REPO_NAME);
-                match updater.check() {
+                match updater.check(env!("CARGO_PKG_VERSION")) {
                     Ok(response) => CentralCommand::send_back(&sender, Response::APIResponse(response)),
                     Err(error) => CentralCommand::send_back(&sender, Response::Error(error)),
                 }
