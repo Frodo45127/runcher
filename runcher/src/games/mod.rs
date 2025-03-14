@@ -8,17 +8,20 @@
 // https://github.com/Frodo45127/runcher/blob/master/LICENSE.
 //---------------------------------------------------------------------------//
 
-use qt_widgets::{QCheckBox, QDoubleSpinBox, QGridLayout, QSpinBox};
+use qt_widgets::{QCheckBox, QComboBox, QDoubleSpinBox, QGridLayout, QSpinBox};
 
-use qt_core::QString;
+use qt_gui::QResizeEvent;
+
+use qt_core::{QSize, QString};
 
 use anyhow::{anyhow, Result};
 
+use std::collections::HashMap;
 #[cfg(target_os = "windows")]use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use common_utils::sql::{ParamType, SQLScript};
+use common_utils::sql::{ParamType, Preset, SQLScript};
 
 use rpfm_lib::files::{Container, ContainerPath, FileType};
 use rpfm_lib::games::{*, supported_games::*};
@@ -27,9 +30,11 @@ use rpfm_lib::utils::files_from_subdir;
 use rpfm_ui_common::settings::*;
 
 use crate::app_ui::{AppUI, CUSTOM_MOD_LIST_FILE_NAME};
+use crate::mod_manager::game_config::GameConfig;
 #[cfg(target_os = "windows")]use crate::mod_manager::integrations::DETACHED_PROCESS;
+use crate::mod_manager::load_order::LoadOrder;
 use crate::SCHEMA;
-use crate::settings_ui::{temp_packs_folder, sql_scripts_local_path, sql_scripts_remote_path};
+use crate::settings_ui::{temp_packs_folder, sql_scripts_extracted_path, sql_scripts_local_path, sql_scripts_remote_path};
 
 pub const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
 pub const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
@@ -157,26 +162,58 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
                 } else {
                     let mut script_params = vec![];
                     let script_container = item.parent_widget().parent_widget();
-                    for param in script.metadata().parameters() {
-                        let object_name = format!("{}_{}", script.metadata().key(), param.key());
-                        match param.r#type() {
-                            ParamType::Bool => {
-                                if let Ok(widget) = script_container.find_child::<QCheckBox>(&object_name) {
-                                    script_params.push(widget.is_checked().to_string());
+
+                    // First check if we have a preset set. If not, we can check each param.
+                    let preset_combo_name = format!("{}_preset_combo", script.metadata().key());
+                    let preset_key = if let Ok(widget) = script_container.find_child::<QComboBox>(&preset_combo_name) {
+                        widget.current_text().to_std_string()
+                    } else {
+                        String::new()
+                    };
+
+                    let preset = if !preset_key.is_empty() {
+                        let preset_path = sql_scripts_extracted_path().unwrap().join("twpatcher/presets");
+                        files_from_subdir(&preset_path, false).unwrap()
+                            .iter()
+                            .filter_map(|x| Preset::read(x).ok())
+                            .find(|x| *x.key() == preset_key)
+                    } else {
+                        None
+                    };
+
+                    match preset {
+                        Some(preset) => {
+                            for param in script.metadata().parameters() {
+                                match preset.params().get(param.key()) {
+                                    Some(value) => script_params.push(value.to_string()),
+                                    None => script_params.push(param.default_value().to_string()),
                                 }
-                            },
-                            ParamType::Integer => {
-                                if let Ok(widget) = script_container.find_child::<QSpinBox>(&object_name) {
-                                    script_params.push(widget.value().to_string());
+                            }
+                        }
+                        None => {
+                            for param in script.metadata().parameters() {
+                                let object_name = format!("{}_{}", script.metadata().key(), param.key());
+                                match param.r#type() {
+                                    ParamType::Bool => {
+                                        if let Ok(widget) = script_container.find_child::<QCheckBox>(&object_name) {
+                                            script_params.push(widget.is_checked().to_string());
+                                        }
+                                    },
+                                    ParamType::Integer => {
+                                        if let Ok(widget) = script_container.find_child::<QSpinBox>(&object_name) {
+                                            script_params.push(widget.value().to_string());
+                                        }
+                                    },
+                                    ParamType::Float => {
+                                        if let Ok(widget) = script_container.find_child::<QDoubleSpinBox>(&object_name) {
+                                            script_params.push(widget.value().to_string());
+                                        }
+                                    },
                                 }
-                            },
-                            ParamType::Float => {
-                                if let Ok(widget) = script_container.find_child::<QDoubleSpinBox>(&object_name) {
-                                    script_params.push(widget.value().to_string());
-                                }
-                            },
+                            }
                         }
                     }
+
 
                     script_params
                 };
@@ -211,7 +248,7 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
     Ok(())
 }
 
-pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -> Result<()> {
+pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_config: &GameConfig, game_path: &Path, load_order: &LoadOrder) -> Result<()> {
 
     // The blockers are needed to avoid issues with game change causing incorrect status to be saved.
     app_ui.actions_ui().play_button().block_signals(true);
@@ -458,30 +495,28 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
         app_ui.actions_ui().universal_rebalancer_combobox().set_current_index(0);
 
         // We need to find all enabled packs with a copy of land_units
-        let mut load_order = app_ui.game_load_order().read().unwrap().clone();
+        let mut load_order = load_order.clone();
         if let Ok(game_data_path) = game.data_path(game_path) {
-            if let Some(ref game_config) = *app_ui.game_config().read().unwrap() {
-                load_order.update(game_config, game, &game_data_path);
+            load_order.update(game_config, game, &game_data_path);
 
-                let mut packs_for_rebalancer = load_order.packs().iter()
-                    .filter_map(|(key, pack)| {
-                        if !pack.files_by_type_and_paths(&[FileType::DB], &[ContainerPath::Folder("db/land_units_tables/".to_owned())], true).is_empty() {
-                            Some(key)
-                        } else {
-                            None
-                        }
-                    }).collect::<Vec<_>>();
+            let mut packs_for_rebalancer = load_order.packs().iter()
+                .filter_map(|(key, pack)| {
+                    if !pack.files_by_type_and_paths(&[FileType::DB], &[ContainerPath::Folder("db/land_units_tables/".to_owned())], true).is_empty() {
+                        Some(key)
+                    } else {
+                        None
+                    }
+                }).collect::<Vec<_>>();
 
-                packs_for_rebalancer.sort();
-                for pack in &packs_for_rebalancer {
-                    app_ui.actions_ui().universal_rebalancer_combobox().add_item_q_string(&QString::from_std_str(pack));
-                }
+            packs_for_rebalancer.sort();
+            for pack in &packs_for_rebalancer {
+                app_ui.actions_ui().universal_rebalancer_combobox().add_item_q_string(&QString::from_std_str(pack));
+            }
 
-                // Only apply it if it's still valid.
-                let pack_to_select = setting_string(&format!("universal_rebalancer_{}", game.key()));
-                if app_ui.actions_ui().universal_rebalancer_combobox().find_text_1a(&QString::from_std_str(&pack_to_select)) != -1 {
-                    app_ui.actions_ui().universal_rebalancer_combobox().set_current_text(&QString::from_std_str(&pack_to_select));
-                }
+            // Only apply it if it's still valid.
+            let pack_to_select = setting_string(&format!("universal_rebalancer_{}", game.key()));
+            if app_ui.actions_ui().universal_rebalancer_combobox().find_text_1a(&QString::from_std_str(&pack_to_select)) != -1 {
+                app_ui.actions_ui().universal_rebalancer_combobox().set_current_text(&QString::from_std_str(&pack_to_select));
             }
         }
     }
@@ -507,7 +542,10 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
     app_ui.actions_ui().save_combobox().block_signals(false);
     app_ui.actions_ui().open_game_content_folder().block_signals(false);
 
-    // Scripts are done in a separate step, because they're dynamic.
+    // Scripts are done in a separate step, because they're dynamic. Priority is:
+    // - Local scripts.
+    // - Extracted scripts.
+    // - Remote scripts.
     {
         let script_parent = app_ui.actions_ui().scripts_container();
         let script_layout = script_parent.layout();
@@ -524,18 +562,46 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
             }
         }
 
+        let extracted_folder = sql_scripts_extracted_path()?;
+        let extracted_scripts_folder = extracted_folder.join("twpatcher/scripts");
+        let presets_folder = extracted_folder.join("twpatcher/presets");
+
         let local_folder = sql_scripts_local_path()?;
         let remote_folder = sql_scripts_remote_path()?;
         let mut sql_script_paths = files_from_subdir(&local_folder.join(game.key()), false)?;
 
-        // Only add remote paths if they don't collide with local paths, as local paths take priority.
+        // Only add extracted paths if they don't collide with local paths, as local paths take priority.
+        if let Ok(extracted_files) = files_from_subdir(&extracted_scripts_folder.join(game.key()), false) {
+            for extracted_file in &extracted_files {
+                if let Ok(relative_path) = extracted_file.strip_prefix(&extracted_scripts_folder) {
+                    if !local_folder.join(relative_path).is_file() {
+                        sql_script_paths.push(extracted_file.to_path_buf());
+                    }
+                }
+            }
+        }
+
+        // Only add remote paths if they don't collide with local or extracted paths, as they take priority.
         if let Ok(remote_files) = files_from_subdir(&remote_folder.join(game.key()), false) {
             for remote_file in &remote_files {
                 if let Ok(relative_path) = remote_file.strip_prefix(&remote_folder) {
-                    if !local_folder.join(relative_path).is_file() {
+                    if !local_folder.join(relative_path).is_file() && !extracted_scripts_folder.join(relative_path).is_file() {
                         sql_script_paths.push(remote_file.to_path_buf());
                     }
                 }
+            }
+        }
+
+        let presets = files_from_subdir(&presets_folder, false).unwrap_or_default()
+            .iter()
+            .filter_map(|x| Preset::read(x).ok())
+            .collect::<Vec<_>>();
+
+        let mut presets_by_script: HashMap<String, Vec<Preset>> = HashMap::new();
+        for preset in &presets {
+            match presets_by_script.get_mut(preset.script_key()) {
+                Some(presets) => presets.push(preset.clone()),
+                None => { presets_by_script.insert(preset.script_key().to_owned(), vec![preset.clone()]);},
             }
         }
 
@@ -548,12 +614,18 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_path: &Path) -
                 // Only load yml files.
                 if extension == "yml" {
                     if let Ok(script) = SQLScript::from_path(&path) {
-                        let script_item = app_ui.actions_ui().new_launch_script_option(game.key(), "autocorrection", &script);
+                        let presets = presets_by_script.get(script.metadata().key()).cloned().unwrap_or_else(|| vec![]);
+                        let script_item = app_ui.actions_ui().new_launch_script_option(game.key(), "autocorrection", &script, &presets);
                         script_items.push((script, script_item));
                     }
                 }
             }
         }
+
+        // Trigger a resize of the menu, so it's not compressed.
+        let menu = app_ui.actions_ui().play_button().menu();
+        let event = QResizeEvent::new(&QSize::new_0a(), &menu.size());
+        qt_core::QCoreApplication::send_event(menu, &event);
     }
 
     Ok(())

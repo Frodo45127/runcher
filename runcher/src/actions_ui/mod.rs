@@ -36,7 +36,7 @@ use getset::*;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
-use common_utils::sql::{ParamType, SQLScript};
+use common_utils::sql::{ParamType, Preset, SQLScript};
 
 use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::settings::*;
@@ -96,10 +96,13 @@ pub struct ActionsUI {
 
 impl ActionsUI {
 
-    pub unsafe fn new_launch_script_option(&self, game_key: &str, icon_key: &str, script: &SQLScript) -> QBox<QCheckBox> {
+    pub unsafe fn new_launch_script_option(&self, game_key: &str, icon_key: &str, script: &SQLScript, presets: &[Preset]) -> QBox<QCheckBox> {
         let container = QWidget::new_1a(self.scripts_container());
+        let presets_container = QWidget::new_1a(&container);
         let params_container = QWidget::new_1a(&container);
+        let presets_layout = create_grid_layout(presets_container.static_upcast());
         let param_layout = create_grid_layout(params_container.static_upcast());
+        presets_container.set_enabled(false);
         params_container.set_enabled(false);
 
         let game_key = game_key.to_owned();
@@ -109,25 +112,58 @@ impl ActionsUI {
         let script_params = script.metadata().parameters();
 
         let settings = settings();
+        let mut there_are_presets = false;
+        let mut is_preset_selected = false;
 
         // If we have params, add a small combo widget for selecting possible prefabs.
         if !script_params.is_empty() {
-            let label_text = QLabel::from_q_string_q_widget(&qtr("preset"), &params_container);
-            let preset_combo = QComboBox::new_1a(&params_container);
-            preset_combo.add_item_q_string(&QString::new());
+            let label_text = QLabel::from_q_string_q_widget(&qtr("preset"), &presets_container);
+            let preset_combo = QComboBox::new_1a(&presets_container);
+            preset_combo.set_object_name(&QString::from_std_str(format!("{script_key}_preset_combo")));
+            preset_combo.add_item_q_string(&QString::from_std_str("No Preset"));
 
-            param_layout.add_widget_5a(&label_text, 0, 0, 1, 1);
-            param_layout.add_widget_5a(&preset_combo, 0, 1, 1, 1);
+            presets_layout.add_widget_5a(&label_text, 0, 0, 1, 1);
+            presets_layout.add_widget_5a(&preset_combo, 0, 1, 1, 1);
 
-            // TODO: Only do this if we have said preset in the files.
-            let setting = format!("script_to_execute_{}_{}_preset", game_key, script_key);
-            if settings.value_1a(&QString::from_std_str(&setting)).is_valid() {
-                preset_combo.set_current_text(&QString::from_std_str(setting_string(&setting)));
+            // If we don't have presets, just hide the widget.
+            if presets.is_empty() {
+                label_text.set_visible(false);
+                preset_combo.set_visible(false);
+
+            } else {
+                there_are_presets = true;
+
+                for preset in presets {
+                    preset_combo.add_item_q_string(&QString::from_std_str(preset.name()));
+                }
+
+                let setting_key = format!("script_to_execute_{}_{}_preset", game_key, script_key);
+                let setting = settings.value_1a(&QString::from_std_str(&setting_key));
+                if setting.is_valid() {
+                    let string = setting.to_string();
+                    if !string.is_empty() {
+                        preset_combo.set_current_text(&setting.to_string());
+                    }
+                }
+
+                if preset_combo.current_index() != 0 {
+                    is_preset_selected = true;
+                } else {
+                    set_setting_string(&setting_key, "");
+                }
+
+                let params_container_ptr = params_container.as_ptr();
+                let preset_combo_ptr = preset_combo.as_ptr();
+                preset_combo.current_index_changed().connect(&SlotOfInt::new(&preset_combo, move |value| {
+                    params_container_ptr.set_enabled(value == 0);
+
+                    set_setting_string(&setting_key, &preset_combo_ptr.item_text(value).to_std_string());
+                }));
             }
-
-            label_text.set_visible(false);
-            preset_combo.set_visible(false);
         }
+
+        // If we already have a preset set, disable the individual params.
+        params_container.set_enabled(!there_are_presets || (there_are_presets && !is_preset_selected));
 
         for (index, param) in script_params.iter().enumerate() {
             let param_key = param.key();
@@ -210,8 +246,10 @@ impl ActionsUI {
         layout.add_widget_5a(&label_text, 0, 1, 1, 1);
         layout.add_widget_5a(&label_fill, 0, 2, 1, 1);
         layout.add_widget_5a(&checkbox, 0, 3, 1, 1);
-        layout.add_widget_5a(&params_container, 1, 1, 1, 3);
+        layout.add_widget_5a(&presets_container, 1, 1, 1, 3);
+        layout.add_widget_5a(&params_container, 2, 1, 1, 3);
         layout.set_column_stretch(2, 10);
+
 
         let layout = self.scripts_container().layout().static_downcast::<QGridLayout>();
         layout.add_widget(&container);
@@ -219,8 +257,15 @@ impl ActionsUI {
         let setting = format!("script_to_execute_{}_{}", game_key, script_key);
         let is_enabled = setting_bool(&setting);
 
+        let script_key = script_key.to_owned();
         checkbox.toggled().connect(&SlotOfBool::new(&checkbox, move |state| {
-            params_container.set_enabled(state);
+            presets_container.set_enabled(state);
+
+            // Params only has to be enabled if we don't have presets selected.
+            let preset_setting_key = format!("script_to_execute_{}_{}_preset", game_key, script_key);
+            let preset_setting = settings.value_1a(&QString::from_std_str(&preset_setting_key)).to_string();
+
+            params_container.set_enabled(!there_are_presets || (there_are_presets && preset_setting.is_empty()));
 
             set_setting_bool(&setting, state);
         }));

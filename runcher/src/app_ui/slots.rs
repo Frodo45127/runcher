@@ -300,6 +300,10 @@ impl AppUISlots {
                         let mut load_order = view.game_load_order().write().unwrap();
                         load_order.update(game_config, &game_info, &game_data_path);
 
+                        if let Err(error) = setup_actions(&view, &game_info, &game_config, &game_path, &load_order) {
+                            show_dialog(view.main_window(), error, false);
+                        }
+
                         if let Err(error) = load_order.save(&game_info) {
                             show_dialog(view.main_window(), error, false);
                         }
@@ -619,6 +623,10 @@ impl AppUISlots {
                         let mut load_order = view.game_load_order().write().unwrap();
                         load_order.set_automatic(toggled);
                         load_order.update(game_config, &game, &game_data_path);
+
+                        if let Err(error) = setup_actions(&view, &game, &game_config, &game_path, &load_order) {
+                            show_dialog(view.main_window(), error, false);
+                        }
 
                         if let Err(error) = load_order.save(&game) {
                             return show_dialog(view.main_window(), error, false);

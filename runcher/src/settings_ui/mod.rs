@@ -65,6 +65,7 @@ use self::slots::SettingsUISlots;
 
 mod slots;
 
+const SQL_SCRIPTS_EXTRACTED_FOLDER: &str = "sql_scripts_extracted";
 const SQL_SCRIPTS_LOCAL_FOLDER: &str = "sql_scripts_local";
 const SQL_SCRIPTS_REMOTE_FOLDER: &str = "sql_scripts_remote";
 
@@ -667,6 +668,7 @@ pub fn init_config_path() -> Result<()> {
     DirBuilder::new().recursive(true).create(game_config_path()?)?;
     DirBuilder::new().recursive(true).create(profiles_path()?)?;
     DirBuilder::new().recursive(true).create(schemas_path()?)?;
+    DirBuilder::new().recursive(true).create(sql_scripts_extracted_path()?)?;
     DirBuilder::new().recursive(true).create(sql_scripts_remote_path()?)?;
 
     // Within the config path we need to create a folder to store the temp packs of each game.
@@ -683,6 +685,10 @@ pub fn init_config_path() -> Result<()> {
 
 pub fn temp_packs_folder(game: &GameInfo) -> Result<PathBuf> {
     Ok(config_path()?.join("temp_packs").join(game.key()))
+}
+
+pub fn sql_scripts_extracted_path() -> Result<PathBuf> {
+    Ok(config_path()?.join(SQL_SCRIPTS_EXTRACTED_FOLDER))
 }
 
 pub fn sql_scripts_local_path() -> Result<PathBuf> {

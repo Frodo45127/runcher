@@ -706,19 +706,22 @@ impl AppUI {
                     self.actions_ui().profile_combobox().add_item_q_string(&QString::from_std_str(profile));
                 }
 
-                // Load the launch options for the game selected.
+                // Load the saves list for the selected game.
                 let game_path_str = setting_string(game.key());
                 let game_path = PathBuf::from(&game_path_str);
-                let _ = setup_actions(self, game, &game_path);
-
-                // Load the saves list for the selected game.
                 if let Err(error) = self.load_saves_to_ui(game, &game_path) {
                     show_dialog(self.main_window(), error, false);
                 }
 
                 // Load the mods to the UI. This does an early return, just in case you add something after this.
                 match self.load_mods_to_ui(game, &game_path, skip_network_update) {
-                    Ok(network_receiver) => return Ok(network_receiver),
+                    Ok(network_receiver) => {
+
+                        // Load the launch options for the game selected, as some of them may depend on mods we just loaded.
+                        let _ = setup_actions(self, game, self.game_config().read().unwrap().as_ref().unwrap(), &game_path, &self.game_load_order().read().unwrap());
+
+                        return Ok(network_receiver)
+                    },
                     Err(error) => show_dialog(self.main_window(), error, false),
                 }
 
@@ -1098,7 +1101,7 @@ impl AppUI {
                     let mut load_order = self.game_load_order().write().unwrap();
                     load_order.update(game_config, &game_info, &game_data_path);
 
-                    // Reload the pack list.
+                    setup_actions(&self, &game_info, &game_config, &game_path, &load_order)?;
 
                     // No need to do the expensive stuff on autostart, as it'll never get shown.
                     if !is_autostart {
@@ -1337,6 +1340,8 @@ impl AppUI {
             self.pack_list_ui().load(game_config, &game, &game_path, &load_order)?;
             self.data_list_ui().set_enabled(false);
 
+            setup_actions(&self, &game, &game_config, &game_path, &load_order)?;
+
             game_config.save(&game)?;
 
             // Report any missing mods.
@@ -1412,6 +1417,8 @@ impl AppUI {
 
             load_order.update(game_config, &game_info, &game_data_path);
             load_order.save(&game_info)?;
+
+            setup_actions(&self, &game_info, &game_config, &game_path, &load_order)?;
 
             self.pack_list_ui().load(game_config, &game_info, &game_path, &load_order)?;
             self.data_list_ui().set_enabled(false);

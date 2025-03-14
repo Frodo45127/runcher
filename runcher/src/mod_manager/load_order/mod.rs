@@ -19,11 +19,11 @@ use std::io::{BufReader, BufWriter, Read, Write};
 use std::fs::{DirBuilder, File};
 use std::path::{Path, PathBuf};
 
-use rpfm_lib::files::pack::Pack;
+use rpfm_lib::files::{Container, ContainerPath, pack::Pack};
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
 use rpfm_lib::utils::{path_to_absolute_path, path_to_absolute_string};
 
-use crate::settings_ui::game_config_path;
+use crate::settings_ui::{game_config_path, sql_scripts_extracted_path};
 
 use super::game_config::GameConfig;
 use super::secondary_mods_path;
@@ -122,10 +122,22 @@ impl LoadOrder {
                 Some((mod_id.to_owned(), Pack::read_and_merge(&[path.to_path_buf()], true, false, false).ok()?))
             })
             .collect();
+
+        // Regenerate the extracted sql scripts and patches, based on the new load order.
+        if let Ok(sql_path) = sql_scripts_extracted_path() {
+            let _ = std::fs::remove_dir_all(&sql_path);
+            let _ = DirBuilder::new().recursive(true).create(&sql_path);
+
+            for mod_id in self.mods.iter().chain(self.movies.iter()) {
+                if let Some(pack) = self.packs.get_mut(mod_id) {
+                    let _ = pack.extract(ContainerPath::Folder("twpatcher/".to_string()), &sql_path, true, &None, false, false, &None, false);
+                }
+            }
+        }
     }
 
     /// Automatic builds means the user input is ignored, and mods are sorted alphabetically.
-    pub fn build_automatic(&mut self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path) {
+    fn build_automatic(&mut self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path) {
         self.mods.clear();
 
         self.build_movies(game_config, game, game_data_path);
@@ -169,7 +181,7 @@ impl LoadOrder {
     /// Manual builds means keep the current order, remove deleted mods, and add new ones to the end.
     ///
     /// The user will take care of the rest of the re-ordering.
-    pub fn build_manual(&mut self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path) {
+    fn build_manual(&mut self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path) {
         self.build_movies(game_config, game, game_data_path);
 
         let enabled_mods = game_config.mods()
