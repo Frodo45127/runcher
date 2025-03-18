@@ -173,10 +173,14 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
 
                     let preset = if !preset_key.is_empty() {
                         let preset_path = sql_scripts_extracted_path().unwrap().join("twpatcher/presets");
-                        files_from_subdir(&preset_path, false).unwrap()
-                            .iter()
-                            .filter_map(|x| Preset::read(x).ok())
-                            .find(|x| *x.key() == preset_key)
+                        if preset_path.is_dir() {
+                            files_from_subdir(&preset_path, false).unwrap()
+                                .iter()
+                                .filter_map(|x| Preset::read(x).ok())
+                                .find(|x| *x.key() == preset_key)
+                        } else {
+                            None
+                        }
                     } else {
                         None
                     };
