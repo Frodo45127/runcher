@@ -250,6 +250,15 @@ impl ActionsUI {
         layout.add_widget_5a(&params_container, 2, 1, 1, 3);
         layout.set_column_stretch(2, 10);
 
+        // If the script is marked as automatic, hide the UI and automatically check the checkbox.
+        if *script.metadata().automatic() {
+            label_icon.set_visible(false);
+            label_text.set_visible(false);
+            label_fill.set_visible(false);
+            checkbox.set_visible(false);
+            presets_container.set_visible(false);
+            params_container.set_visible(false);
+        }
 
         let layout = self.scripts_container().layout().static_downcast::<QGridLayout>();
         layout.add_widget(&container);
@@ -270,7 +279,7 @@ impl ActionsUI {
             set_setting_bool(&setting, state);
         }));
 
-        checkbox.set_checked(is_enabled);
+        checkbox.set_checked(is_enabled || *script.metadata().automatic());
         checkbox
     }
 
