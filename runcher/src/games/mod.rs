@@ -34,7 +34,7 @@ use crate::mod_manager::game_config::GameConfig;
 #[cfg(target_os = "windows")]use crate::mod_manager::integrations::DETACHED_PROCESS;
 use crate::mod_manager::load_order::LoadOrder;
 use crate::SCHEMA;
-use crate::settings_ui::{temp_packs_folder, sql_scripts_extracted_path, sql_scripts_local_path, sql_scripts_remote_path};
+use crate::settings_ui::{temp_packs_folder, sql_scripts_extracted_path, sql_scripts_extracted_extended_path, sql_scripts_local_path, sql_scripts_remote_path};
 
 pub const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
 pub const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
@@ -149,6 +149,7 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
         }
 
         // Script checks.
+        let sql_folder_extracted = sql_scripts_extracted_extended_path()?;
         let sql_folder_local = sql_scripts_local_path()?.join(game.key());
         let sql_folder_remote = sql_scripts_remote_path()?.join(game.key());
         actions_ui.scripts_to_execute().read().unwrap()
@@ -225,9 +226,12 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
                 // When there's a collision, default to the local script path.
                 let script_name = format!("{}.yml", script.metadata().key());
                 let local_script_path = sql_folder_local.join(&script_name);
+                let extracted_script_path = sql_folder_extracted.join(&script_name);
                 let remote_script_path = sql_folder_remote.join(&script_name);
                 let script_path = if PathBuf::from(&local_script_path).is_file() {
                     local_script_path
+                } else if PathBuf::from(&extracted_script_path).is_file() {
+                    extracted_script_path
                 } else {
                     remote_script_path
                 };
@@ -575,7 +579,7 @@ pub unsafe fn setup_actions(app_ui: &AppUI, game: &GameInfo, game_config: &GameC
         let mut sql_script_paths = files_from_subdir(&local_folder.join(game.key()), false)?;
 
         // Only add extracted paths if they don't collide with local paths, as local paths take priority.
-        if let Ok(extracted_files) = files_from_subdir(&extracted_scripts_folder.join(game.key()), false) {
+        if let Ok(extracted_files) = files_from_subdir(&extracted_scripts_folder, false) {
             for extracted_file in &extracted_files {
                 if let Ok(relative_path) = extracted_file.strip_prefix(&extracted_scripts_folder) {
                     if !local_folder.join(relative_path).is_file() {

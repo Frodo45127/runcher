@@ -691,6 +691,10 @@ pub fn sql_scripts_extracted_path() -> Result<PathBuf> {
     Ok(config_path()?.join(SQL_SCRIPTS_EXTRACTED_FOLDER))
 }
 
+pub fn sql_scripts_extracted_extended_path() -> Result<PathBuf> {
+    Ok(config_path()?.join(format!("{}/twpatcher/scripts", SQL_SCRIPTS_EXTRACTED_FOLDER)))
+}
+
 pub fn sql_scripts_local_path() -> Result<PathBuf> {
     Ok(config_path()?.join(SQL_SCRIPTS_LOCAL_FOLDER))
 }
