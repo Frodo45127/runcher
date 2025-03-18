@@ -11,6 +11,8 @@ If you're looking for the changes included in the latest beta (against the lates
 - Implemented "Remove Siege Attacker" launch option.
 - Implemented "Enable Dev-Only UI" launch option.
 - Implemented experimental support for applying SQL scripts as patches to the load order.
+- Implemented support for SQL scripts distributed inside Packs.
+- Implemented support for presets for configurable SQL scripts distributed inside Packs.
 
 ### Changed
 - Migrated patcher logic to a separate redistributeable exe: [TWPatcher](https://github.com/Frodo45127/twpatcher).
@@ -23,6 +25,7 @@ If you're looking for the changes included in the latest beta (against the lates
 
 ### Fixed
 - Fixed some situations where Empire and Napoleon would start without mods enabled.
+- Fixed default update channel sometimes getting saved wrong.
 
 ## [0.9.9]
 ### Fixed
