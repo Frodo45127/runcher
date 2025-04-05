@@ -6,7 +6,7 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
-## [Unreleased]
+## [0.9.10]
 ### Added
 - Implemented "Remove Siege Attacker" launch option.
 - Implemented "Enable Dev-Only UI" launch option.
@@ -22,6 +22,7 @@ If you're looking for the changes included in the latest beta (against the lates
 - Movie packs can now be disabled, even when they're in data.
 - Runcher no longer checks if you're the author before uploading/updating a mod in the Workshop. This should allow (if the rumors are true and Steam actually allows it) contributors to push updates in released mods. 
 - The TWPatcher terminal is now visible, so you know Runcher is doing something for the few seconds it freezes when launching a game.
+- Disabled a Shogun 2 error message that was spamming the crash report service.
 
 ### Fixed
 - Fixed some situations where Empire and Napoleon would start without mods enabled.
@@ -370,7 +371,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.9...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.10...HEAD
+[0.9.10]: https://github.com/Frodo45127/runcher/compare/v0.9.9...v0.9.10
 [0.9.9]: https://github.com/Frodo45127/runcher/compare/v0.9.8...v0.9.9
 [0.9.8]: https://github.com/Frodo45127/runcher/compare/v0.9.7...v0.9.8
 [0.9.7]: https://github.com/Frodo45127/runcher/compare/v0.9.6...v0.9.7
