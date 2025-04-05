@@ -198,7 +198,7 @@ impl PackListUI {
 
                             self.model().append_row_q_list_of_q_standard_item(row.into_ptr().as_ref().unwrap());
                         } else {
-                            error!("Error loading Pack to UI: {}", modd.paths()[0].to_string_lossy())
+                            //error!("Error loading Pack to UI: {}", modd.paths()[0].to_string_lossy())
                         }
                     }
                 }
