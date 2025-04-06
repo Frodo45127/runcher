@@ -41,7 +41,6 @@ use std::rc::Rc;
 
 use rpfm_lib::files::pack::Pack;
 use rpfm_lib::games::GameInfo;
-use rpfm_lib::integrations::log::error;
 
 use rpfm_ui_common::locale::qtr;
 use rpfm_ui_common::utils::*;
