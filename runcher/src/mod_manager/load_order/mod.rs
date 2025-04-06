@@ -297,11 +297,11 @@ impl LoadOrder {
 
                     // If it's the secondary folder, just add it once. If it's the contents folder, add one per mod.
                     let folder_path_str = path_to_absolute_string(&folder_path);
-                    if secondary_mods_path.is_dir() && folder_path == *secondary_mods_path && !*added_secondary_folder {
-
-                        // We have to add both, the secondary folder and the masking folder, so movie packs in secondary can be toggled by using masks.
-                        folder_paths.insert_str(0, &format!("add_working_directory \"{}\";\n", folder_path_str));
-                        *added_secondary_folder = true;
+                    if secondary_mods_path.is_dir() && folder_path == *secondary_mods_path {
+                        if !*added_secondary_folder {
+                            folder_paths.insert_str(0, &format!("add_working_directory \"{}\";\n", folder_path_str));
+                            *added_secondary_folder = true;
+                        }
                     } else {
                         folder_paths.push_str(&format!("add_working_directory \"{}\";\n", folder_path_str));
                     }
