@@ -75,7 +75,7 @@ use rpfm_lib::files::{Container, db::DB, EncodeableExtraData, FileType, loc::Loc
 use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::integrations::log::*;
 use rpfm_lib::schema::Schema;
-use rpfm_lib::utils::files_from_subdir;
+use rpfm_lib::utils::{files_from_subdir, path_to_absolute_string};
 
 use rpfm_ui_common::ASSETS_PATH;
 use rpfm_ui_common::clone;
@@ -938,6 +938,39 @@ impl AppUI {
         else if let Some(ref game_config) = *self.game_config().read().unwrap() {
             let load_order = self.game_load_order().read().unwrap();
             load_order.build_load_order_string(game_config, &game, &data_path, &mut pack_list, &mut folder_list);
+        }
+
+        // If our folder list contains the secondary folder, we need to make sure we create the masks folder in it,
+        // and mask in there all non-enabled movie files. Note that we only use this in games older than warhammer. Newer games use the exclude_pack_file command.
+        if *game.raw_db_version() <= 1 || (*game.raw_db_version() == 2 && (game.key() == KEY_ROME_2 || game.key() == KEY_ATTILA || game.key() == KEY_THRONES_OF_BRITANNIA)) {
+            let secondary_mods_path = secondary_mods_path(game.key()).unwrap_or_else(|_| PathBuf::new());
+            let secondary_mods_path_str = path_to_absolute_string(&secondary_mods_path);
+
+            if secondary_mods_path.is_dir() && folder_list.contains(&secondary_mods_path_str) {
+                let masks_path = secondary_mods_path.join(SECONDARY_FOLDER_NAME);
+
+                // Remove all files in it so previous maskings do not interfere.
+                if masks_path.is_dir() {
+                    std::fs::remove_dir_all(&masks_path)?;
+                }
+
+                DirBuilder::new().recursive(true).create(&masks_path)?;
+
+                let mut mask_pack = Pack::new_with_version(game.pfh_version_by_file_type(PFHFileType::Movie));
+                mask_pack.set_pfh_file_type(PFHFileType::Movie);
+
+                if let Some(ref game_config) = *self.game_config().read().unwrap() {
+                    for path in std::fs::read_dir(secondary_mods_path)? {
+                        let file_name = path?.file_name().to_string_lossy().to_string();
+
+                        if let Some(modd) = game_config.mods().get(&file_name) {
+                            if modd.pack_type() == &PFHFileType::Movie && !modd.enabled(&game, &data_path) {
+                                mask_pack.save(Some(&masks_path.join(file_name)), &game, &None)?;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Check if we are loading a save. First option is no save load. Any index above that is a save.

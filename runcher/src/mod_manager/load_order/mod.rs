@@ -20,12 +20,13 @@ use std::fs::{DirBuilder, File};
 use std::path::{Path, PathBuf};
 
 use rpfm_lib::files::{Container, ContainerPath, pack::Pack};
-use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType};
+use rpfm_lib::games::{GameInfo, pfh_file_type::PFHFileType, supported_games::*};
 use rpfm_lib::utils::{path_to_absolute_path, path_to_absolute_string};
 
 use crate::settings_ui::{game_config_path, sql_scripts_extracted_path};
 
 use super::game_config::GameConfig;
+use crate::mod_manager::SECONDARY_FOLDER_NAME;
 use super::secondary_mods_path;
 
 const FILE_NAME_START: &str = "last_load_order_";
@@ -233,24 +234,27 @@ impl LoadOrder {
     pub fn build_load_order_string(&self, game_config: &GameConfig, game: &GameInfo, game_data_path: &Path, pack_string: &mut String, folder_paths: &mut String) {
         let mut added_secondary_folder = false;
         let secondary_mods_path = secondary_mods_path(game.key()).unwrap_or_else(|_| PathBuf::new());
+        let secondary_mods_masks_path = path_to_absolute_path(&secondary_mods_path.join(SECONDARY_FOLDER_NAME), true);
         let game_data_path = game_data_path.canonicalize().unwrap();
         let mut folder_paths_mods = String::new();
 
         for mod_id in self.mods() {
-            self.process_mod(game_config, game, &game_data_path, pack_string, &mut folder_paths_mods, mod_id, &mut added_secondary_folder, &secondary_mods_path);
+            self.process_mod(game_config, game, &game_data_path, pack_string, &mut folder_paths_mods, mod_id, &mut added_secondary_folder, &secondary_mods_path, &secondary_mods_masks_path);
         }
 
         // Once we're done loading mods, we need to check for toggleable movie packs and add their paths as working folders if they're enabled.
         for mod_id in self.movies() {
-            self.process_mod(game_config, game, &game_data_path, pack_string, &mut folder_paths_mods, mod_id, &mut added_secondary_folder, &secondary_mods_path);
+            self.process_mod(game_config, game, &game_data_path, pack_string, &mut folder_paths_mods, mod_id, &mut added_secondary_folder, &secondary_mods_path, &secondary_mods_masks_path);
         }
 
         // Movie exclusions are done in the last step. We need to go through all the movie mods, and make sure to add an exclusion if they're disabled and in data or in secondary.
+        // Note that there are two ways to do exclusions: through masking movie mods, and through exclude_pack_file commands, which are only supported since Warhammer I.
+        // In modern games we use the command. In older games we have to rely on masking the movie packs with empty packs. Masking is done on launch, we don't need to do anything here.
         for modd in game_config.mods().values() {
             if !modd.enabled(game, &game_data_path) && *modd.pack_type() == PFHFileType::Movie {
 
-                // This only works for Rome 2 and later games.
-                if *game.raw_db_version() >= 1 {
+                // This only works for Warhammer I and later games.
+                if *game.raw_db_version() >= 2 && (game.key() != KEY_ROME_2 && game.key() != KEY_ATTILA && game.key() != KEY_THRONES_OF_BRITANNIA) {
                     if let Some(path) = modd.paths().first() {
                         let pack_name = path.file_name().unwrap().to_string_lossy().as_ref().to_owned();
 
@@ -278,7 +282,8 @@ impl LoadOrder {
         folder_paths: &mut String,
         mod_id: &str,
         added_secondary_folder: &mut bool,
-        secondary_mods_path: &PathBuf
+        secondary_mods_path: &PathBuf,
+        secondary_mods_masks_path: &PathBuf
     ) {
         if let Some(modd) = game_config.mods().get(mod_id) {
 
@@ -300,6 +305,12 @@ impl LoadOrder {
                     if secondary_mods_path.is_dir() && folder_path == *secondary_mods_path {
                         if !*added_secondary_folder {
                             folder_paths.insert_str(0, &format!("add_working_directory \"{}\";\n", folder_path_str));
+
+                            // This is only needed for games relying on masking movie packs.
+                            if *game.raw_db_version() <= 1 || (*game.raw_db_version() == 2 && (game.key() == KEY_ROME_2 || game.key() == KEY_ATTILA || game.key() == KEY_THRONES_OF_BRITANNIA)) {
+                                folder_paths.insert_str(0, &format!("add_working_directory \"{}\";\n", secondary_mods_masks_path.to_string_lossy()));
+                            }
+
                             *added_secondary_folder = true;
                         }
                     } else {
