@@ -13,6 +13,9 @@
 # Packs created on launch.
 /temp_packs/
 
+# SQLite databases.
+/dbs/
+
 # SQL Scripts folders
 /sql_scripts_extracted/
 /sql_scripts_local/

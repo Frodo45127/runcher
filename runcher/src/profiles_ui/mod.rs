@@ -169,7 +169,6 @@ impl ProfilesUI {
             } else if let Some(ref game_config) = *app_ui.game_config().read().unwrap() {
                 let mods = profile.load_order().mods()
                     .iter()
-                    .sorted()
                     .map(|mod_id| (mod_id, game_config.mods().get(mod_id)))
                     .collect::<Vec<_>>();
 
