@@ -9,6 +9,7 @@ If you're looking for the changes included in the latest beta (against the lates
 ## [0.9.12]
 ### Changed
 - SQL script processing should be a lot faster now.
+- New icon for Thrones, courtesy of [@Mr.Tarzan](https://github.com/new-denim).
 
 ### Fixed
 - Fixed wrong overwriting order on data view.
