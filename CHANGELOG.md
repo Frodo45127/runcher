@@ -6,6 +6,15 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.12]
+### Changed
+- SQL script processing should be a lot faster now.
+
+### Fixed
+- Fixed wrong overwriting order on data view.
+- Fixed wrong overwriting order on patching process.
+- Fixed mod list in profiles ui not displaying the correct order.
+
 ## [0.9.11]
 ### Changed
 - Movie packs can only be disabled in games since Warhammer 1. Older games can only disable them if they're not in /data.
@@ -379,7 +388,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.11...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.12...HEAD
+[0.9.12]: https://github.com/Frodo45127/runcher/compare/v0.9.11...v0.9.12
 [0.9.11]: https://github.com/Frodo45127/runcher/compare/v0.9.10...v0.9.11
 [0.9.10]: https://github.com/Frodo45127/runcher/compare/v0.9.9...v0.9.10
 [0.9.9]: https://github.com/Frodo45127/runcher/compare/v0.9.8...v0.9.9
