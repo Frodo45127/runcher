@@ -11,6 +11,9 @@ If you're looking for the changes included in the latest beta (against the lates
 - SQL script processing should be a lot faster now.
 - New icon for Thrones, courtesy of [@Mr.Tarzan](https://github.com/new-denim).
 
+### Removed
+- Removed Windows 7 support.
+
 ### Fixed
 - Fixed wrong overwriting order on data view.
 - Fixed wrong overwriting order on patching process.
