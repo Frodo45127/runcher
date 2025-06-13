@@ -11,10 +11,10 @@
 use anyhow::{anyhow, Result};
 use base64::prelude::*;
 use interprocess::local_socket::{prelude::*, GenericNamespaced, ListenerOptions};
-use regex::Regex;
 use serde::Deserialize;
 use steam_workshop_api::{client::Workshop, interfaces::i_steam_user::*};
 
+use std::cell::LazyCell;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};
@@ -33,15 +33,15 @@ use crate::mod_manager::mods::Mod;
 #[cfg(target_os = "windows")]use super::{CREATE_NEW_CONSOLE, CREATE_NO_WINDOW, DETACHED_PROCESS};
 use super::{PreUploadInfo, PublishedFileVisibilityDerive};
 
-lazy_static::lazy_static! {
-    pub static ref REGEX_URL: Regex = Regex::new(r"(\[url=)(.*)(\])(.*)(\[/url\])").unwrap();
-
-    static ref WORKSHOPPER_PATH: String = if cfg!(debug_assertions) {
-        format!(".\\target\\debug\\{}", WORKSHOPPER_EXE)
+const WORKSHOPPER_PATH: LazyCell<String> = LazyCell::new(|| {
+    let base_path = std::env::current_dir().unwrap();
+    let base_path = base_path.display();
+    if cfg!(debug_assertions) {
+        format!("{}/target/debug/{}", base_path, WORKSHOPPER_EXE)
     } else {
-        WORKSHOPPER_EXE.to_string()
-    };
-}
+        format!("{}/{}", base_path, WORKSHOPPER_EXE)
+    }
+});
 
 const WORKSHOPPER_EXE: &str = "workshopper.exe";
 

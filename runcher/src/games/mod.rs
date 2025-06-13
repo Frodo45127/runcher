@@ -16,6 +16,7 @@ use qt_core::{QSize, QString};
 
 use anyhow::{anyhow, Result};
 
+use std::cell::LazyCell;
 use std::collections::HashMap;
 #[cfg(target_os = "windows")]use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
@@ -39,13 +40,15 @@ use crate::settings_ui::{temp_packs_folder, sql_scripts_extracted_path, sql_scri
 pub const RESERVED_PACK_NAME: &str = "zzzzzzzzzzzzzzzzzzzzrun_you_fool_thron.pack";
 pub const RESERVED_PACK_NAME_ALTERNATIVE: &str = "!!!!!!!!!!!!!!!!!!!!!run_you_fool_thron.pack";
 
-lazy_static::lazy_static! {
-    static ref PATCHER_PATH: String = if cfg!(debug_assertions) {
-        format!(".\\target\\debug\\{}", PATCHER_EXE)
+const PATCHER_PATH: LazyCell<String> = LazyCell::new(|| {
+    let base_path = std::env::current_dir().unwrap();
+    let base_path = base_path.display();
+    if cfg!(debug_assertions) {
+        format!("{}/target/debug/{}", base_path, PATCHER_EXE)
     } else {
-        PATCHER_EXE.to_string()
-    };
-}
+        format!("{}/{}", base_path, PATCHER_EXE)
+    }
+});
 
 const PATCHER_EXE: &str = "twpatcher.exe";
 
