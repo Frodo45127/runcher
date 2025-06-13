@@ -6,6 +6,10 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.13]
+### Fixed
+- Fixed "file not found" and other errors caused by windows using the wrong terminal to launch programs.
+
 ## [0.9.12]
 ### Changed
 - SQL script processing should be a lot faster now.
