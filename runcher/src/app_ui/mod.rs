@@ -926,6 +926,7 @@ impl AppUI {
 
                     let mut encode_data = EncodeableExtraData::default();
                     encode_data.set_nullify_dates(true);
+                    encode_data.set_game_info(Some(&game));
 
                     reserved_pack.save(Some(&temp_path), &game, &Some(encode_data))?;
                 }
