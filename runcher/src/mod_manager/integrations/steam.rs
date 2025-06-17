@@ -266,7 +266,7 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
     // If we're force-updating (the default) we just open and resave the pack to update the timestamp so steam detects it as different.
     if force_update {
         let extra_data = Some(EncodeableExtraData::new_from_game_info(game));
-        let mut pack = Pack::read_and_merge(&[PathBuf::from(&pack_path)], true, false, false)?;
+        let mut pack = Pack::read_and_merge(&[PathBuf::from(&pack_path)], game, true, false, false)?;
         pack.save(None, game, &extra_data)?;
     }
 

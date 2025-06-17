@@ -201,7 +201,7 @@ impl GameConfig {
                 if let Ok(ref content_path) = content_path {
                     if let Some(ref paths) = content_paths {
                         let (packs, maps): (Vec<_>, Vec<_>) = paths.par_iter()
-                            .partition_map(|path| match Pack::read_and_merge(&[path.to_path_buf()], true, false, false) {
+                            .partition_map(|path| match Pack::read_and_merge(&[path.to_path_buf()], game, true, false, false) {
                                 Ok(pack) => Either::Left((path, pack)),
                                 Err(_) => Either::Right(path),
                             });
@@ -345,7 +345,7 @@ impl GameConfig {
                         .collect::<Vec<_>>();
 
                     let packs = paths.par_iter()
-                        .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false, false)))
+                        .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], game, true, false, false)))
                         .collect::<Vec<_>>();
 
                     for (path, pack) in packs {
@@ -418,7 +418,7 @@ impl GameConfig {
                         .collect::<Vec<_>>();
 
                     let packs = paths.par_iter()
-                        .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], true, false, false)))
+                        .map(|path| (path, Pack::read_and_merge(&[path.to_path_buf()], game, true, false, false)))
                         .collect::<Vec<_>>();
 
                     for (path, pack) in packs {

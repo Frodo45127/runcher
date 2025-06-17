@@ -157,7 +157,7 @@ impl DataListUI {
                 .collect::<Vec<_>>();
 
             let mut base_packs = vanilla_paths.iter().chain(movie_paths.iter())
-                .filter_map(|path| Pack::read_and_merge(&[path.to_path_buf()], true, false, false).ok())
+                .filter_map(|path| Pack::read_and_merge(&[path.to_path_buf()], game, true, false, false).ok())
                 .collect::<Vec<_>>();
 
             base_packs.sort_by(|pack_a, pack_b| if pack_a.pfh_file_type() != pack_b.pfh_file_type() {

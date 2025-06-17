@@ -152,7 +152,7 @@ impl PackListUI {
                         //
                         // In practice if a bin pack loads here, there's a bug elsewhere.
                         if pack_name.ends_with(".pack") {
-                            let pack = Pack::read_and_merge(&[modd.paths()[0].to_path_buf()], true, false, false)?;
+                            let pack = Pack::read_and_merge(&[modd.paths()[0].to_path_buf()], game_info, true, false, false)?;
 
                             let item_name = Self::new_item();
                             let item_type = Self::new_item();

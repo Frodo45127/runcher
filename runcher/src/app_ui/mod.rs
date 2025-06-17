@@ -896,7 +896,7 @@ impl AppUI {
     pub unsafe fn launch_game(&self) -> Result<()> {
         let mut folder_list = String::new();
         let mut pack_list = String::new();
-        let game = self.game_selected().read().unwrap();
+        let game = self.game_selected().read().unwrap().clone();
         let game_path = setting_path(game.key());
         let data_path = game.data_path(&game_path)?;
 
@@ -920,7 +920,7 @@ impl AppUI {
                 .collect::<Vec<_>>();
 
                 if !pack_paths.is_empty() {
-                    let mut reserved_pack = Pack::read_and_merge(&pack_paths, true, false, true)?;
+                    let mut reserved_pack = Pack::read_and_merge(&pack_paths, &game, true, false, true)?;
                     let pack_version = game.pfh_version_by_file_type(PFHFileType::Mod);
                     reserved_pack.set_pfh_version(pack_version);
 
@@ -2121,7 +2121,7 @@ impl AppUI {
                 Response::VecMod(workshop_items) => {
                     let mut game_config = self.game_config().write().unwrap();
                     if let Some(ref mut game_config) = *game_config {
-                        let game = self.game_selected().read().unwrap();
+                        let game = self.game_selected().read().unwrap().clone();
                         let game_path = setting_path(game.key());
 
                         if populate_mods_with_online_data(game_config.mods_mut(), &workshop_items).is_ok() {
@@ -2153,7 +2153,7 @@ impl AppUI {
                                     if legacy_mod && modd.file_name().ends_with(".pack"){
 
                                         // This is for Packs. Map mods use a different process.
-                                        if let Ok(mut pack) = Pack::read_and_merge(&[last_path.to_path_buf()], true, false, false) {
+                                        if let Ok(mut pack) = Pack::read_and_merge(&[last_path.to_path_buf()], &game, true, false, false) {
                                             if let Ok(ref data_path) = game_data_path {
 
                                                 let mod_name = if legacy_mod {
