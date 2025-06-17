@@ -6,6 +6,11 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.14]
+### Changed
+- Updated RPFM lib to 4.4.2, to support Lz4 and Zstd compressed files.
+- TWPatcher output error should now be shown when it fails to execute.
+
 ## [0.9.13]
 ### Fixed
 - Fixed "file not found" and other errors caused by windows using the wrong terminal to launch programs.
@@ -396,7 +401,9 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.12...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.14...HEAD
+[0.9.14]: https://github.com/Frodo45127/runcher/compare/v0.9.13...v0.9.14
+[0.9.13]: https://github.com/Frodo45127/runcher/compare/v0.9.12...v0.9.13
 [0.9.12]: https://github.com/Frodo45127/runcher/compare/v0.9.11...v0.9.12
 [0.9.11]: https://github.com/Frodo45127/runcher/compare/v0.9.10...v0.9.11
 [0.9.10]: https://github.com/Frodo45127/runcher/compare/v0.9.9...v0.9.10
