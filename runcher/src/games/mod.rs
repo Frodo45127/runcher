@@ -20,7 +20,7 @@ use std::cell::LazyCell;
 use std::collections::HashMap;
 #[cfg(target_os = "windows")]use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use common_utils::sql::{ParamType, Preset, SQLScript};
 
@@ -248,10 +248,16 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
 
         cmd.creation_flags(DETACHED_PROCESS);
 
-        let mut h = cmd.spawn().map_err(|err| anyhow!("Error when preparing the game patch: {}", err))?;
-        if let Ok(status) = h.wait() {
-            if !status.success() {
-                return Err(anyhow!("Something failed while creating the load order patch. Check the patcher terminal to see what happened."))
+        let h = cmd
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn().map_err(|err| anyhow!("Error when preparing the game patch: {}", err))?;
+
+        if let Ok(output) = h.wait_with_output() {
+            if !output.status.success() {
+                let out = String::from_utf8(output.stdout)?;
+                let err = String::from_utf8(output.stderr)?;
+                return Err(anyhow!("Something failed while creating the load order patch. Check the patcher terminal to see what happened. Specifically, this: \n\n{err}\n\nHere's the rest of the output: \n\n{out}"))
             }
         }
     }
