@@ -117,7 +117,7 @@ Remove-Item -fo I:\deploy\runcher-release-assets\icons\breeze-icons.rcc
 Remove-Item -fo I:\deploy\runcher-release-assets\icons\breeze-icons-dark.rcc
 
 Set-Location I:\deploy
-7z a runcher-$RUNCHER_VERSION-x86_64-pc-windows-msvc.zip .\**
+7z a runcher-v$RUNCHER_VERSION-x86_64-pc-windows-msvc.zip .\**
 
 # Move back to the original folder.
 Set-Location $RUNCHER_PATH
