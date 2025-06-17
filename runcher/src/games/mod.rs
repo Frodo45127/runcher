@@ -255,9 +255,19 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
 
         if let Ok(output) = h.wait_with_output() {
             if !output.status.success() {
-                let out = String::from_utf8(output.stdout)?;
-                let err = String::from_utf8(output.stderr)?;
-                return Err(anyhow!("Something failed while creating the load order patch. Check the patcher terminal to see what happened. Specifically, this: \n\n{err}\n\nHere's the rest of the output: \n\n{out}"))
+                let mut err_message = String::from("Something failed while creating the load order patch. Check the patcher terminal to see what happened.");
+
+                let out = String::from_utf8(output.stdout).unwrap_or_default();
+                let err = String::from_utf8(output.stderr).unwrap_or_default();
+                if !err.is_empty() {
+                    err_message.push_str(&format!("Specifically, this: \n\n{err}"));
+
+                    if !out.is_empty() {
+                        err_message.push_str(&format!("\n\nHere's the rest of the output: \n\n{out}"));
+                    }
+                }
+
+                return Err(anyhow!(err_message))
             }
         }
     }
