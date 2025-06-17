@@ -6,6 +6,11 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.15]
+### Fixed
+- Fixed TWPatcher not saving the patched pack correctly.
+- Fixed ominous message when TWPatcher fails to generate a patch.
+
 ## [0.9.14]
 ### Changed
 - Updated RPFM lib to 4.4.2, to support Lz4 and Zstd compressed files.
@@ -401,7 +406,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.14...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.15...HEAD
+[0.9.15]: https://github.com/Frodo45127/runcher/compare/v0.9.14...v0.9.15
 [0.9.14]: https://github.com/Frodo45127/runcher/compare/v0.9.13...v0.9.14
 [0.9.13]: https://github.com/Frodo45127/runcher/compare/v0.9.12...v0.9.13
 [0.9.12]: https://github.com/Frodo45127/runcher/compare/v0.9.11...v0.9.12
