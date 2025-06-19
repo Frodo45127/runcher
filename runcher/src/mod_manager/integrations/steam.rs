@@ -46,6 +46,9 @@ const WORKSHOPPER_PATH: LazyCell<String> = LazyCell::new(|| {
 const WORKSHOPPER_EXE: &str = "workshopper.exe";
 
 const BAT_UPLOAD_TO_WORKSHOP: &str = "upload-to-workshop.bat";
+const BAT_LAUNCH_GAME: &str = "launch-game.bat";
+const BAT_USER_ID: &str = "user-id.bat";
+const BAT_DOWNLOAD_SUBSCRIBED_ITEMS: &str = "download-subscribed-items.bat";
 const BAT_GET_PUBLISHED_FILE_DETAILS: &str = "get-published-file-details.bat";
 
 //-------------------------------------------------------------------------------//
@@ -160,22 +163,8 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
     let published_file_ids = mod_ids.join(",");
     let ipc_channel = rand::random::<u64>().to_string();
 
-    let command_string = format!("{} get-published-file-details -s {steam_id} -p {published_file_ids} -i {ipc_channel} & exit", &*WORKSHOPPER_PATH);
-    let mut file = BufWriter::new(File::create(BAT_GET_PUBLISHED_FILE_DETAILS)?);
-    file.write_all(command_string.as_bytes())?;
-    file.flush()?;
-
-    let mut command = Command::new("cmd");
-    command.arg("/C");
-    command.arg(BAT_GET_PUBLISHED_FILE_DETAILS);
-
-    // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
-        command.creation_flags(DETACHED_PROCESS);
-    } else {
-        command.creation_flags(CREATE_NO_WINDOW);
-    }
-
+    let command_string = format!("get-published-file-details -s {steam_id} -p {published_file_ids} -i {ipc_channel} & exit");
+    let mut command = build_command_from_str(&command_string, BAT_GET_PUBLISHED_FILE_DETAILS, false, false)?;
     command.spawn()?;
 
     let channel = ipc_channel.to_ns_name::<GenericNamespaced>()?;
@@ -273,8 +262,7 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
     // If we have a published_file_id, it means this file exists in the workshop.
     //
     // So, instead of uploading, we just update it.
-    let mut command_string = format!("{} {} -b -s {steam_id} -f \"{pack_path}\" -t {} --tags {}",
-        &*WORKSHOPPER_PATH,
+    let mut command_string = format!("{} -b -s {steam_id} -f \"{pack_path}\" -t {} --tags \"{}\"",
         match modd.steam_id() {
             Some(published_file_id) => format!("update --published-file-id {published_file_id}"),
             None => "upload".to_string(),
@@ -297,16 +285,7 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
 
     command_string.push_str(" & exit");
 
-    let mut file = BufWriter::new(File::create(BAT_UPLOAD_TO_WORKSHOP)?);
-    file.write_all(command_string.as_bytes())?;
-    file.flush()?;
-
-    let mut command = Command::new("cmd");
-    command.arg("/C");
-    command.arg(BAT_UPLOAD_TO_WORKSHOP);
-
-    // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")]command.creation_flags(CREATE_NEW_CONSOLE);
+    let mut command = build_command_from_str(&command_string, BAT_UPLOAD_TO_WORKSHOP, false, true)?;
     command.spawn()?;
 
     Ok(())
@@ -317,25 +296,8 @@ pub fn launch_game(game: &GameInfo, command_to_pass: &str, wait_for_finish: bool
     let game_path = setting_path(game.key());
     let steam_id = game.steam_id(&game_path)? as u32;
 
-    let mut command = Command::new("cmd");
-    command.arg("/C");
-    command.arg(&*WORKSHOPPER_PATH);
-    command.arg("launch");
-
-    // Due to issues passing certain characters to the terminal, we encode the strings to base64 and pass -b.
-    command.arg("-b");
-    command.arg("-s");
-    command.arg(steam_id.to_string());
-    command.arg("-c");
-    command.arg(command_to_pass);
-
-    // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
-        command.creation_flags(DETACHED_PROCESS);
-    } else {
-        command.creation_flags(CREATE_NO_WINDOW);
-    }
-
+    let command_string = format!("launch -b -s {steam_id} -c {command_to_pass}");
+    let mut command = build_command_from_str(&command_string, BAT_LAUNCH_GAME, false, false)?;
     let mut handle = command.spawn()?;
 
     if wait_for_finish {
@@ -350,22 +312,13 @@ pub fn download_subscribed_mods(game: &GameInfo, published_file_ids: &Option<Vec
     let game_path = setting_path(game.key());
     let steam_id = game.steam_id(&game_path)? as u32;
 
-    let mut command = Command::new("cmd");
-    command.arg("/C");
-    command.arg(&*WORKSHOPPER_PATH);
-
-    command.arg("download-subscribed-items");
-    command.arg("-s");
-    command.arg(steam_id.to_string());
-
+    let mut command_string = format!("download-subscribed-items -s {steam_id}");
     if let Some(published_file_ids) = published_file_ids {
-        command.arg("-p");
-        command.arg(published_file_ids.join(","));
+        command_string.push_str(" -p ");
+        command_string.push_str(&published_file_ids.join(","));
     }
 
-    // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")]command.creation_flags(DETACHED_PROCESS);
-
+    let mut command = build_command_from_str(&command_string, BAT_DOWNLOAD_SUBSCRIBED_ITEMS, true, false)?;
     let mut handle = command.spawn()?;
     handle.wait()?;
 
@@ -377,23 +330,8 @@ pub fn user_id(game: &GameInfo) -> Result<u64> {
     let steam_id = game.steam_id(&game_path)? as u32;
     let ipc_channel = rand::random::<u64>().to_string();
 
-    let mut command = Command::new("cmd");
-    command.arg("/C");
-    command.arg(&*WORKSHOPPER_PATH);
-
-    command.arg("user-id");
-    command.arg("-s");
-    command.arg(steam_id.to_string());
-    command.arg("-i");
-    command.arg(&ipc_channel);
-
-    // This is for creating the terminal window. Without it, the entire process runs in the background and there's no feedback on when it's done.
-    #[cfg(target_os = "windows")] if cfg!(debug_assertions) {
-        command.creation_flags(DETACHED_PROCESS);
-    } else {
-        command.creation_flags(CREATE_NO_WINDOW);
-    }
-
+    let command_string = format!("user-id -s {steam_id} -i {ipc_channel}");
+    let mut command = build_command_from_str(&command_string, BAT_USER_ID, false, false)?;
     let _ = command.spawn()?;
 
     let channel = ipc_channel.to_ns_name::<GenericNamespaced>()?;
@@ -448,4 +386,30 @@ pub fn toggle_game_locked(game: &GameInfo, game_path: &Path, toggle: bool) -> Re
     std::fs::set_permissions(app_path, permissions.clone())?;
 
     Ok(permissions.readonly())
+}
+
+fn build_command_from_str(cmd: &str, bat_name: &str, force_detached_process: bool, force_new_console: bool) -> Result<Command> {
+    let cmd = format!("\"{}\" {cmd}", WORKSHOPPER_PATH.as_str());
+
+    let mut file = BufWriter::new(File::create(bat_name)?);
+    file.write_all(cmd.as_bytes())?;
+    file.flush()?;
+
+    let mut command = Command::new("cmd");
+    command.arg("/C");
+    command.arg(bat_name);
+
+    // This is for creating the terminal window under windows. Without it, the entire process
+    // runs in the background and there's no feedback on when it's done.
+    #[cfg(target_os = "windows")]if force_detached_process {
+        command.creation_flags(DETACHED_PROCESS);
+    } else if force_new_console {
+        command.creation_flags(CREATE_NEW_CONSOLE);
+    } else if cfg!(debug_assertions) {
+        command.creation_flags(DETACHED_PROCESS);
+    } else {
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    Ok(command)
 }
