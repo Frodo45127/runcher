@@ -18,6 +18,8 @@ use anyhow::{anyhow, Result};
 
 use std::cell::LazyCell;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::{BufWriter, Write};
 #[cfg(target_os = "windows")]use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -51,6 +53,7 @@ const PATCHER_PATH: LazyCell<String> = LazyCell::new(|| {
 });
 
 const PATCHER_EXE: &str = "twpatcher.exe";
+const PATCHER_LAUNCH_SCRIPT: &str = "patcher-launch.bat";
 
 //-------------------------------------------------------------------------------//
 //                             Implementations
@@ -96,59 +99,54 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
             data_path.join(reserved_pack_name)
         };
 
-        // Prepare the command to generate the temp pack.
-        let mut cmd = Command::new("cmd");
-        cmd.arg("/C");
-        cmd.arg(&*PATCHER_PATH);
-        cmd.arg("-g");
-        cmd.arg(game.key());
-        cmd.arg("-l");
-        cmd.arg(CUSTOM_MOD_LIST_FILE_NAME);
-        cmd.arg("-p");
-        cmd.arg(temp_path.to_string_lossy().to_string());   // Use a custom path out of /data, if available.
-        cmd.arg("-s");                                      // Skip updates. Updates will be shipped with Runcher updates.
+        // Prepare the command to generate the temp pack. We do it as a string because, after a lot of testing,
+        // the escaping of Command is extremely unreliable on windows when using cmd.
+        let mut cmd_str = format!("-g {} -l {CUSTOM_MOD_LIST_FILE_NAME} -p \"{}\" -s",
+            game.key(),
+            temp_path.to_string_lossy().to_string()
+        );
 
         // Logging check.
         if actions_ui.enable_logging_checkbox().is_enabled() && actions_ui.enable_logging_checkbox().is_checked() {
-            cmd.arg("-e");
+            cmd_str.push_str(" -e ");
         }
 
         // Skip Intros check.
         if actions_ui.enable_skip_intro_checkbox().is_enabled() && actions_ui.enable_skip_intro_checkbox().is_checked() {
-            cmd.arg("-i");
+            cmd_str.push_str(" -i ");
         }
 
         // Remove Trait Limit check.
         if actions_ui.remove_trait_limit_checkbox().is_enabled() && actions_ui.remove_trait_limit_checkbox().is_checked() {
-            cmd.arg("-r");
+            cmd_str.push_str(" -r ");
         }
 
         // Remove Siege Attacker check.
         if actions_ui.remove_siege_attacker_checkbox().is_enabled() && actions_ui.remove_siege_attacker_checkbox().is_checked() {
-            cmd.arg("-a");
+            cmd_str.push_str(" -a ");
         }
 
         // Enable Dev-only UI check.
         if actions_ui.enable_dev_only_ui_checkbox().is_enabled() && actions_ui.enable_dev_only_ui_checkbox().is_checked() {
-            cmd.arg("-d");
+            cmd_str.push_str(" -d ");
         }
 
         // Translations check.
         if actions_ui.enable_translations_combobox().is_enabled() && actions_ui.enable_translations_combobox().current_index() != 0 {
-            cmd.arg("-t");
-            cmd.arg(app_ui.actions_ui().enable_translations_combobox().current_text().to_std_string());
+            cmd_str.push_str(" -t ");
+            cmd_str.push_str(&app_ui.actions_ui().enable_translations_combobox().current_text().to_std_string());
         }
 
         // Universal Rebalancer check.
         if actions_ui.universal_rebalancer_combobox().is_enabled() && actions_ui.universal_rebalancer_combobox().current_index() != 0 {
-            cmd.arg("-u");
-            cmd.arg(app_ui.actions_ui().universal_rebalancer_combobox().current_text().to_std_string());
+            cmd_str.push_str(" -u ");
+            cmd_str.push_str(&app_ui.actions_ui().universal_rebalancer_combobox().current_text().to_std_string());
         }
 
         // Unit Multiplier check.
         if actions_ui.unit_multiplier_spinbox().is_enabled() && actions_ui.unit_multiplier_spinbox().value() != 1.00 {
-            cmd.arg("-m");
-            cmd.arg(app_ui.actions_ui().unit_multiplier_spinbox().value().to_string());
+            cmd_str.push_str(" -m ");
+            cmd_str.push_str(&app_ui.actions_ui().unit_multiplier_spinbox().value().to_string());
         }
 
         // Script checks.
@@ -159,7 +157,7 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
             .iter()
             .filter(|(_, item)| item.is_checked())
             .for_each(|(script, item)| {
-                cmd.arg("--sql-script");
+                cmd_str.push_str(" --sql-script ");
 
                 let script_params = if script.metadata().parameters().is_empty() {
                     vec![]
@@ -239,12 +237,23 @@ pub unsafe fn prepare_launch_options(app_ui: &AppUI, game: &GameInfo, data_path:
                     remote_script_path
                 };
 
+                let script_path = script_path.to_string_lossy().replace("\\", "/");
                 if script_params.is_empty() {
-                    cmd.arg(script_path);
+                    cmd_str.push_str(&format!(" \"{script_path}\" "));
                 } else {
-                    cmd.arg(format!("{};{}", script_path.to_string_lossy().to_string().replace("\\", "/"), script_params.join(";")));
+                    cmd_str.push_str(&format!(" \"{script_path};{}\" ", script_params.join(";")));
                 }
             });
+
+        let cmd = format!("\"{}\" {cmd_str} & exit", PATCHER_PATH.as_str());
+
+        let mut file = BufWriter::new(File::create(PATCHER_LAUNCH_SCRIPT)?);
+        file.write_all(cmd.as_bytes())?;
+        file.flush()?;
+
+        let mut cmd = Command::new("cmd");
+        cmd.arg("/C");
+        cmd.arg(PATCHER_LAUNCH_SCRIPT);
 
         cmd.creation_flags(DETACHED_PROCESS);
 

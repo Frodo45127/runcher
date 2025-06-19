@@ -163,7 +163,7 @@ pub fn request_mods_data_raw(game: &GameInfo, mod_ids: &[String]) -> Result<Vec<
     let published_file_ids = mod_ids.join(",");
     let ipc_channel = rand::random::<u64>().to_string();
 
-    let command_string = format!("get-published-file-details -s {steam_id} -p {published_file_ids} -i {ipc_channel} & exit");
+    let command_string = format!("get-published-file-details -s {steam_id} -p {published_file_ids} -i {ipc_channel}");
     let mut command = build_command_from_str(&command_string, BAT_GET_PUBLISHED_FILE_DETAILS, false, false)?;
     command.spawn()?;
 
@@ -283,8 +283,6 @@ pub fn upload_mod_to_workshop(game: &GameInfo, modd: &Mod, title: &str, descript
         command_string.push_str(&format!(" --visibility {visibility}"));
     }
 
-    command_string.push_str(" & exit");
-
     let mut command = build_command_from_str(&command_string, BAT_UPLOAD_TO_WORKSHOP, false, true)?;
     command.spawn()?;
 
@@ -389,7 +387,7 @@ pub fn toggle_game_locked(game: &GameInfo, game_path: &Path, toggle: bool) -> Re
 }
 
 fn build_command_from_str(cmd: &str, bat_name: &str, force_detached_process: bool, force_new_console: bool) -> Result<Command> {
-    let cmd = format!("\"{}\" {cmd}", WORKSHOPPER_PATH.as_str());
+    let cmd = format!("\"{}\" {cmd} & exit", WORKSHOPPER_PATH.as_str());
 
     let mut file = BufWriter::new(File::create(bat_name)?);
     file.write_all(cmd.as_bytes())?;
