@@ -6,6 +6,10 @@ and this project doesn't adhere to [Semantic Versioning](https://semver.org/spec
 
 If you're looking for the changes included in the latest beta (against the latest stable version), check the unreleased section.
 
+## [0.9.17]
+### Fixed
+- Fixed translations not loading properly when they're out of sync with their pack.
+
 ## [0.9.16]
 ### Fixed
 - Fixed remaining issues (hopefully) regarding interactions between Runcher and TWPatcher/Workshopper.
@@ -411,7 +415,8 @@ If you're looking for the changes included in the latest beta (against the lates
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.16...HEAD
+[Unreleased]: https://github.com/Frodo45127/runcher/compare/v0.9.17...HEAD
+[0.9.17]: https://github.com/Frodo45127/runcher/compare/v0.9.16...v0.9.17
 [0.9.16]: https://github.com/Frodo45127/runcher/compare/v0.9.15...v0.9.16
 [0.9.15]: https://github.com/Frodo45127/runcher/compare/v0.9.14...v0.9.15
 [0.9.14]: https://github.com/Frodo45127/runcher/compare/v0.9.13...v0.9.14
